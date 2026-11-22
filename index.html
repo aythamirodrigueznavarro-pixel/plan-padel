@@ -174,8 +174,8 @@ const WARMUP=[
   ex("post-lumbar","Descarga lumbar","Rodillas al pecho y rotaciones tumbado · 3 min","Respira lento.","lower back decompression after sport",1,["seg"],{seg:180},0),
   ex("post-rodillo","Rodillo","Gemelos, cuádriceps y glúteo · 5 min","Sin buscar dolor.","foam roll after match",1,["seg"],{seg:300},0)]}];
 
-const SESSION_A={id:"A",wd:1,title:"A · Pierna: fuerza y rodilla",sub:"La sesión más pesada de la semana. Si hoy juegas, que sea a las 20:00, nunca a mediodía.",kinds:["gym"],gym:55,padel:0,rpe:[7,8],warn:"Pierna pesada y saltos: mide la glucosa antes de empezar.",blocks:[
- {id:"a0",title:"Calentamiento",note:"1 vuelta · 8 min",ex:[
+const SESSION_A={id:"A",wd:1,title:"A · Pierna: primer paso, fuerza y rodilla",sub:"La sesión más pesada de la semana. Si hoy juegas, que sea a las 20:00, nunca a mediodía.",kinds:["gym"],gym:55,padel:0,rpe:[7,8],warn:"Pierna pesada y saltos: mide la glucosa antes de empezar.",blocks:[
+ {id:"a0",title:"Calentamiento",note:"1 vuelta · 7 min",ex:[
   ex("a-bici","Bici estática","2 min suave","Pedalea fácil, que puedas hablar.","stationary bike warm up",1,["seg"],{seg:120},0),
   ex("a-tobillo","Movilidad de tobillo con goma","10 por pierna","Rodilla hacia delante sin levantar el talón.","ankle mobility band knee to wall",1,["reps"],{reps:10},0),
   ex("a-9090","Cadera 90/90","6 cambios por lado","El giro sale de la cadera, espalda recta.","90 90 hip switch mobility",1,["reps"],{reps:6},0),
@@ -335,7 +335,7 @@ const dateOf=wd=>{const m=monday();m.setDate(m.getDate()+wd-1);return m};
 const dayKey=(d=new Date())=>d.toISOString().slice(0,10);
 const dayOpts=()=>((S.opts||{})[dayKey()])||{};
 const setDayOpt=(k,v)=>{S.opts=S.opts||{};const o=S.opts[dayKey()]||{};o[k]=v;S.opts[dayKey()]=o;save()};
-const today=()=>materialize(DAYS[(new Date().getDay()+6)%7],new Date(),dayOpts());
+const today=()=>{const o=dayOpts(),sw=o.swap&&DAYS.find(x=>x.id===o.swap);return materialize(sw||DAYS[(new Date().getDay()+6)%7],new Date(),o)};
 const yt=q=>"https://www.youtube.com/results?search_query="+encodeURIComponent(q);
 /* Vídeos comprobados (se pueden ver dentro de la app). Si eliges otro, se guarda en S.videos. */
 const VIDEOS={"landmine-rot":{"v":"911qQuwcEMQ","autor":"GPS Human Performance"},"curl-martillo":{"v":"zC3nLlEvin4","autor":"ScottHermanFitness"},"ytw-banco":{"v":"F2HZmu9KyyU","autor":"Zach Connell"},"sprint-rampa":{"v":"PSNS6n9sMDY","autor":"Omar Powell"},"elev-rodillas":{"v":"p9hhX_Sx5v0","autor":"Signum Fitness & Nutrition"},"reactiva":{"v":"roiLnGi_29Q","autor":"PowerLux Fitness"},"lateral-sprint":{"v":"Vu-2wL-dt7Q","autor":"Simple Speed Coach"},"a-bici":{"v":"h2WtDZrLHmk","autor":"Bestcycling"},"a-tobillo":{"v":"ILSbK8RnGdI","autor":"Squat University"},"a-9090":{"v":"MmBb1latnw0","autor":"Xabier Revuelta - FISIOTERAPEUTA"},"a-monster":{"v":"dHJOQ4mjQ30","autor":"Bret Contreras Glute Guy"},"sentadilla":{"v":"Akd5xmZlsvg","autor":"Catalyst Athletics"},"a-cajon":{"v":"R7sS0PfPfHk","autor":"Ambitious Athletics"},"rdl":{"v":"2POPaloE-SM","autor":"Squat University"},"copenhague":{"v":"ACfxr2P5pGQ","autor":"Xabier Revuelta - FISIOTERAPEUTA"},"bulgara":{"v":"bwhl_9jN_3o","autor":"Squat University"},"stepdown":{"v":"JyhOe6NdQoo","autor":"Trainerclub"},"nordico":{"v":"0ia97P5konQ","autor":"Squat University"},"plancha-abd":{"v":"14--dVJ-tU4","autor":"Proet Ejercicio Terapéutico"},"b-w":{"v":"vQYyHMviZCI","autor":"West Coast Strength"},"b-rot":{"v":"wjBA3Qc_38g","autor":"Clínica Fisiofert"},"b-escap":{"v":"zbVUBByJRqY","autor":"Proet Ejercicio Terapéutico"},"push-press":{"v":"iaBVSJm78ko","autor":"CrossFit"},"lanz-rot":{"v":"o9BC7lgN1bo","autor":"Live Lean TV Daily Exercises"},"press-db":{"v":"mTaiQemkEpU","autor":"Andrew Kwong (DeltaBolic)"},"flex-plio":{"v":"hDP-oskzYUs","autor":"Atomic Athlete"},"landmine-press":{"v":"PFIn5PFiajQ","autor":"Darío Orcajada / Perder la barriga"},"pallof":{"v":"o_CxFP4FJhA","autor":"Instituto de Entrenamiento Personal"},"cuban":{"v":"67ewzBXws7M","autor":"MoveU"},"hollow":{"v":"DKJXFzz9BBk","autor":"Nacho Romero | Proyecto Columna"},"rod-gemelo":{"v":"-MOyVz9lFF4","autor":"Fisio andTherapies"},"rod-cuad":{"v":"-DuuGm0_5r0","autor":"Rude Rock Human Performance"},"rod-espalda":{"v":"NS73eSohTbc","autor":"National Academy of Sports Medicine (NASM)"},"rana":{"v":"ft0F3gQUiM4","autor":"GLORY SPORT PHYSIO"},"toracica":{"v":"yHTbstQDkKc","autor":"Athletic Authority"},"x-eliptica":{"v":"Sbv44Rf-5U0","autor":"fitnessdigital"},"c-colgado":{"v":"ppzZQuBjvN8","autor":"Cuerpo Invertido"},"c-w":{"v":"vQYyHMviZCI","autor":"West Coast Strength"},"dominada":{"v":"pT9ZCIeJhEM","autor":"Your House Fitness"},"facepull":{"v":"sVWAZaYydRo","autor":"ATHLEAN-X Español"},"remo-manc":{"v":"evJBZ_8-2ik","autor":"ATHLEAN-X Español"},"rotext-polea":{"v":"DplyMccjRrE","autor":"Vitar Club"},"farmer":{"v":"8OtwXwrJizk","autor":"PureGym"},"pinch":{"v":"jFTV3DQf3HE","autor":"PureGym"},"muneca-flex":{"v":"Wzt9Io8oKoI","autor":"Clínica Fisiofert"},"pronosup":{"v":"EyZ1IAozAJQ","autor":"FisioFit Cross"},"d-bici":{"v":"h2WtDZrLHmk","autor":"Bestcycling"},"d-skipping":{"v":"ztAesLdFb5k","autor":"Be Happy"},"d-saltitos":{"v":"j0nl5dWuqN4","autor":"Runna"},"clean":{"v":"0aP3tgKZcHQ","autor":"CrossFit"},"longitud":{"v":"dVgtvAXeBQw","autor":"Athletics Coach"},"hipthrust":{"v":"bE76E1sa5rA","autor":"Fit Generation"},"patinador":{"v":"HYWKdSBDb3s","autor":"Whole Strength Physical Therapy"},"lateral-goma":{"v":"WiKjiJfnmoI","autor":"Kinetic | Sports Physical Therapy | Delafield, WI"},"frenada":{"v":"88VqqPRdj58","autor":"Pablo Cartas | Preparador Físico y Fisioterapeuta"},"bici-int":{"v":"jN3HeMMvB5o","autor":"NeuStrength | Personal Trainer Wilmington NC"},"cal-movil":{"v":"XYMBIW3cN9g","autor":"Saigon Physio Sport"},"cal-activ":{"v":"7vVgRvPFQj4","autor":"Raúl Morcillo"},"cal-chispa":{"v":"vyIcjNeGh7M","autor":"The Padel School"},"post-lumbar":{"v":"GB2WGGsSz-Q","autor":"Fisioterapia Gratis Bruna Homs"},"post-rodillo":{"v":"bKL8O3TNbdw","autor":"Robert Arias"},"v-9090":{"v":"MmBb1latnw0","autor":"Xabier Revuelta - FISIOTERAPEUTA"},"v-w":{"v":"vQYyHMviZCI","autor":"West Coast Strength"},"v-cmj":{"v":"26pmBcXAcTg","autor":"Professional Performance Training - Proper"},"v-sprint":{"v":"lX36T2iSPd4","autor":"The Progressive Athlete"}};
@@ -430,11 +430,26 @@ function renderSemana(){
      <div class="legend"><span><i style="background:var(--court)"></i>Gimnasio</span><span><i style="background:var(--ball)"></i>Apple Watch</span><span><i style="background:var(--surface2)"></i>Prevista</span></div>
    </section>
    <section class="card" style="padding:6px">${DAYS.map(d=>{const dt=dateOf(d.wd),isT=sameDay(dt,new Date()),ok=sessionsOn(dt).length>0,pad=workoutsOn(dt).filter(w=>w.padel);
-     return `<div class="day ${isT?"today":""}"><div class="d"><small>${dt.toLocaleDateString("es-ES",{weekday:"short"}).replace(".","")}</small><b style="${isT?"color:var(--ball)":""}">${dt.getDate()}</b></div>
+     return `<div class="day ${isT?"today":""}" data-day="${d.wd}" role="button" tabindex="0" aria-label="Ver la sesión del ${dt.toLocaleDateString("es-ES",{weekday:"long"})}" style="cursor:pointer"><div class="d"><small>${dt.toLocaleDateString("es-ES",{weekday:"short"}).replace(".","")}</small><b style="${isT?"color:var(--ball)":""}">${dt.getDate()}</b></div>
        <div><div style="font-weight:600">${esc(d.title)}</div><div class="small muted" style="margin:2px 0 6px">${esc(d.sub)}</div><div class="chips">${d.kinds.map(k=>chip(k,false)).join("")}${pad.length?`<span class="chip" style="background:color-mix(in srgb,var(--ball) 14%,transparent);color:var(--ball)">${ICON.watch} Pádel ${pad.reduce((a,w)=>a+w.minutes,0)}'</span>`:""}</div></div>
-       <div>${ok?'<span style="color:var(--ok);font-size:22px" aria-label="Hecha">✓</span>':""}</div></div>`}).join("")}</section>
+       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">${ok?'<span style="color:var(--ok);font-size:22px" aria-label="Hecha">✓</span>':""}${d.gym?`<span class="small muted num">≈${estimateMinutes(materialize(d,dt))}'</span>`:""}<span class="muted" aria-hidden="true" style="font-size:20px">›</span></div></div>`}).join("")}</section>
+   <p class="small muted" style="margin:-6px 4px 0">Toca un día para ver sus ejercicios.</p>
    ${S.health.workouts.length?`<section class="card"><div class="eyebrow" style="margin-bottom:8px">Grabado con el Apple Watch</div>${S.health.workouts.filter(w=>new Date(w.start)>=monday()).map(w=>`<div class="row"><div><div style="font-weight:600">${esc(w.type)}</div><div class="small muted">${new Date(w.start).toLocaleDateString("es-ES",{weekday:"long",hour:"2-digit",minute:"2-digit"})}</div></div><div class="num" style="text-align:right"><b>${w.minutes} min</b><div class="small muted">${w.kcal?Math.round(w.kcal)+" kcal":""} ${w.hr?Math.round(w.hr)+" ppm":""}</div></div></div>`).join("")||'<p class="small muted" style="margin:0">Nada esta semana todavía.</p>'}</section>`:""}
   </div>`;
+}
+/* Ver la sesión de cualquier día de la semana (y hacerla hoy si cambias de día) */
+function openDay(wd){
+  const base=DAYS.find(x=>x.wd===+wd); if(!base)return;
+  const dt=dateOf(base.wd), d=materialize(base,dt), isToday=sameDay(dt,new Date()), swapped=dayOpts().swap===base.id;
+  const el=document.createElement("div"); el.className="sheet"; el.id="dayview";
+  el.innerHTML=`<div class="panel" role="dialog" aria-modal="true" aria-label="${esc(d.title)}">
+   <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px"><div><div class="eyebrow">${dt.toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"})}</div><h2 class="title" style="font-size:28px">${esc(d.title)}</h2></div><button class="iconbtn" data-act="day-close" aria-label="Cerrar">${ICON.x}</button></div>
+   <p class="muted" style="margin:0">${esc(d.sub)}</p>
+   <div style="display:flex;gap:22px">${d.gym?stat("≈"+estimateMinutes(d),"min de gym"):""}${d.padel?stat(d.padel,"min de pádel"):""}${stat(d.blocks.reduce((a,b)=>a+b.ex.length,0),"ejercicios")}</div>
+   ${d.gym&&!isToday?(swapped?`<button class="ghostbtn" data-act="day-unswap">Quitar el cambio: hoy, la sesión que tocaba</button>`:`<button class="ghostbtn" data-act="day-swap" data-id="${base.id}">Hacer esta sesión hoy</button>`):""}
+   ${d.blocks.map(blockCard).join("")}
+  </div>`;
+  $("#layer").appendChild(el);
 }
 function dayDone(dt){return {gym:sessionsOn(dt).reduce((a,s)=>a+s.rpe*s.minutes,0),watch:workoutsOn(dt).reduce((a,w)=>a+w.minutes*(w.padel?6:4),0)}}
 
@@ -791,7 +806,8 @@ function openReaction(n=4){
 
 /* ============ EVENTOS ============ */
 document.addEventListener("click",e=>{
-  const t=e.target.closest("[data-act],[data-tab],[data-lift],[data-body],[data-step],[data-rpe],[data-reason],[data-video]"); if(!t)return;
+  const t=e.target.closest("[data-act],[data-tab],[data-lift],[data-body],[data-step],[data-rpe],[data-reason],[data-video],[data-day]"); if(!t)return;
+  if(t.dataset.day&&!t.dataset.act){openDay(t.dataset.day);return}
   if(t.dataset.body){bodySel=t.dataset.body;render();return}
   if(t.dataset.video){openVideo(t.dataset.video);return}
   if(t.dataset.tab){tab=t.dataset.tab;render();window.scrollTo(0,0);return}
@@ -825,6 +841,9 @@ document.addEventListener("click",e=>{
     case "video-save":{const v=ytId($("#vid-url").value.trim());if(!v){toast("Ese enlace no parece de YouTube");break}S.videos=S.videos||{};S.videos[t.dataset.id]=v;save();$("#video")?.remove();openVideo(t.dataset.id);toast("Vídeo guardado");break}
     case "video-reset":{if(S.videos)delete S.videos[t.dataset.id];save();$("#video")?.remove();openVideo(t.dataset.id);break}
     case "toggle-compete":setDayOpt("compete",!dayOpts().compete);render();break;
+    case "day-close":$("#dayview")?.remove();break;
+    case "day-swap":setDayOpt("swap",t.dataset.id);$("#dayview")?.remove();tab="hoy";render();window.scrollTo(0,0);toast("Hoy haces esta sesión");break;
+    case "day-unswap":setDayOpt("swap",null);$("#dayview")?.remove();tab="hoy";render();window.scrollTo(0,0);break;
     case "toggle-short":setDayOpt("short",!dayOpts().short);render();break;
   }
 });
