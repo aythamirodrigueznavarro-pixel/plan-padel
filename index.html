@@ -152,10 +152,19 @@ nav.tabs button[aria-selected="true"]{color:var(--ball)}
 <div id="layer"></div>
 
 <script>
-/* ============ PLAN (bloque T, semana 2 de 4 · solo material de tu gimnasio) ============ */
-const PHASES=[{k:"A",n:"Acumulación",g:"Base: fuerza, aeróbico y movilidad"},{k:"T",n:"Transformación",g:"Convertir la base en potencia y velocidad"},{k:"R",n:"Realización",g:"Intensidad de partido, menos volumen"}];
-const BLOCK={phase:"T",week:2,weeks:4};
-const ex=(id,name,presc,cue,video,sets,metrics,defaults,rest,barbell=false)=>({id,name,presc,cue,video,sets,metrics,defaults,rest,barbell});
+/* ============ PLAN · BLOQUE 1 (4 semanas desde el lunes 23-11-2026) ============
+   Hecho a partir de tus registros reales con Marcfit, solo con el material de tu gimnasio
+   (cardio: cinta, elíptica y bici estática) y con la rodilla derecha en mente.
+   Semana 1: aprendes los pesos (RIR +1) · Semana 2: la que está escrita · Semana 3: la más dura (RIR −1)
+   Semana 4: descarga (una serie menos y RIR +2). */
+const PHASES=[{k:"A",n:"Acumulación",g:"Base: fuerza en tus ejercicios ancla, rodilla y aeróbico"},{k:"T",n:"Transformación",g:"Convertir la base en potencia y velocidad"},{k:"R",n:"Realización",g:"Intensidad de partido, menos volumen"}];
+const BLOCK_START=new Date(2026,10,23);
+const WEEK_INFO={1:{t:"Semana 1 · aprendes los pesos",rir:1,sets:0},2:{t:"Semana 2 · carga normal",rir:0,sets:0},3:{t:"Semana 3 · la más exigente",rir:-1,sets:0},4:{t:"Semana 4 · descarga",rir:2,sets:-1}};
+function blockWeek(d=new Date()){const days=Math.floor((monday(d)-monday(BLOCK_START))/86400000);return Math.min(4,Math.max(1,Math.floor(days/7)+1))}
+const BLOCK={phase:"A",get week(){return blockWeek()},weeks:4};
+
+/* presc admite {S} (series de esa semana) y {R} (RIR de esa semana) */
+const ex=(id,name,presc,cue,video,sets,metrics,defaults,rest,barbell=false,opt={})=>({id,name,presc,cue,video,sets,metrics,defaults,rest,barbell,...opt});
 const WARMUP=[
  {id:"cal",title:"Calentamiento competitivo · 8 min",note:"Antes de pelotear",ex:[
   ex("cal-movil","Movilidad dinámica","Cadera, tobillo y hombro · 2 min","Todo en movimiento, nada de estiramientos quietos.","padel dynamic warm up",1,["seg"],{seg:120},0),
@@ -164,66 +173,128 @@ const WARMUP=[
  {id:"post",title:"Después del partido · 10 min",note:"Nada más salir de la pista",ex:[
   ex("post-lumbar","Descarga lumbar","Rodillas al pecho y rotaciones tumbado · 3 min","Respira lento.","lower back decompression after sport",1,["seg"],{seg:180},0),
   ex("post-rodillo","Rodillo","Gemelos, cuádriceps y glúteo · 5 min","Sin buscar dolor.","foam roll after match",1,["seg"],{seg:300},0)]}];
+
+const SESSION_A={id:"A",wd:1,title:"A · Pierna: fuerza y rodilla",sub:"La sesión más pesada de la semana. Si hoy juegas, que sea a las 20:00, nunca a mediodía.",kinds:["gym"],gym:55,padel:0,rpe:[7,8],warn:"Pierna pesada y saltos: mide la glucosa antes de empezar.",blocks:[
+ {id:"a0",title:"Calentamiento",note:"1 vuelta · 8 min",ex:[
+  ex("a-bici","Bici estática","3 min suave","Pedalea fácil, que puedas hablar.","stationary bike warm up",1,["seg"],{seg:180},0),
+  ex("a-tobillo","Movilidad de tobillo con goma","10 por pierna","Rodilla hacia delante sin levantar el talón.","ankle mobility band knee to wall",1,["reps"],{reps:10},0),
+  ex("a-9090","Cadera 90/90","6 cambios por lado","El giro sale de la cadera, espalda recta.","90 90 hip switch mobility",1,["reps"],{reps:6},0),
+  ex("a-monster","Paso lateral con goma (monster walk)","10 pasos por lado","Goma por encima de las rodillas. Las rodillas empujan hacia fuera: así se activa el glúteo medio, que sujeta tu rótula.","monster walk band glute medius",1,["reps"],{reps:10},0)]},
+ {id:"a1",title:"Fuerza + salto",note:"Contraste · 4 rondas",ex:[
+  ex("sentadilla","Sentadilla trasera","{S} × 5 · RIR {R}","Baja controlado, rodillas en la línea de los pies. Sube rápido. Apunta solo los discos.","back squat technique",4,["kg","reps","RIR"],{kg:40,reps:5,RIR:3},20,true),
+  ex("a-cajon","Salto al cajón","{S} × 3 · máxima altura","Cae suave sobre el cajón, rodillas hacia fuera. Baja andando, no saltando.","box jump landing technique",4,["reps"],{reps:3},150)]},
+ {id:"a2",title:"Cadena posterior",note:"Superserie · 3 rondas",ex:[
+  ex("rdl","Peso muerto rumano con barra","{S} × 6 · RIR {R}","Cadera atrás, barra pegada a las piernas, espalda larga. Para cuando notes el isquio estirado.","romanian deadlift technique",3,["kg","reps","RIR"],{kg:40,reps:6,RIR:3},20,true),
+  ex("copenhague","Copenhague (aductor)","{S} × 20\" por lado","Cuerpo en línea. Si molesta la ingle, apoya la rodilla.","copenhagen plank",3,["seg"],{seg:20},75)]},
+ {id:"a3",title:"Rodilla a prueba de pádel",note:"Superserie · 3 rondas",ex:[
+  ex("bulgara","Sentadilla búlgara con mancuernas","{S} × 6 por pierna · RIR {R}","Empieza por la pierna derecha. Rodilla sobre el pie, sin que se vaya hacia dentro.","bulgarian split squat technique",3,["kg","reps","RIR"],{kg:10,reps:6,RIR:3},20),
+  ex("stepdown","Bajada lenta desde cajón (step-down)","{S} × 6 por pierna · 3\" bajando","De pie en el cajón, baja el talón de la otra pierna hasta rozar el suelo. Trabaja el vasto interno, el músculo que estabiliza la rótula.","eccentric step down knee vmo",3,["reps"],{reps:6},60)]},
+ {id:"a4",title:"Isquio y core",note:"Superserie · 2 rondas",ex:[
+  ex("nordico","Curl nórdico","{S} × 4","Baja lo más lento que puedas; ayúdate con las manos al final.","nordic hamstring curl progression",2,["reps"],{reps:4},20),
+  ex("plancha-abd","Plancha lateral con abducción","{S} × 20\" por lado","Cadera alta; sube y baja la pierna de arriba despacio.","side plank hip abduction",2,["seg"],{seg:20},45)]}]};
+
+const SESSION_B={id:"B",wd:2,title:"B · Empuje, lanzamientos y core",sub:"Tren superior: llegas con las piernas frescas al partido de mediodía.",kinds:["gym","padel"],gym:50,padel:90,rpe:[7,8],warn:null,blocks:[
+ {id:"b0",title:"Calentamiento",note:"1 vuelta · 7 min",ex:[
+  ex("b-w","W con goma","15 repeticiones","Codos pegados, aprieta las escápulas.","band w pull apart",1,["reps"],{reps:15},0),
+  ex("b-rot","Rotación externa 90/90 con goma","12 por brazo","Codo a la altura del hombro, gira despacio.","90 90 external rotation band",1,["reps"],{reps:12},0),
+  ex("b-escap","Plancha escapular","10 repeticiones","Brazos rectos: junta y separa las escápulas.","scapular push up plank",1,["reps"],{reps:10},0)]},
+ {id:"b1",title:"Potencia de empuje",note:"Superserie · 4 rondas",ex:[
+  ex("push-press","Push press con barra","{S} × 4 · RIR {R}","Flexión corta de rodillas y empuja con las piernas. Apunta solo los discos.","push press technique",4,["kg","reps","RIR"],{kg:20,reps:4,RIR:3},20,true),
+  ex("lanz-rot","Lanzamiento rotacional de balón a la pared","{S} × 4 por lado · explosivo","El giro sale de la cadera, como una derecha.","rotational medicine ball throw wall",4,["kg","reps"],{kg:3,reps:4},120)]},
+ {id:"b2",title:"Press",note:"Superserie · 3 rondas",ex:[
+  ex("press-db","Press de banca con 2 mancuernas","{S} × 8 · RIR {R}","Baja controlado y sube rápido.","dumbbell bench press technique",3,["kg","reps","RIR"],{kg:17.5,reps:8,RIR:3},20),
+  ex("flex-plio","Flexiones pliométricas","{S} × 4","Despega las manos y cae con los codos blandos. Si no salen limpias, desde las rodillas.","plyometric push up",3,["reps"],{reps:4},90)]},
+ {id:"b3",title:"Hombro y antirrotación",note:"Superserie · 3 rondas",ex:[
+  ex("landmine-press","Landmine press a una mano","{S} × 6 por brazo · RIR {R}","Medio arrodillado. Que no te gire el tronco.","half kneeling landmine press",3,["kg","reps","RIR"],{kg:10,reps:6,RIR:3},15),
+  ex("pallof","Press Pallof","{S} × 10 por lado","Empuja al frente y aguanta: la polea no te gira.","pallof press",3,["kg","reps"],{kg:5,reps:10},45)]},
+ {id:"b4",title:"Rotadores y core",note:"2 rondas",ex:[
+  ex("cuban","Cuban press con mancuernas ligeras","{S} × 10","Muy poco peso: el objetivo es el control.","cuban press shoulder",2,["kg","reps"],{kg:3,reps:10},15),
+  ex("hollow","Hollow hold","{S} × 25\"","Zona lumbar pegada al suelo.","hollow body hold",2,["seg"],{seg:25},30)]}]};
+
+const RECOVERY={id:"X",wd:3,title:"Movilidad y rodillo",sub:"Opcional, 20 minutos. Hoy toca llegar fresco al entreno del jueves.",kinds:["suave","padel"],gym:20,padel:90,rpe:[2,3],warn:null,blocks:[
+ {id:"x1",title:"Rodillo",note:"30\" por zona",ex:[
+  ex("rod-gemelo","Rodillo: gemelos y sóleo","30\" por pierna","Lento. Para 5\" en los puntos cargados.","foam roll calves",1,["seg"],{seg:30},0),
+  ex("rod-cuad","Rodillo: cuádriceps y aductor","30\" por pierna","Sin prisa, respirando.","foam roll quads adductors",1,["seg"],{seg:30},0),
+  ex("rod-espalda","Rodillo: espalda alta","45\"","Manos en la nuca, sin arquear la zona lumbar.","foam roll thoracic spine",1,["seg"],{seg:45},0)]},
+ {id:"x2",title:"Movilidad",note:"1 vuelta",ex:[
+  ex("rana","Estiramiento de rana","45\"","Rodillas abiertas, cadera atrás despacio.","frog stretch hips",1,["seg"],{seg:45},0),
+  ex("toracica","Rotación torácica en cuadrupedia","8 por lado","Sigue el codo con la mirada.","quadruped thoracic rotation",1,["reps"],{reps:8},0),
+  ex("x-eliptica","Elíptica suave (opcional)","10 min en zona 2","Puedes hablar sin cortarte. Ideal para recuperar.","elliptical zone 2",1,["seg"],{seg:600},0)]}]};
+
+const SESSION_C={id:"C",wd:4,title:"C · Tracción, agarre y hombro",sub:"Por la mañana. A las 16:00, entreno con tu entrenador: hoy no se toca la pierna.",kinds:["gym","padel"],gym:45,padel:90,rpe:[7,7],warn:null,blocks:[
+ {id:"c0",title:"Calentamiento",note:"1 vuelta · 6 min",ex:[
+  ex("c-colgado","Colgado activo en barra","30\"","Hombros lejos de las orejas.","active dead hang",1,["seg"],{seg:30},0),
+  ex("c-w","W con goma","15 repeticiones","Aprieta las escápulas.","band w pull apart",1,["reps"],{reps:15},0)]},
+ {id:"c1",title:"Tracción",note:"Superserie · 4 rondas",ex:[
+  ex("dominada","Dominada prona","{S} × 4 · RIR {R}","Baja hasta estirar los brazos; pecho hacia la barra. Sin balanceo.","pull up technique",4,["kg","reps","RIR"],{kg:0,reps:4,RIR:2},20,false,{rirMin:1}),
+  ex("facepull","Face pull en polea","{S} × 12","Tira hacia la frente abriendo los codos.","face pull cable",4,["kg","reps"],{kg:10,reps:12},90)]},
+ {id:"c2",title:"Remo",note:"Superserie · 3 rondas",ex:[
+  ex("remo-manc","Remo con mancuerna","{S} × 8 · RIR {R}","Tira con el codo hacia la cadera.","one arm dumbbell row",3,["kg","reps","RIR"],{kg:15,reps:8,RIR:2},15),
+  ex("rotext-polea","Rotación externa en polea","{S} × 12 por brazo","Codo pegado al cuerpo, gira hacia fuera despacio.","cable external rotation",3,["kg","reps"],{kg:2.5,reps:12},60)]},
+ {id:"c3",title:"Agarre",note:"Superserie · 3 rondas",ex:[
+  ex("farmer","Farmer carry","{S} × 30 m","Hombros abajo, pasos cortos y rápidos.","farmer carry form",3,["kg"],{kg:22.5},15),
+  ex("pinch","Plate pinch","{S} × 20\"","Pinza con los dedos, sin apoyar el disco.","plate pinch grip",3,["kg","seg"],{kg:15,seg:20},60)]},
+ {id:"c4",title:"Muñeca",note:"2 rondas",ex:[
+  ex("muneca-flex","Flexo-extensión de muñeca con mancuerna","{S} × 12 por mano","Antebrazo apoyado, solo se mueve la muñeca.","wrist flexion extension dumbbell",2,["kg","reps"],{kg:4,reps:12},15),
+  ex("pronosup","Pronosupinación con mancuerna","{S} × 10 por mano","Agarra la mancuerna por un extremo y gírala despacio.","forearm pronation supination dumbbell",2,["kg","reps"],{kg:3,reps:10},30)]}]};
+
+const SESSION_D={id:"D",wd:5,title:"D · Potencia y velocidad",sub:"Cargadas, saltos y cambios de dirección. Si mañana compites, pulsa «Compito mañana».",kinds:["gym"],gym:50,padel:0,rpe:[7,8],warn:"Termina con sprints en bici: mide la glucosa antes.",blocks:[
+ {id:"d0",title:"Calentamiento",note:"1 vuelta · 8 min",ex:[
+  ex("d-bici","Bici estática","3 min, subiendo el ritmo","Termina con 3 aceleraciones de 5\".","stationary bike warm up",1,["seg"],{seg:180},0),
+  ex("d-skipping","Skipping y talones al glúteo","2 × 15 m","Pasos cortos y rápidos.","running drills skipping",1,["reps"],{reps:2},0),
+  ex("d-saltitos","Saltos suaves en el sitio","20 saltos","Tobillos rígidos, como una pelota.","pogo jumps",1,["reps"],{reps:20},0)]},
+ {id:"d1",title:"Cargada + salto",note:"Superserie · 5 rondas",ex:[
+  ex("clean","Cargada colgante (hang power clean)","{S} × 3 · rápida, RPE 7","Mismo peso en todas. Si la barra se frena, baja 5 kg. Apunta solo los discos.","hang power clean technique",5,["kg","reps"],{kg:25,reps:3},20,true),
+  ex("longitud","Salto de longitud","{S} × 1 · máximo","Cae con las dos piernas a la vez, rodillas hacia fuera, y aguanta 2\".","standing broad jump landing",5,["reps"],{reps:1},90)]},
+ {id:"d2",title:"Cadera rápida",note:"Superserie · 3 rondas",ex:[
+  ex("hipthrust","Hip thrust con barra","{S} × 6 · rápido, RIR {R}","Sube explosivo y aguanta 1\" arriba. Apunta solo los discos.","barbell hip thrust technique",3,["kg","reps","RIR"],{kg:40,reps:6,RIR:3},15,true),
+  ex("patinador","Salto del patinador","{S} × 4 por lado · aguanta la caída","Cae sobre una pierna con la rodilla encima del pie, sin que se vaya hacia dentro.","skater jump stick landing",3,["reps"],{reps:4},90)]},
+ {id:"d3",title:"Cambios de dirección",note:"Superserie · 4 rondas",ex:[
+  ex("lateral-goma","Desplazamiento lateral con goma","{S} × 10\" a 4 m","Pasos cortos, cadera baja, sin cruzar los pies.","lateral shuffle resistance band",4,["seg"],{seg:10},20),
+  ex("frenada","Salida y frenada a 5 m","{S} × 2 por lado","Acelera 5 m, frena en 2 pasos y vuelve. La rodilla de apoyo, alineada.","deceleration drill 5 meters",4,["reps"],{reps:2},75)]},
+ {id:"d4",title:"Final metabólico",note:"6 rondas · bici estática",ex:[
+  ex("bici-int","Bici estática: intervalos","{S} × 20\" fuerte / 40\" suave","Sube la resistencia en los 20\" fuertes. El mismo ritmo en todas.","stationary bike sprint intervals",6,["seg"],{seg:20},40)]}]};
+
+const ACTIVATION={id:"D-act",wd:5,title:"Activación pre-competición",sub:"Mañana compites: 25 minutos para llegar con chispa, sin cansarte. Nada de metabólico.",kinds:["gym"],gym:25,padel:0,rpe:[4,5],warn:null,blocks:[
+ {id:"v1",title:"Movilidad",note:"1 vuelta",ex:[
+  ex("v-9090","Cadera 90/90","8 cambios por lado","Suave y controlado.","90 90 hip switch mobility",1,["reps"],{reps:8},0),
+  ex("v-w","W con goma","15 repeticiones","Aprieta las escápulas.","band w pull apart",1,["reps"],{reps:15},0)]},
+ {id:"v2",title:"Chispa",note:"Superserie · 3 rondas, descanso completo",ex:[
+  ex("v-cmj","Salto vertical (CMJ)","3 × 3 · máxima altura","Pocos saltos, todos de calidad.","countermovement jump technique",3,["reps"],{reps:3},30),
+  ex("v-sprint","Salida lateral 3 m","3 × 2 por lado","Primer paso explosivo, como a una bola cruzada.","lateral first step quickness drill",3,["reps"],{reps:2},90)]}]};
+
 const DAYS=[
- {id:"lun",wd:1,title:"Pierna: potencia y desplazamiento lateral",sub:"Por la tarde tienes partido: termina sin vaciarte.",kinds:["gym","padel"],gym:60,padel:90,rpe:[7,8],warn:"Hay saltos y sprints: mide la glucosa antes de empezar.",blocks:[
-  {id:"l1",title:"Activación",note:"1 vuelta, sin descanso",ex:[
-   ex("bici","Bici estática o elíptica","5 min suave, respirando por la nariz","Tienes que poder hablar. Solo es para calentar.","stationary bike warm up",1,["seg"],{seg:300},0),
-   ex("tobillo","Movilidad de tobillo con goma","12 por pierna","Rodilla hacia delante sin levantar el talón.","ankle mobility band knee to wall",1,["reps"],{reps:12},0),
-   ex("9090","Cadera 90/90","8 cambios por lado","Espalda recta: el giro sale de la cadera.","90 90 hip switch mobility",1,["reps"],{reps:8},0)]},
-  {id:"l2",title:"Potencia",note:"Superserie · 4 rondas",ex:[
-   ex("sentadilla","Sentadilla trasera","4 × 4 · RIR 3 · sube lo más rápido que puedas","Baja controlado y sube explotando.","back squat technique",4,["kg","reps","RIR"],{kg:40,reps:4,RIR:3},20,true),
-   ex("cmj","Salto vertical (CMJ)","4 × 4 · máxima altura","Brazos atrás, salta y cae suave con las dos piernas.","countermovement jump technique",4,["reps"],{reps:4},150)]},
-  {id:"l3",title:"Desplazamiento lateral",note:"Superserie · 3 rondas",ex:[
-   ex("patinador","Salto del patinador","3 × 5 por lado · aguanta 1\" la caída","Cae sobre una pierna con la rodilla encima del pie.","skater jump stick landing",3,["reps"],{reps:5},15),
-   ex("lateral-goma","Desplazamiento lateral con goma","3 × 10\" a 4 m · máxima velocidad","Pasos cortos, cadera baja, sin cruzar los pies.","lateral shuffle resistance band",3,["seg"],{seg:10},90)]},
-  {id:"l4",title:"Fuerza a una pierna",note:"Superserie · 3 rondas",ex:[
-   ex("zancada-lateral","Zancada lateral con mancuerna","3 × 6 por lado · RIR 3","Cadera atrás, pie de apoyo plano.","lateral lunge dumbbell technique",3,["kg","reps","RIR"],{kg:12.5,reps:6,RIR:3},20),
-   ex("bulgara","Sentadilla búlgara","3 × 6 por pierna · RIR 3","Tronco algo inclinado; empuja con el talón de delante.","bulgarian split squat technique",3,["kg","reps","RIR"],{kg:10,reps:6,RIR:3},90)]},
-  {id:"l5",title:"Prevención",note:"Superserie · 2 rondas",ex:[
-   ex("copenhague","Copenhague (aductor)","2 × 20\" por lado","Cuerpo en línea. Si molesta la ingle, apoya la rodilla.","copenhagen plank",2,["seg"],{seg:20},15),
-   ex("pallof","Press Pallof","2 × 10 por lado","Empuja al frente y aguanta: la polea no te gira.","pallof press",2,["kg","reps"],{kg:5,reps:10},45)]}]},
- {id:"mar",wd:2,title:"Empuje y lanzamientos",sub:"Hoy tienes entreno de pádel.",kinds:["gym","padel"],gym:55,padel:75,rpe:[7,7],warn:null,blocks:[
-  {id:"m1",title:"Rotadores",note:"1 vuelta",ex:[
-   ex("w-goma","W con goma","15 repeticiones","Codos pegados, aprieta las escápulas.","band w pull apart",1,["reps"],{reps:15},0),
-   ex("rot-90","Rotación externa 90/90","12 por brazo","Codo a la altura del hombro, gira despacio.","90 90 external rotation band",1,["reps"],{reps:12},0)]},
-  {id:"m2",title:"Fuerza",note:"Superserie · 4 rondas",ex:[
-   ex("push-press","Push press","4 × 3 · RIR 3","Flexión corta de rodillas y empuja con las piernas.","push press technique",4,["kg","reps","RIR"],{kg:20,reps:3,RIR:3},20,true),
-   ex("lanz-rot","Lanzamiento rotacional de balón","4 × 4 por lado · explosivo","El giro sale de la cadera, como una derecha.","rotational medicine ball throw wall",4,["kg","reps"],{kg:3,reps:4},120)]},
-  {id:"m3",title:"Press",note:"Superserie · 3 rondas",ex:[
-   ex("press-uni","Press de banca a una mancuerna","3 × 6 por brazo · RIR 3","Que no te gire el tronco: aprieta el abdomen.","single arm dumbbell bench press",3,["kg","reps","RIR"],{kg:18,reps:6,RIR:3},20),
-   ex("flex-plio","Flexiones pliométricas","3 × 5","Despega las manos y cae con los codos blandos.","plyometric push up",3,["reps"],{reps:5},90)]},
-  {id:"m4",title:"Core antirrotación",note:"2 rondas",ex:[
-   ex("remo-cuadru","Remo en cuadrupedia con pierna elevada","2 × 8 por lado","La cadera no se mueve al subir la mancuerna.","bird dog row dumbbell",2,["kg","reps"],{kg:10,reps:8},15),
-   ex("plancha-lat","Plancha lateral","2 × 25\" por lado","Cadera alta, cuerpo en línea.","side plank form",2,["seg"],{seg:25},45)]}]},
- {id:"mie",wd:3,title:"Recuperación activa",sub:"Hoy tienes entreno de pádel: solo movilidad y rodillo.",kinds:["suave","padel"],gym:25,padel:75,rpe:[3,4],warn:null,blocks:[
-  {id:"x1",title:"Rodillo",note:"30\" por zona",ex:[
-   ex("rod-gemelo","Rodillo: gemelos y sóleo","30\" por pierna","Lento. Para 5\" en los puntos cargados.","foam roll calves",1,["seg"],{seg:30},0),
-   ex("rod-cuad","Rodillo: cuádriceps y aductor","30\" por pierna","Sin prisa, respirando.","foam roll quads adductors",1,["seg"],{seg:30},0),
-   ex("rod-espalda","Rodillo: espalda alta","45\"","Manos en la nuca, sin arquear la zona lumbar.","foam roll thoracic spine",1,["seg"],{seg:45},0)]},
-  {id:"x2",title:"Movilidad",note:"1 vuelta",ex:[
-   ex("rana","Estiramiento de rana","45\"","Rodillas abiertas, cadera atrás despacio.","frog stretch hips",1,["seg"],{seg:45},0),
-   ex("cat-camel","Gato-camello","12 repeticiones","Vértebra a vértebra.","cat camel exercise",1,["reps"],{reps:12},0),
-   ex("toracica","Rotación torácica en cuadrupedia","8 por lado","Sigue el codo con la mirada.","quadruped thoracic rotation",1,["reps"],{reps:8},0)]}]},
- {id:"jue",wd:4,title:"Tracción, agarre y core",sub:"El día más fuerte de tren superior.",kinds:["gym"],gym:55,padel:0,rpe:[7,8],warn:"Termina con un final metabólico: mide la glucosa antes.",blocks:[
-  {id:"j1",title:"Tracción",note:"Superserie · 4 rondas",ex:[
-   ex("dominada","Dominada prona","4 × 5 · RIR 2","Baja hasta estirar los brazos; sube con el pecho hacia la barra.","pull up technique",4,["kg","reps","RIR"],{kg:0,reps:5,RIR:2},20),
-   ex("pm-unilateral","Peso muerto a una pierna","4 × 5 por pierna · RIR 3","Cadera cuadrada al suelo, espalda larga.","single leg romanian deadlift",4,["kg","reps","RIR"],{kg:10,reps:5,RIR:3},120)]},
-  {id:"j2",title:"Remo",note:"3 series",ex:[
-   ex("remo-manc","Remo con mancuerna","3 × 8 · RIR 2","Tira con el codo hacia la cadera.","one arm dumbbell row",3,["kg","reps","RIR"],{kg:12.5,reps:8,RIR:2},75)]},
-  {id:"j3",title:"Agarre",note:"Superserie · 3 rondas",ex:[
-   ex("farmer","Farmer carry","3 × 30 m","Hombros abajo, pasos cortos y rápidos.","farmer carry form",3,["kg"],{kg:22.5},15),
-   ex("pinch","Plate pinch","3 × 20\"","Pinza con los dedos, sin apoyar el disco.","plate pinch grip",3,["kg","seg"],{kg:15,seg:20},60)]},
-  {id:"j4",title:"Final metabólico",note:"6 rondas · bici estática",ex:[
-   ex("bici-int","Bici estática: intervalos","6 × 20\" fuerte / 40\" suave","Sube la resistencia en los 20\" fuertes. Mismo ritmo en todas: no lo des todo en la primera.","stationary bike sprint intervals",6,["seg"],{seg:20},40)]}]},
- {id:"vie",wd:5,title:"Activación pre-competición",sub:"Mañana compites: 25 minutos para llegar con chispa. Nada de metabólico.",kinds:["gym"],gym:25,padel:0,rpe:[4,5],warn:null,blocks:[
-  {id:"v1",title:"Movilidad",note:"1 vuelta",ex:[
-   ex("v-9090","Cadera 90/90","8 cambios por lado","Suave y controlado.","90 90 hip switch mobility",1,["reps"],{reps:8},0),
-   ex("v-w","W con goma","15 repeticiones","Aprieta las escápulas.","band w pull apart",1,["reps"],{reps:15},0)]},
-  {id:"v2",title:"Chispa",note:"Superserie · 3 rondas, descanso completo",ex:[
-   ex("v-cmj","Salto vertical (CMJ)","3 × 3 · máxima altura","Pocos saltos, todos de calidad.","countermovement jump technique",3,["reps"],{reps:3},30),
-   ex("v-sprint","Salida lateral 3 m","3 × 2 por lado","Primer paso explosivo, como a una bola cruzada.","lateral first step quickness drill",3,["reps"],{reps:2},90)]}]},
- {id:"sab",wd:6,title:"Federado o torneo",sub:"Calentamiento competitivo antes de cada partido y recuperación al terminar.",kinds:["compite"],gym:0,padel:120,rpe:null,warn:"Ten a mano tu pauta de hidratos para los partidos largos.",blocks:WARMUP},
- {id:"dom",wd:7,title:"Torneo o descanso",sub:"Si no juegas, paseo y movilidad. Si juegas, el mismo calentamiento.",kinds:["compite","descanso"],gym:0,padel:90,rpe:null,warn:null,blocks:WARMUP}];
+ SESSION_A, SESSION_B, RECOVERY, SESSION_C, SESSION_D,
+ {id:"sab",wd:6,title:"Partidos o competición",sub:"Calentamiento competitivo antes de jugar y recuperación al terminar.",kinds:["compite"],gym:0,padel:120,rpe:null,warn:"Ten a mano tu pauta de hidratos para los partidos largos.",blocks:WARMUP},
+ {id:"dom",wd:7,title:"Descanso o torneo",sub:"Si no juegas, paseo y movilidad. Si juegas, el mismo calentamiento.",kinds:["compite","descanso"],gym:0,padel:60,rpe:null,warn:null,blocks:WARMUP}];
+
+/* Ajusta una sesión a la semana del bloque, a la versión corta y al «compito mañana» */
+function materialize(day,date=new Date(),opts={}){
+  const w=blockWeek(date), W=WEEK_INFO[w];
+  let base=day;
+  if(day.id==="D"&&opts.compete)base=ACTIVATION;
+  let blocks=base.blocks.map(b=>({...b,ex:b.ex.map(e=>{
+    const multi=e.sets>1;
+    const sets=multi?Math.max(1,e.sets+W.sets):e.sets;
+    const d={...e.defaults};
+    if(d.RIR!=null)d.RIR=Math.max(e.rirMin??0,d.RIR+W.rir);
+    const presc=e.presc.replace("{S}",sets).replace("{R}",d.RIR??"");
+    return {...e,sets,defaults:d,presc};
+  })}));
+  if(opts.short){
+    blocks=blocks.filter((b,i)=>i===0||b.id.endsWith("1")||b.id.endsWith("2")).map(b=>({...b,ex:b.ex.map(e=>({...e,sets:Math.min(e.sets,2),presc:e.presc.replace(/^\d+ ×/,Math.min(e.sets,2)+" ×")}))}));
+  }
+  return {...base,blocks,week:w,weekText:W.t,short:!!opts.short};
+}
+/* Duración estimada: trabajo de cada serie + descansos + 20" por cambio de ejercicio + 2' por bloque */
+function estimateMinutes(day){
+  let s=0;
+  day.blocks.forEach(b=>{s+=120;b.ex.forEach(e=>{
+    const work=e.defaults.seg?e.defaults.seg:(e.defaults.reps||5)*4;
+    s+=e.sets*(work+20+e.rest);
+  })});
+  return Math.round(s/60);
+}
 
 const KIND={gym:["Gym","var(--court)"],padel:["Pádel","var(--ball)"],compite:["Compite","var(--warn)"],suave:["Suave","var(--ok)"],descanso:["Descanso","var(--muted)"]};
 
@@ -237,7 +308,7 @@ const LIFTS=[
  {id:"pressdb",name:"Press banca mancuernas",unit:"kg por mancuerna",pts:[["2026-04-08",22.5,8],["2026-05-06",20,12]]},
  {id:"squat",name:"Sentadilla trasera",unit:"kg totales",pts:[["2026-04-06",60,5]]},
  {id:"rdl",name:"Peso muerto rumano",unit:"kg totales",pts:[["2026-04-11",60,5]]}];
-const LAST={"sentadilla":"6 abr · 40 kg en discos × 5","zancada-lateral":"Ago · 12,5 kg × 6","bulgara":"Abr · 10 kg × 6","push-press":"16 nov · 20 kg en discos × 5","press-uni":"3 jun · 18 kg × 5","dominada":"Ago · 7 / 5 / 4 al fallo","pm-unilateral":"Ago · 10 kg × 5 (landmine)","remo-manc":"12 abr · 12,5 kg × 8","farmer":"Nov · 22,5 kg","pinch":"Jul · 15 kg × 20\""};
+const LAST={"sentadilla":"6 abr · 40 kg en discos × 5","rdl":"11 abr · 40 kg en discos × 5","bulgara":"Abr · 10 kg × 6","push-press":"Sep · 25 kg en discos × 4 · Nov 20 × 5","press-db":"Ago · 20 kg × 8-12 (pedía 17 a RPE 9)","landmine-press":"Abr · 10-18 kg × 6","dominada":"Ago · 7 / 5 / 4 · Nov ≈ 7","remo-manc":"12 abr · 12,5 kg × 8","farmer":"Nov · 22,5 kg","pinch":"Jul · 15 kg × 20\"","clean":"Oct · 30-35 kg en discos","hipthrust":"Jun · 40 kg en discos × 8"};
 const TESTS=["400 m","1,5 km","Sentadillas en 1 minuto","Burpees en 1 minuto","Dominadas máximas","Flexiones máximas"];
 
 /* ============ ESTADO (se guarda en este móvil) ============ */
@@ -254,7 +325,10 @@ const mmss=s=>{s=Math.max(0,Math.ceil(s));return Math.floor(s/60)+":"+String(s%6
 const sameDay=(a,b)=>a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();
 const monday=(d=new Date())=>{const x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));return x};
 const dateOf=wd=>{const m=monday();m.setDate(m.getDate()+wd-1);return m};
-const today=()=>DAYS[(new Date().getDay()+6)%7];
+const dayKey=(d=new Date())=>d.toISOString().slice(0,10);
+const dayOpts=()=>((S.opts||{})[dayKey()])||{};
+const setDayOpt=(k,v)=>{S.opts=S.opts||{};const o=S.opts[dayKey()]||{};o[k]=v;S.opts[dayKey()]=o;save()};
+const today=()=>materialize(DAYS[(new Date().getDay()+6)%7],new Date(),dayOpts());
 const yt=q=>"https://www.youtube.com/results?search_query="+encodeURIComponent(q);
 const chip=(k,filled=true)=>{const [t,c]=KIND[k];return `<span class="chip" style="${filled?`background:${c};color:var(--ink)`:`background:color-mix(in srgb,${c} 14%,transparent);color:${c}`}">${t}</span>`};
 const plannedLoad=d=>Math.round((d.rpe?(d.rpe[0]+d.rpe[1])/2:3)*d.gym+d.padel*6);
@@ -290,7 +364,11 @@ function renderHoy(){
      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${d.kinds.map(k=>chip(k)).join("")}<span style="margin-left:auto" class="num small muted">${d.rpe?(d.rpe[0]===d.rpe[1]?"RPE "+d.rpe[0]:`RPE ${d.rpe[0]}–${d.rpe[1]}`):""}</span></div>
      <h2 class="title">${esc(d.title)}</h2>
      <p class="muted" style="margin:0">${esc(d.sub)}</p>
-     <div style="display:flex;gap:22px">${d.gym?stat(d.gym,"min de gym"):""}${d.padel?stat(d.padel,"min de pádel"):""}${stat(nEx,"ejercicios")}</div>
+     <div style="display:flex;gap:22px">${d.gym?stat("≈"+estimateMinutes(d),"min de gym"):""}${d.padel?stat(d.padel,"min de pádel"):""}${stat(nEx,"ejercicios")}</div>
+     ${d.gym?`<div class="chips">
+       ${(DAYS[(now.getDay()+6)%7].id==="D")?`<button class="chip" data-act="toggle-compete" style="${dayOpts().compete?"background:var(--warn);color:var(--ink)":"background:var(--surface2);color:var(--muted)"}">${dayOpts().compete?"✓ ":""}Compito mañana</button>`:""}
+       <button class="chip" data-act="toggle-short" style="${dayOpts().short?"background:var(--court);color:var(--ink)":"background:var(--surface2);color:var(--muted)"}">${dayOpts().short?"✓ ":""}Versión corta (poco tiempo o día malo)</button>
+     </div>`:""}
      ${d.warn?`<div style="background:color-mix(in srgb,var(--ball) 10%,transparent);color:var(--ball);border-radius:14px;padding:12px;font-size:13px;font-weight:500">${ICON.drop} ${esc(d.warn)}</div>`:""}
      ${done?`<div style="color:var(--ok);font-weight:600">✓ Sesión guardada · RPE ${done.rpe} · carga ${done.rpe*done.minutes} UA</div>`:`<button class="ballbtn" data-act="start">${d.kinds.includes("compite")?"Empezar calentamiento":"Empezar sesión"}</button>`}
    </section>
@@ -302,7 +380,7 @@ function phaseBar(){
   const ph=PHASES.find(p=>p.k===BLOCK.phase);
   return `<section aria-label="Fase del plan"><div class="atr">${PHASES.map(p=>`<div class="${p.k===BLOCK.phase?"on":""}"><b>${p.k}</b>${p.n}</div>`).join("")}</div>
   <div class="weeks">${Array.from({length:BLOCK.weeks},(_,i)=>`<i class="${i<BLOCK.week?"on":""}"></i>`).join("")}<span class="small muted" style="font-weight:600;white-space:nowrap">Semana ${BLOCK.week} de ${BLOCK.weeks}</span></div>
-  <p class="small muted" style="margin:8px 0 0">${ph.g}</p></section>`;
+  <p class="small" style="margin:8px 0 0"><b>Bloque 1 · ${WEEK_INFO[BLOCK.week].t}</b> <span class="muted">· ${ph.g}</span></p></section>`;
 }
 function blockCard(b){
   return `<section class="card"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:6px"><h3 class="h3">${esc(b.title)}</h3><span class="small muted">${esc(b.note)}</span></div>
@@ -550,6 +628,8 @@ document.addEventListener("click",e=>{
     case "imp-close":$("#imp")?.remove();break;
     case "imp-go":{const err=importHealth($("#imp-txt").value);if(err){$("#imp-err").textContent=err}else{$("#imp").remove();render()}break}
     case "export":exportData();break;
+    case "toggle-compete":setDayOpt("compete",!dayOpts().compete);render();break;
+    case "toggle-short":setDayOpt("short",!dayOpts().short);render();break;
   }
 });
 document.addEventListener("input",e=>{
