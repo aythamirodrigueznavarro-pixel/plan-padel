@@ -113,7 +113,7 @@ nav.tabs button[aria-selected="true"]{color:var(--ball)}
 .exname{font:800 42px/1 var(--display);margin:6px 0 8px;text-wrap:balance}
 .vid{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:999px;background:var(--ball);color:var(--ballInk);font-weight:600;font-size:14px;text-decoration:none}
 .vid svg{width:12px;height:12px}
-.stepper{display:grid;grid-template-columns:76px 1fr 50px auto 50px;align-items:center;gap:10px;padding:6px 0}
+.stepper{display:grid;grid-template-columns:auto 1fr 46px minmax(64px,auto) 46px;align-items:center;gap:8px;padding:6px 0}
 .stepper .lab{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .stepper .lab small{display:block;font-size:10px;font-weight:500;letter-spacing:0;text-transform:none}
 .stepper button{width:50px;height:50px;border-radius:14px;background:var(--surface2);font-size:24px;font-weight:600}
@@ -180,6 +180,7 @@ nav.tabs button[aria-selected="true"]{color:var(--ball)}
   #report td.lo{color:#c0263a!important}
   #report section{break-inside:avoid}
 }
+.field input[type=date],.field input[type=time]{font-size:17px!important;font-weight:600!important;min-width:0;width:100%}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -206,7 +207,7 @@ nav.tabs button[aria-selected="true"]{color:var(--ball)}
 const PHASES=[{k:"A",n:"Acumulación",g:"Base: fuerza en tus ejercicios ancla, rodilla y aeróbico"},{k:"T",n:"Transformación",g:"Convertir la base en potencia y velocidad"},{k:"R",n:"Realización",g:"Intensidad de partido, menos volumen"}];
 const BLOCK_START=new Date(2026,10,23);
 const WEEK_INFO={1:{t:"Semana 1 · aprendes los pesos",rir:1,sets:0},2:{t:"Semana 2 · carga normal",rir:0,sets:0},3:{t:"Semana 3 · la más exigente",rir:-1,sets:0},4:{t:"Semana 4 · descarga",rir:2,sets:-1}};
-function blockWeek(d=new Date()){const days=Math.floor((monday(d)-monday(BLOCK_START))/86400000);return Math.min(4,Math.max(1,Math.floor(days/7)+1))}
+function blockWeek(d=new Date()){const days=Math.round((monday(d)-monday(BLOCK_START))/86400000);return Math.min(4,Math.max(1,Math.floor(days/7)+1))}
 const BLOCK={phase:"A",get week(){return blockWeek()},weeks:4};
 
 /* presc admite {S} (series de esa semana) y {R} (RIR de esa semana) */
@@ -312,8 +313,8 @@ const ACTIVATION={id:"D-act",wd:5,title:"Activación pre-competición",sub:"Mañ
   ex("v-9090","Cadera 90/90","8 cambios por lado","Suave y controlado.","90 90 hip switch mobility",1,["reps"],{reps:8},0),
   ex("v-w","W con goma","15 repeticiones","Aprieta las escápulas.","band w pull apart",1,["reps"],{reps:15},0)]},
  {id:"v2",title:"Chispa",note:"Superserie · 3 rondas, descanso completo",ex:[
-  ex("v-cmj","Salto vertical (CMJ)","3 × 3 · máxima altura","Pocos saltos, todos de calidad.","countermovement jump technique",3,["reps"],{reps:3},30),
-  ex("v-sprint","Salida lateral 3 m","3 × 2 por lado","Primer paso explosivo, como a una bola cruzada.","lateral first step quickness drill",3,["reps"],{reps:2},90)]}]};
+  ex("v-cmj","Salto vertical (CMJ)","{S} × 3 · máxima altura","Pocos saltos, todos de calidad.","countermovement jump technique",3,["reps"],{reps:3},30),
+  ex("v-sprint","Salida lateral 3 m","{S} × 2 por lado","Primer paso explosivo, como a una bola cruzada.","lateral first step quickness drill",3,["reps"],{reps:2},90)]}]};
 
 const DAYS=[
  SESSION_A, SESSION_B, RECOVERY, SESSION_C, SESSION_D,
@@ -368,7 +369,11 @@ const TESTS=["400 m","1,5 km","Sentadillas en 1 minuto","Burpees en 1 minuto","D
 const KEY="planpadel.v1";
 const load=()=>{try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return {}}};
 let S=Object.assign({sessions:[],sets:[],health:{glucose:[],workouts:[]}},load());
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+let saveWarned=false;
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));saveWarned=false}catch(e){
+  /* Memoria llena: quita la glucosa más antigua y lo reintenta; si aún no cabe, avisa */
+  try{if(S.health&&S.health.glucose.length>4000){S.health.glucose=S.health.glucose.slice(-Math.floor(S.health.glucose.length*0.7));GC=null;localStorage.setItem(KEY,JSON.stringify(S));toast("Memoria casi llena: he quitado la glucosa más antigua");return}}catch(_){}
+  if(!saveWarned){saveWarned=true;setTimeout(()=>alert("No se pudo guardar en este iPhone (memoria llena). Guarda una copia en Ajustes ⚙︎ antes de cerrar la app."),50)}}};
 
 /* ============ UTILIDADES ============ */
 const $=s=>document.querySelector(s);
@@ -378,7 +383,7 @@ const mmss=s=>{s=Math.max(0,Math.ceil(s));return Math.floor(s/60)+":"+String(s%6
 const sameDay=(a,b)=>a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();
 const monday=(d=new Date())=>{const x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));return x};
 const dateOf=wd=>{const m=monday();m.setDate(m.getDate()+wd-1);return m};
-const dayKey=(d=new Date())=>d.toISOString().slice(0,10);
+const dayKey=(d=new Date())=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 const dayOpts=()=>((S.opts||{})[dayKey()])||{};
 const setDayOpt=(k,v)=>{S.opts=S.opts||{};const o=S.opts[dayKey()]||{};o[k]=v;S.opts[dayKey()]=o;save()};
 /* Competiciones (torneos y liga) que apuntas en Semana */
@@ -387,7 +392,8 @@ const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
 const compOn=d=>{const k=localKey(d);return (S.comps||[]).find(c=>k>=c.from&&k<=(c.to||c.from))};
 const effCompete=()=>{const o=dayOpts();return o.compete!=null?!!o.compete:!!compOn(addDays(new Date(),1))};
 const today=()=>{const o=dayOpts(),sw=o.swap&&DAYS.find(x=>x.id===o.swap),nat=DAYS[(new Date().getDay()+6)%7];
-  const base=sw||(compOn(new Date())&&nat.gym?DAYS[5]:nat); /* el día que compites, nada de gimnasio: calentamiento competitivo */
+  let base=sw||(compOn(new Date())&&nat.gym?DAYS[5]:nat); /* el día que compites, nada de gimnasio: calentamiento competitivo */
+  if(!sw&&base.id==="A"&&effCompete())base=SESSION_B; /* la víspera de competir, nada de pierna pesada */
   return materialize(base,new Date(),{...o,compete:effCompete()})};
 const yt=q=>"https://www.youtube.com/results?search_query="+encodeURIComponent(q);
 /* Vídeos comprobados (se pueden ver dentro de la app). Si eliges otro, se guarda en S.videos. */
@@ -414,7 +420,8 @@ const plannedLoad=d=>Math.round((d.rpe?(d.rpe[0]+d.rpe[1])/2:3)*d.gym+d.padel*6)
 const sessionsOn=date=>S.sessions.filter(s=>s.status!=="en curso"&&sameDay(new Date(s.start),date));
 /* Un «Fuerza funcional» del reloj a la vez que una sesión de esta app es la misma sesión: no se cuenta dos veces */
 const dupGym=w=>!w.padel&&S.sessions.some(s=>s.status!=="en curso"&&Math.abs(new Date(s.start)-new Date(w.start))<90*6e4);
-const realWorkouts=()=>S.health.workouts.filter(w=>!dupGym(w));
+const dupPadel=w=>w.padel&&w.src!=="manual"&&S.health.workouts.some(m=>m.padel&&m.src==="manual"&&Math.abs(new Date(m.start)-new Date(w.start))<36e5);
+const realWorkouts=()=>S.health.workouts.filter(w=>!dupGym(w)&&!dupPadel(w));
 const workoutsOn=date=>realWorkouts().filter(w=>sameDay(new Date(w.start),date));
 const latestGlucose=()=>S.health.glucose.slice().sort((a,b)=>new Date(b.t)-new Date(a.t))[0];
 const vibrate=p=>{try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}};
@@ -494,7 +501,7 @@ function rescheduleCard(){
 function weekRings(){
   const m=monday(), now=new Date();
   const gym=S.sessions.filter(s=>s.status!=="en curso"&&new Date(s.start)>=m&&GYM_IDS.includes(gymIdOf(s))).length;
-  const padel=S.health.workouts.filter(w=>w.padel&&new Date(w.start)>=m).reduce((a,w)=>a+w.minutes,0);
+  const padel=realWorkouts().filter(w=>w.padel&&new Date(w.start)>=m).reduce((a,w)=>a+w.minutes,0);
   const body=(S.body||[]).filter(b=>new Date(b.d)>=m).length;
   const R3=[{v:gym,max:4,c:"#3f7df4",n:"Gimnasio",u:`${gym}/4 sesiones`},{v:padel,max:270,c:"#d9ea4c",n:"Pádel",u:`${padel}/270 min`},{v:body,max:2,c:"#52cf90",n:"Cuerpo",u:`${body}/2 medidas`}];
   const rad=[50,38,26], sw=10;
@@ -563,7 +570,7 @@ function coachNotes(){
 function renderHoy(){
   const d=today(), now=new Date(), done=sessionsOn(now).find(s=>s.dayId===d.id);
   const g=latestGlucose(), mins=g?Math.round((Date.now()-new Date(g.t))/60000):null;
-  const wk=S.health.workouts.filter(w=>new Date(w.start)>=monday());
+  const wk=realWorkouts().filter(w=>new Date(w.start)>=monday());
   const padelMin=wk.filter(w=>w.padel).reduce((a,w)=>a+w.minutes,0);
   const nEx=d.blocks.reduce((a,b)=>a+b.ex.length,0);
   $("#view").innerHTML=`<div class="stack">
@@ -618,7 +625,7 @@ let weekOff=0;
 const dW=wd=>{const m=monday();m.setDate(m.getDate()+7*weekOff+wd-1);return m};
 function weekRangeText(){const a=dW(1),b=dW(7);const f=(d,o)=>d.toLocaleDateString("es-ES",o);return a.getMonth()===b.getMonth()?`${a.getDate()} al ${f(b,{day:"numeric",month:"long"})}`:`${f(a,{day:"numeric",month:"short"})} al ${f(b,{day:"numeric",month:"short"})}`}
 function padelWeekCard(m0,m1){
-  const W=S.health.workouts.filter(w=>w.padel&&new Date(w.start)>=m0&&new Date(w.start)<m1).sort((a,b)=>new Date(a.start)-new Date(b.start));
+  const W=realWorkouts().filter(w=>w.padel&&new Date(w.start)>=m0&&new Date(w.start)<m1).sort((a,b)=>new Date(a.start)-new Date(b.start));
   return `<section class="card" style="display:flex;flex-direction:column;gap:8px"><div class="eyebrow">Tu pádel esta semana</div>
    ${W.length?W.map(w=>{const k=padelKind(w);return `<div style="display:flex;flex-direction:column;gap:6px;padding:6px 0;border-bottom:1px solid var(--line)"><div class="small" style="color:var(--text)"><b style="text-transform:capitalize">${new Date(w.start).toLocaleDateString("es-ES",{weekday:"long",day:"numeric"})}</b> · ${new Date(w.start).toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})} · ${w.minutes}' ${w.src==="manual"?"":'<span class="muted">· reloj</span>'}${w.kind?"":'<span class="muted"> · automático</span>'}</div>
      <div class="chips">${["Partido","Entreno","Torneo"].map(x=>`<button class="chip" data-act="padel-set" data-id="${esc(w.id)}" data-k="${x}" style="${x===k?(x==="Torneo"?"background:var(--heart);color:var(--ink)":x==="Entreno"?"background:var(--ok);color:var(--ink)":"background:var(--ball);color:var(--ballInk)"):"background:var(--surface2);color:var(--muted)"}">${x==="Torneo"?"🏆 ":""}${KIND_LABEL[x]}</button>`).join("")}</div></div>`}).join("")
@@ -805,12 +812,12 @@ function importRenpho(txt){
     const k=m[1]+m[2]+m[3];if(!byDay[k]||new Date(byDay[k].d)>d)byDay[k]=rec});
   const list=Object.values(byDay);if(!list.length)return "No encontré medidas en el archivo.";
   /* Quita las medidas apuntadas a mano que ya vienen en el historial */
-  S.body=(S.body||[]).filter(b=>b.src||!list.some(r=>r.kg===b.kg&&(b.fat==null||r.fat===b.fat)));
+  S.body=(S.body||[]).filter(b=>b.src||b.waist!=null||!list.some(r=>r.kg===b.kg&&(b.fat==null||r.fat===b.fat)&&localKey(new Date(r.d))===localKey(new Date(b.d))));
   const added=addBody(list);save();
   return `Historial de Renpho: ${added} días nuevos (${list.length} en el archivo)`;
 }
 function addBody(list){S.body=S.body||[];const seen=new Set(S.body.map(b=>String(b.d).slice(0,16)));let n=0;
-  list.forEach(b=>{const k=String(b.d).slice(0,16);if(!seen.has(k)){S.body.push(b);seen.add(k);n++}});S.body.sort((a,b)=>new Date(a.d)-new Date(b.d));S.body=S.body.slice(-400);return n}
+  list.forEach(b=>{const k=String(b.d).slice(0,16);if(!seen.has(k)){S.body.push(b);seen.add(k);n++}});S.body.sort((a,b)=>new Date(a.d)-new Date(b.d));S.body=S.body.slice(-1500);return n}
 /* Tus ejercicios registrados en esta app: último y mejor peso */
 const EXNAME=(()=>{const m={};[...DAYS,ACTIVATION].forEach(d=>d.blocks.forEach(b=>b.ex.forEach(e=>{m[e.id]=e.name})));return m})();
 function openExChart(id){
@@ -839,16 +846,15 @@ function myLiftsCard(){
   </section>`;
 }
 async function backup(){
-  S.lastBackup=new Date().toISOString();save();
   const txt=JSON.stringify({app:"plan-padel",version:1,fecha:new Date().toISOString(),datos:S});
-  const name=`plan-padel-copia-${dayKey()}.json`;
-  try{const f=new File([txt],name,{type:"application/json"});if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:"Copia de Plan Pádel"});return}}catch(e){if(e&&e.name==="AbortError")return}
-  try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([txt],{type:"application/json"}));a.download=name;document.body.appendChild(a);a.click();a.remove();toast("Copia descargada")}catch(e){toast("No se pudo guardar la copia")}
+  const name=`plan-padel-copia-${dayKey()}.json`, done=()=>{S.lastBackup=new Date().toISOString();save()};
+  try{const f=new File([txt],name,{type:"application/json"});if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:"Copia de Plan Pádel"});done();toast("Copia guardada");return}}catch(e){if(e&&e.name==="AbortError")return}
+  try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([txt],{type:"application/json"}));a.download=name;document.body.appendChild(a);a.click();a.remove();done();toast("Copia descargada")}catch(e){toast("No se pudo guardar la copia")}
 }
 function restore(file){
   const r=new FileReader();
   r.onload=()=>{try{const d=JSON.parse(r.result);if(d.app!=="plan-padel"||!d.datos||!Array.isArray(d.datos.sessions))throw 0;
-    S=Object.assign({sessions:[],sets:[],health:{glucose:[],workouts:[]}},d.datos);save();toast("Copia restaurada");render()}catch(e){toast("Ese archivo no es una copia de Plan Pádel")}};
+    S=Object.assign({sessions:[],sets:[],health:{glucose:[],workouts:[]}},d.datos);GC=null;save();toast("Copia restaurada");render()}catch(e){toast("Ese archivo no es una copia de Plan Pádel")}};
   r.readAsText(file);
 }
 function lineChart(pts,o={}){
@@ -881,15 +887,16 @@ function prefill(step){
   if(!last)return v;
   e.metrics.forEach(m=>{if(last[m]!=null&&m!=="RIR")v[m]=last[m]});
   if(P&&last.sid===P.sid)return v;
-  const target=e.defaults.RIR;
-  if(e.metrics.includes("kg")&&target!=null){
+  if(e.metrics.includes("kg")&&e.defaults.RIR!=null){
     const prev=mine.filter(s=>s.sid===last.sid&&s.RIR!=null);
+    const target=prev.find(s=>s.tRIR!=null)?.tRIR??e.defaults.RIR; /* el RIR que se pedía aquel día */
+    const base=v.kg;
     if(prev.length){
       const minR=Math.min(...prev.map(s=>s.RIR)), avgR=prev.reduce((a,s)=>a+s.RIR,0)/prev.length;
       const step=e.barbell?2.5:(v.kg>=10?2.5:1);
-      if(minR>=target+1&&avgR>=target+1.5){v.kg=snapKg(e,v.kg+step*2);P&&(P.hint={t:"up",txt:`Subo ${fmtNum(step*2)} kg: la última vez te sobraban repeticiones (RIR ${fmtNum(avgR)}).`})}
-      else if(minR>=target+1){v.kg=snapKg(e,v.kg+step);P&&(P.hint={t:"up",txt:`Subo ${fmtNum(step)} kg: la última vez lo hiciste con RIR ${fmtNum(avgR)}.`})}
-      else if(minR<target-1){v.kg=Math.max(0,snapKg(e,v.kg-step));P&&(P.hint={t:"down",txt:`Bajo ${fmtNum(step)} kg: la última vez llegaste muy justo (RIR ${minR}).`})}
+      if(minR>=target+1&&avgR>=target+1.5){v.kg=snapKg(e,v.kg+step*2);P&&(P.hint={t:"up",txt:`Subo ${fmtNum(Math.round((v.kg-base)*100)/100)} kg: la última vez te sobraban repeticiones (RIR ${fmtNum(Math.round(avgR*10)/10)}).`})}
+      else if(minR>=target+1){v.kg=snapKg(e,v.kg+step);P&&(P.hint={t:"up",txt:`Subo ${fmtNum(Math.round((v.kg-base)*100)/100)} kg: la última vez lo hiciste con RIR ${fmtNum(Math.round(avgR*10)/10)}.`})}
+      else if(minR<target-1){v.kg=Math.max(0,snapKg(e,v.kg-step));P&&(P.hint={t:"down",txt:`Bajo ${fmtNum(Math.round((base-v.kg)*100)/100)} kg: la última vez llegaste muy justo (RIR ${minR}).`})}
       else P&&(P.hint={t:"same",txt:`Mismo peso que la última vez: el RIR fue el que tocaba.`});
     }
   }
@@ -988,7 +995,10 @@ document.addEventListener("visibilitychange",()=>{if(document.visibilityState===
 ["click","touchend"].forEach(ev=>document.addEventListener(ev,()=>{if(P&&P.start&&(!awakeVid||awakeVid.paused))keepAwake()},{passive:true}));
 /* Aviso sonoro al acabar el descanso (el iPhone no vibra desde una web) */
 let actx=null;
-function audioUnlock(){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume()}catch(e){}}
+function audioUnlock(){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state!=="running")actx.resume()}catch(e){}}
+/* iOS deja el audio «interrumpido» al salir y volver: se reactiva con el siguiente toque */
+["click","touchend"].forEach(ev=>document.addEventListener(ev,()=>{if(P&&P.start)audioUnlock()},{passive:true}));
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&P&&P.start)audioUnlock()});
 function beep(){try{if(!actx)return;[0,0.22,0.44].forEach((t,i)=>{const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=i===2?1175:880;o.connect(g);g.connect(actx.destination);const s=actx.currentTime+t;g.gain.setValueAtTime(0.0001,s);g.gain.exponentialRampToValueAtTime(0.35,s+0.02);g.gain.exponentialRampToValueAtTime(0.0001,s+0.18);o.start(s);o.stop(s+0.2)})}catch(e){}}
 function drawPlayer(){
   const st=P.steps[P.i], e=st.e;
@@ -1028,6 +1038,7 @@ function tick(){
 function completeSet(){
   const st=P.steps[P.i];
   const rec={ex:st.e.id,set:st.set,sid:P.sid,t:new Date().toISOString()};
+  if(st.e.defaults.RIR!=null)rec.tRIR=st.e.defaults.RIR;
   st.e.metrics.forEach(m=>rec[m]=P.vals[m]);
   S.sets.push(rec); save(); vibrate(40);
   const pr=checkPR(rec); if(pr){(P.prs=P.prs||[]).push({name:st.e.name,txt:pr});prBanner(st.e.name,pr)}
@@ -1155,6 +1166,7 @@ function openFinish(partial){
   let mins=Math.max(1,Math.round((Date.now()-P.start)/60000));
   const ts=S.sets.filter(x=>x.sid===P.sid).map(x=>+new Date(x.t)), lastT=ts.length?Math.max(...ts):0;
   if(lastT&&Date.now()-lastT>20*6e4)mins=Math.max(1,Math.round((lastT-P.start)/6e4)+2); /* si cerraste la app, no cuentan las horas de después */
+  if(!lastT&&mins>180)mins=estimateMinutes(P.day);
   F={rpe:7,partial,reason:null,mins};
   const el=document.createElement("div"); el.className="sheet"; el.id="finish";
   el.innerHTML=`<div class="panel" role="dialog" aria-modal="true" aria-label="Cerrar la sesión">
@@ -1208,7 +1220,8 @@ function importHealth(raw){
     .map(b=>{if(b.fat!=null&&b.fat<1)b.fat=Math.round(b.fat*1000)/10;return b});
   if(!gl.length&&!wo.length&&!bd.length)return "No hay glucosa, entrenos ni datos de la báscula en esos datos.";
   const nb=bd.length?addBody(bd):0;
-  const seenG=new Set(S.health.glucose.map(g=>g.t)); gl.forEach(g=>{if(!seenG.has(g.t))S.health.glucose.push(g)});
+  const gk=t=>{const d=new Date(t);return isNaN(d)?String(t):d.toISOString().slice(0,16)};
+  const seenG=new Set(S.health.glucose.map(g=>gk(g.t))); gl.forEach(g=>{const k=gk(g.t);if(!seenG.has(k)){seenG.add(k);S.health.glucose.push({t:new Date(g.t).toISOString(),v:g.v})}}); GC=null;
   const seenW=new Set(S.health.workouts.map(w=>w.id)); wo.forEach(w=>{if(!seenW.has(w.id))S.health.workouts.push(w)});
   S.health.glucose.sort((a,b)=>new Date(a.t)-new Date(b.t)); S.health.glucose=S.health.glucose.slice(-20000); S.health.workouts=S.health.workouts.slice(-400);
   S.health.importedAt=new Date().toISOString(); save();
@@ -1253,7 +1266,7 @@ function parseLibreView(txt){
   const iT=H.findIndex(h=>/(timestamp|sello de tiempo|marca de tiempo|fecha y hora)/.test(h));
   const iHist=H.findIndex(h=>/(historic|historial|histórico).*gluc|gluc.*(historic|historial|histórico)/.test(h));
   const iScan=H.findIndex(h=>/(scan|escaneo|lectura).*gluc|gluc.*(scan|escaneo)/.test(h));
-  const mmol=H.some(h=>/mmol/.test(h)), english=/device timestamp/i.test(lines[hi]);
+  const mmol=[H[iHist],H[iScan]].some(h=>h&&/mmol/.test(h)), english=/device timestamp/i.test(lines[hi]);
   if(iT<0||(iHist<0&&iScan<0))return {err:"El archivo no tiene columnas de glucosa."};
   const out=[];
   for(const l of lines.slice(hi+1)){ if(!l.trim())continue; const c=split(l);
@@ -1269,8 +1282,9 @@ function parseLibreView(txt){
 }
 function importLibreView(txt){
   const r=parseLibreView(txt); if(r.err)return r.err;
-  const seen=new Set(S.health.glucose.map(g=>g.t)); let n=0;
-  r.list.forEach(g=>{if(!seen.has(g.t)){S.health.glucose.push(g);seen.add(g.t);n++}});
+  const gk=t=>new Date(t).toISOString().slice(0,16);
+  const seen=new Set(S.health.glucose.map(g=>gk(g.t))); let n=0;
+  r.list.forEach(g=>{const k=gk(g.t);if(!seen.has(k)){S.health.glucose.push(g);seen.add(k);n++}});
   S.health.glucose.sort((a,b)=>new Date(a.t)-new Date(b.t)); S.health.glucose=S.health.glucose.slice(-20000); GC=null; save();
   const a=new Date(r.list[0].t),b=new Date(r.list.at(-1).t),f=d=>d.toLocaleDateString("es-ES",{day:"numeric",month:"short"});
   return `Glucosa importada: ${n} lecturas nuevas (${f(a<b?a:b)} – ${f(a<b?b:a)})`;
@@ -1313,7 +1327,7 @@ function actMetrics(x){
   const s=x.start,e=s+x.min*6e4;
   const before=gAt(s,30*6e4)??x.gB??null, end=gAt(e,25*6e4)??x.gA??null;
   const dur=gMin(s,e), durMax=gMax(s,e), post=gMin(e,e+6*36e5), postMax=gMax(e,e+2*36e5);
-  const nd=new Date(e); if(nd.getHours()>=6)nd.setDate(nd.getDate()+1); nd.setHours(0,0,0,0);
+  const nd=new Date(e); nd.setDate(nd.getDate()+1); nd.setHours(0,0,0,0); /* la noche siguiente al final de la actividad */
   const night=gMin(+nd,+nd+6*36e5);
   const has=gRange(s-36e5,e+6*36e5).length>3;
   const lows=[dur,post].filter(Boolean).some(r=>r.v<70);
@@ -1518,7 +1532,7 @@ document.addEventListener("click",e=>{
     case "settings-close":$("#settings")?.remove();break;
     case "whatsnew":$("#settings")?.remove();openWhatsNew();break;
     case "whatsnew-ok":S.seenVersion=APP_VERSION;save();$("#whatsnew")?.remove();break;
-    case "wipe":if(confirm("¿Borrar TODOS tus registros de este iPhone? Guarda antes una copia: no se puede deshacer.")&&confirm("¿Seguro? Se borrarán sesiones, series, pesajes, glucosa y pádel.")){S={sessions:[],sets:[],health:{glucose:[],workouts:[]},seenVersion:APP_VERSION};save();$("#settings")?.remove();render();toast("Datos borrados")}break;
+    case "wipe":if(confirm("¿Borrar TODOS tus registros de este iPhone? Guarda antes una copia: no se puede deshacer.")&&confirm("¿Seguro? Se borrarán sesiones, series, pesajes, glucosa y pádel.")){S={sessions:[],sets:[],health:{glucose:[],workouts:[]},seenVersion:APP_VERSION};GC=null;save();$("#settings")?.remove();render();toast("Datos borrados")}break;
     case "resume":resumeSession(false);break;
     case "resume-finish":resumeSession(true);break;
     case "resume-discard":{const s=openSession();if(s&&confirm("¿Descartar esta sesión y sus series?")){S.sessions=S.sessions.filter(x=>x.id!==s.id);S.sets=S.sets.filter(x=>x.sid!==s.id);save();render();toast("Sesión descartada")}break}
