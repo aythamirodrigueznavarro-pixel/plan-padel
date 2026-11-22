@@ -154,6 +154,32 @@ nav.tabs button[aria-selected="true"]{color:var(--ball)}
 .rl div{display:flex;flex-direction:column}
 .rl b{font:700 18px var(--body);font-variant-numeric:tabular-nums}
 .rl span{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.report{position:fixed;inset:0;z-index:78;overflow-y:auto;background:var(--ink);padding:calc(14px + env(safe-area-inset-top,0px)) 16px calc(24px + env(safe-area-inset-bottom,0px));animation:fade .25s ease}
+.report .rp{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.report section{display:flex;flex-direction:column;gap:8px}
+.report h3{font:700 16px var(--body);margin:0}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.kpis div,.rbox{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px}
+.kpis b{display:block;font:800 26px/1.1 var(--display)}
+.kpis span{font-size:11px;color:var(--muted);font-weight:600}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:14px}
+.tbl table{border-collapse:collapse;width:100%;font-size:12px;font-variant-numeric:tabular-nums}
+.tbl th,.tbl td{padding:7px 8px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl th:first-child,.tbl td:first-child{text-align:left}
+.tbl th{color:var(--muted);font-weight:600;font-size:11px}
+.tbl td.lo{color:#fa6672;font-weight:700}
+.tbl table.acts td:nth-child(2),.tbl table.acts th:nth-child(2){text-align:left}
+@media print{
+  @page{margin:14mm}
+  body{background:#fff!important}
+  body>*:not(#report){display:none!important}
+  #report{position:static;inset:auto;overflow:visible;background:#fff!important;color:#111!important;padding:0}
+  #report *{color:#111!important;border-color:#ccc!important}
+  #report .kpis div,#report .rbox{background:#f5f6f8!important}
+  #report .noprint{display:none!important}
+  #report td.lo{color:#c0263a!important}
+  #report section{break-inside:avoid}
+}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -510,7 +536,7 @@ function renderHoy(){
        <div class="metric"><b>${padelMin}</b><small>min</small><div style="color:var(--ball)">${ICON.watch} Pádel semana</div></div>
        <div class="metric"><b>${weekLoad()}</b><small>UA</small><div style="color:var(--court)">Carga semana</div></div>
      </div>
-     <button class="ghostbtn small" style="margin-top:12px" data-act="import">Importar datos de Salud</button>
+     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px"><button class="ghostbtn small" data-act="padel-log">🎾 Apuntar pádel</button><button class="ghostbtn small" data-act="import">Datos de Salud</button></div>
    </section>
    <section class="card" style="padding:20px;display:flex;flex-direction:column;gap:14px">
      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${d.kinds.map(k=>chip(k)).join("")}<span style="margin-left:auto" class="num small muted">${d.rpe?(d.rpe[0]===d.rpe[1]?"RPE "+d.rpe[0]:`RPE ${d.rpe[0]}–${d.rpe[1]}`):""}</span></div>
@@ -610,6 +636,7 @@ function renderProgreso(){
      ${done.length?done.slice(0,15).map(s=>`<div class="row"><div style="min-width:0"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(s.title)}</div><div class="small muted">${new Date(s.start).toLocaleDateString("es-ES",{day:"numeric",month:"short"})}${s.status==="parcial"?` · <span style="color:var(--warn)">Parcial${s.reason?" · "+esc(s.reason):""}</span>`:""}${s.gBefore?` · ${Math.round(s.gBefore)}→${s.gAfter?Math.round(s.gAfter):"—"} mg/dL`:""}</div></div><div class="num" style="text-align:right"><b style="font-size:20px">${s.rpe*s.minutes}</b><div class="small muted">RPE ${s.rpe} · ${s.minutes}'</div></div></div>`).join(""):'<p class="small muted" style="margin:0">Aquí aparecerá cada sesión que guardes, con su RPE, su carga y tu glucosa antes y después.</p>'}
      <button class="ghostbtn small" style="margin-top:12px" data-act="export">Copiar mis registros para el ajuste mensual</button>
    </section>
+   ${glucoseCard()}
    ${myLiftsCard()}
    <section class="card"><div class="eyebrow" style="margin-bottom:6px">Copia de seguridad</div>
      <p class="small muted" style="margin:0 0 10px">Tus registros viven solo en este iPhone. Guarda una copia de vez en cuando (en Archivos o iCloud) por si cambias de móvil.</p>
@@ -1022,7 +1049,7 @@ function importHealth(raw){
   const nb=bd.length?addBody(bd):0;
   const seenG=new Set(S.health.glucose.map(g=>g.t)); gl.forEach(g=>{if(!seenG.has(g.t))S.health.glucose.push(g)});
   const seenW=new Set(S.health.workouts.map(w=>w.id)); wo.forEach(w=>{if(!seenW.has(w.id))S.health.workouts.push(w)});
-  S.health.glucose=S.health.glucose.slice(-500); S.health.workouts=S.health.workouts.slice(-200);
+  S.health.glucose.sort((a,b)=>new Date(a.t)-new Date(b.t)); S.health.glucose=S.health.glucose.slice(-20000); S.health.workouts=S.health.workouts.slice(-400);
   S.health.importedAt=new Date().toISOString(); save();
   toast(nb&&!gl.length&&!wo.length?`Importadas ${nb} medidas de la báscula`:`Importado: ${gl.length} glucosas, ${wo.length} entrenos${nb?` y ${nb} pesajes`:""}`); return null;
 }
@@ -1051,6 +1078,186 @@ function openReaction(n=4){
     cnt.textContent=`Salida ${k} de ${n}`; ping(); vibrate(80);
     setTimeout(()=>{if(!alive())return; main.innerHTML='<span style="font-size:26px" class="muted">Frena, vuelve andando<br>y ponte en posición</span>'; setTimeout(wait,6500)},1300)};
   setTimeout(wait,3000);
+}
+
+/* ============ GLUCOSA Y DEPORTE ============
+   Glucosa: CSV de LibreView (la web de Abbott que conecta con LibreLink) o el atajo de Salud.
+   Actividades: sesiones de esta app + pádel (Apple Watch o apuntado a mano). */
+function parseLibreView(txt){
+  const lines=txt.replace(/^﻿/,"").split(/\r?\n/);
+  const split=l=>l.split(/[,;\t](?=(?:[^"]*"[^"]*")*[^"]*$)/).map(c=>c.replace(/^"|"$/g,"").trim());
+  let hi=lines.findIndex(l=>/(timestamp|sello de tiempo|marca de tiempo|fecha y hora)/i.test(l)&&/(gluc)/i.test(l));
+  if(hi<0)return {err:"No reconozco el archivo. Descárgalo en libreview.com → Descargar datos de glucosa."};
+  const H=split(lines[hi]).map(h=>h.toLowerCase());
+  const iT=H.findIndex(h=>/(timestamp|sello de tiempo|marca de tiempo|fecha y hora)/.test(h));
+  const iHist=H.findIndex(h=>/(historic|historial|histórico).*gluc|gluc.*(historic|historial|histórico)/.test(h));
+  const iScan=H.findIndex(h=>/(scan|escaneo|lectura).*gluc|gluc.*(scan|escaneo)/.test(h));
+  const mmol=H.some(h=>/mmol/.test(h)), english=/device timestamp/i.test(lines[hi]);
+  if(iT<0||(iHist<0&&iScan<0))return {err:"El archivo no tiene columnas de glucosa."};
+  const out=[];
+  for(const l of lines.slice(hi+1)){ if(!l.trim())continue; const c=split(l);
+    const raw=(iHist>=0&&c[iHist])||(iScan>=0&&c[iScan])||""; let v=parseFloat(raw.replace(",","."));
+    if(!isFinite(v)||v<=0)continue; if(mmol)v=Math.round(v*18);
+    const m=(c[iT]||"").match(/^(\d{1,4})[-/.](\d{1,2})[-/.](\d{1,4})[ T]+(\d{1,2}):(\d{2})(?::\d{2})?\s*(am|pm|a\. ?m\.|p\. ?m\.)?/i); if(!m)continue;
+    let [_,a,b,cc,hh,mm,ap]=m; let y,mo,d;
+    if(a.length===4){y=+a;mo=+b;d=+cc}else{y=+cc;if(+a>12){d=+a;mo=+b}else if(+b>12){mo=+a;d=+b}else if(english){mo=+a;d=+b}else{d=+a;mo=+b}}
+    let h=+hh; if(ap){const pm=/p/i.test(ap); if(pm&&h<12)h+=12; if(!pm&&h===12)h=0}
+    const dt=new Date(y,mo-1,d,h,+mm); if(isNaN(dt))continue; out.push({t:dt.toISOString(),v});
+  }
+  return out.length?{list:out}:{err:"No encontré lecturas de glucosa en el archivo."};
+}
+function importLibreView(txt){
+  const r=parseLibreView(txt); if(r.err)return r.err;
+  const seen=new Set(S.health.glucose.map(g=>g.t)); let n=0;
+  r.list.forEach(g=>{if(!seen.has(g.t)){S.health.glucose.push(g);seen.add(g.t);n++}});
+  S.health.glucose.sort((a,b)=>new Date(a.t)-new Date(b.t)); S.health.glucose=S.health.glucose.slice(-20000); GC=null; save();
+  const a=new Date(r.list[0].t),b=new Date(r.list.at(-1).t),f=d=>d.toLocaleDateString("es-ES",{day:"numeric",month:"short"});
+  return `Glucosa importada: ${n} lecturas nuevas (${f(a<b?a:b)} – ${f(a<b?b:a)})`;
+}
+/* Búsqueda rápida en la serie de glucosa */
+let GC=null;
+function gArr(){if(!GC||GC.n!==S.health.glucose.length){const a=S.health.glucose.map(g=>({ms:+new Date(g.t),v:+g.v})).filter(g=>isFinite(g.ms)&&isFinite(g.v)).sort((x,y)=>x.ms-y.ms);GC={n:S.health.glucose.length,a}}return GC.a}
+function gIdx(a,ms){let lo=0,hi=a.length;while(lo<hi){const m=(lo+hi)>>1;if(a[m].ms<ms)lo=m+1;else hi=m}return lo}
+function gAt(ms,tol=20*6e4){const a=gArr();if(!a.length)return null;const i=gIdx(a,ms),p=a[i-1],n=a[i];
+  if(p&&n&&n.ms-p.ms<=35*6e4)return p.v+(n.v-p.v)*(ms-p.ms)/(n.ms-p.ms);
+  const best=[p,n].filter(Boolean).sort((x,y)=>Math.abs(x.ms-ms)-Math.abs(y.ms-ms))[0];return best&&Math.abs(best.ms-ms)<=tol?best.v:null}
+function gRange(a0,b0){const a=gArr(),i=gIdx(a,a0),r=[];for(let k=i;k<a.length&&a[k].ms<=b0;k++)r.push(a[k]);return r}
+const gMin=(a,b)=>{const r=gRange(a,b);return r.length?r.reduce((m,x)=>x.v<m.v?x:m):null};
+const gMax=(a,b)=>{const r=gRange(a,b);return r.length?r.reduce((m,x)=>x.v>m.v?x:m):null};
+
+const ACT_CATS={A:{n:"Gimnasio · pierna y saltos (A)",c:"#3f7df4"},BC:{n:"Gimnasio · tren superior (B y C)",c:"#8b7cf6"},D:{n:"Gimnasio · potencia y velocidad (D)",c:"#f5a844"},
+  X:{n:"Movilidad",c:"#92a0bb"},partido:{n:"Pádel · partido",c:"#d9ea4c"},entreno:{n:"Pádel · entreno con entrenador",c:"#52cf90"},torneo:{n:"Pádel · torneo",c:"#fa6672"},padel:{n:"Pádel (Apple Watch)",c:"#c9e04a"}};
+function activities(){
+  const L=[];
+  S.sessions.filter(s=>s.status!=="en curso"&&s.minutes>0).forEach(s=>{const id=gymIdOf(s);const cat=id==="A"?"A":id==="B"||id==="C"?"BC":id==="D"?"D":id==="X"?"X":null;if(!cat)return;
+    L.push({cat,start:+new Date(s.start),min:s.minutes,gB:s.gBefore,gA:s.gAfter,rpe:s.rpe,label:s.title})});
+  S.health.workouts.forEach(w=>{const st=+new Date(w.start);
+    if(w.padel){const cat=w.kind?({Partido:"partido",Entreno:"entreno",Torneo:"torneo"}[w.kind]||"padel"):"padel";L.push({cat,start:st,min:w.minutes,gB:w.gBefore,gA:w.gAfter,rpe:w.rpe,label:w.type})}});
+  return L.sort((a,b)=>a.start-b.start);
+}
+function actMetrics(x){
+  const s=x.start,e=s+x.min*6e4;
+  const before=gAt(s,30*6e4)??x.gB??null, end=gAt(e,25*6e4)??x.gA??null;
+  const dur=gMin(s,e), durMax=gMax(s,e), post=gMin(e,e+6*36e5), postMax=gMax(e,e+2*36e5);
+  const nd=new Date(e); if(nd.getHours()>=6)nd.setDate(nd.getDate()+1); nd.setHours(0,0,0,0);
+  const night=gMin(+nd,+nd+6*36e5);
+  const has=gRange(s-36e5,e+6*36e5).length>3;
+  const lows=[dur,post].filter(Boolean).some(r=>r.v<70);
+  const spike=[durMax,postMax].filter(Boolean).some(r=>r.v>250);
+  return {before,end,change:before!=null&&end!=null?end-before:null,durMin:dur?.v??null,postMin:post?.v??null,nightMin:night?.v??null,has,lows,nightLow:night?night.v<70:null,spike};
+}
+const avg=a=>{const v=a.filter(x=>x!=null&&isFinite(x));return v.length?v.reduce((s,x)=>s+x,0)/v.length:null};
+const r0=v=>v==null?"—":String(Math.round(v));
+
+function glucoseCard(){
+  const a=gArr(), acts=activities();
+  const last=a.at(-1), first=a[0];
+  const man=S.health.workouts.filter(w=>w.src==="manual").slice(-4).reverse();
+  return `<section class="card" style="display:flex;flex-direction:column;gap:10px"><div class="eyebrow">Glucosa y deporte</div>
+   <p class="small muted" style="margin:0">Une la glucosa de tu sensor con cada sesión y cada partido para ver cómo te afecta cada deporte. Del informe sale un PDF para tu endocrino.</p>
+   <div class="small" style="color:var(--text)">${a.length?`💧 ${a.length.toLocaleString("es-ES")} lecturas · del ${new Date(first.ms).toLocaleDateString("es-ES",{day:"numeric",month:"short"})} al ${new Date(last.ms).toLocaleDateString("es-ES",{day:"numeric",month:"short"})}`:"💧 Todavía no hay glucosa del sensor."} · ${acts.length} actividades</div>
+   <label class="ghostbtn small" style="text-align:center;cursor:pointer">Importar glucosa de LibreView (CSV)<input type="file" id="libreview" accept=".csv,text/csv,text/plain" hidden></label>
+   <button class="ghostbtn small" data-act="padel-log">🎾 Apuntar un partido o entreno de pádel</button>
+   <button class="ballbtn" style="font-size:18px;padding:13px" data-act="gl-report">Informe para el endocrino</button>
+   <details><summary class="small muted" style="cursor:pointer">Cómo descargar la glucosa de LibreView</summary><ol class="small muted" style="margin:8px 0 0;padding-left:18px">
+     <li>En el iPhone, abre Safari y entra en <b>libreview.com</b> con tu cuenta de LibreLink.</li>
+     <li>Arriba a la derecha, <b>Descargar datos de glucosa</b>. Confirma el «no soy un robot» y pulsa <b>Descargar</b>.</li>
+     <li>Guarda el archivo en Archivos y elígelo con el botón de arriba. Repítelo cada 2-4 semanas.</li></ol></details>
+   ${man.length?`<div class="small muted" style="margin-top:2px">Pádel apuntado:</div>${man.map(w=>`<div class="row" style="padding:6px 0"><span class="small">${new Date(w.start).toLocaleDateString("es-ES",{weekday:"short",day:"numeric",month:"short"})} · ${esc(w.kind||"Pádel")} · ${w.minutes}'</span><button class="chip" style="background:var(--surface2);color:var(--muted)" data-act="padel-del" data-id="${esc(w.id)}" aria-label="Borrar">✕</button></div>`).join("")}`:""}
+  </section>`;
+}
+
+/* Apuntar pádel a mano (si no viene del reloj) */
+let PL={kind:"Partido"};
+function openPadelLog(){
+  const now=new Date(), d=dayKey(now), hh=String(Math.max(0,now.getHours()-2)).padStart(2,"0")+":00";
+  const el=document.createElement("div");el.className="sheet";el.id="padellog";
+  el.innerHTML=`<div class="panel" role="dialog" aria-modal="true" aria-label="Apuntar pádel">
+   <div style="display:flex;justify-content:space-between;align-items:center"><h2 class="title" style="font-size:28px">🎾 Apuntar pádel</h2><button class="iconbtn" data-act="padel-close" aria-label="Cerrar">${ICON.x}</button></div>
+   <div class="chips">${["Partido","Entreno","Torneo"].map(k=>`<button class="chip" data-act="padel-kind" data-k="${k}" style="${k===PL.kind?"background:var(--ball);color:var(--ballInk)":"background:var(--surface2);color:var(--muted)"}">${k==="Entreno"?"Entreno con entrenador":k}</button>`).join("")}</div>
+   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+     <div class="field"><label for="pl-d">Día</label><input type="date" id="pl-d" value="${d}"></div>
+     <div class="field"><label for="pl-h">Empieza</label><input type="time" id="pl-h" value="${hh}"></div>
+     <div class="field"><label for="pl-m">Minutos</label><input id="pl-m" inputmode="numeric" value="90"></div></div>
+   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+     <div class="field"><label for="pl-r">Esfuerzo 1-10</label><input id="pl-r" inputmode="numeric" placeholder="7"></div>
+     <div class="field"><label for="pl-gb">Glucosa antes</label><input id="pl-gb" inputmode="numeric" placeholder="mg/dL"></div>
+     <div class="field"><label for="pl-ga">Glucosa después</label><input id="pl-ga" inputmode="numeric" placeholder="mg/dL"></div></div>
+   <p class="small muted" style="margin:0">Si importas la glucosa de LibreView, las de antes y después no hacen falta: la app las saca del sensor.</p>
+   <button class="ballbtn" data-act="padel-save">Guardar</button></div>`;
+  $("#layer").appendChild(el);
+}
+function savePadelLog(){
+  const d=$("#pl-d").value,h=$("#pl-h").value||"10:00",m=parseInt($("#pl-m").value,10);
+  if(!d||!(m>0)){toast("Pon el día y los minutos");return}
+  const st=new Date(`${d}T${h}:00`); if(isNaN(st)){toast("Fecha no válida");return}
+  const n=v=>{v=parseFloat((v||"").replace(",","."));return isFinite(v)?v:null};
+  S.health.workouts.push({id:"m"+st.getTime(),src:"manual",type:"Pádel · "+PL.kind,kind:PL.kind,padel:true,start:st.toISOString(),minutes:m,rpe:n($("#pl-r").value),gBefore:n($("#pl-gb").value),gAfter:n($("#pl-ga").value)});
+  save();$("#padellog")?.remove();toast("Pádel apuntado");render();
+}
+
+/* Informe para el endocrino (pantalla imprimible → PDF) */
+let repDays=90;
+function glucoseStats(a){if(!a.length)return null;const v=a.map(x=>x.v),n=v.length,mean=v.reduce((s,x)=>s+x,0)/n,sd=Math.sqrt(v.reduce((s,x)=>s+(x-mean)**2,0)/n);
+  const pct=f=>fmtNum(Math.round(v.filter(f).length/n*1000)/10);
+  return {n,mean,cv:sd/mean*100,gmi:3.31+0.02392*mean,tir:pct(x=>x>=70&&x<=180),tbr:pct(x=>x<70),tbr54:pct(x=>x<54),tar:pct(x=>x>180),tar250:pct(x=>x>250)}}
+function curveSvg(groups){
+  const W=340,H=210,P={l:34,r:8,t:10,b:26},x0=-60,x1=300,y0=40,y1=300;
+  const X=m=>P.l+(m-x0)/(x1-x0)*(W-P.l-P.r),Y=v=>H-P.b-(Math.min(y1,Math.max(y0,v))-y0)/(y1-y0)*(H-P.t-P.b);
+  const lines=groups.map(g=>{const pts=g.curve.map((v,i)=>v==null?null:[X(x0+i*15),Y(v)]);let d="",pen=false;pts.forEach(p=>{if(!p){pen=false;return}d+=(pen?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1);pen=true});
+    return `<path d="${d}" fill="none" stroke="${g.c}" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>`}).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Glucosa media alrededor de cada tipo de actividad">
+   <rect x="${P.l}" y="${Y(180)}" width="${W-P.l-P.r}" height="${Y(70)-Y(180)}" fill="#52cf90" fill-opacity=".12"/>
+   ${[70,180,250].map(t=>`<line x1="${P.l}" x2="${W-P.r}" y1="${Y(t)}" y2="${Y(t)}" stroke="${t===70?"#fa6672":t===250?"#f5a844":"#52cf90"}" stroke-opacity=".5" stroke-dasharray="3 4"/><text x="${P.l-5}" y="${Y(t)+3}" text-anchor="end" font-size="9" fill="currentColor" opacity=".7">${t}</text>`).join("")}
+   <rect x="${X(0)}" y="${P.t}" width="${X(60)-X(0)}" height="${H-P.t-P.b}" fill="currentColor" opacity=".06"/>
+   ${[-60,0,60,120,180,240,300].map(m=>`<text x="${X(m)}" y="${H-8}" text-anchor="middle" font-size="9" fill="currentColor" opacity=".7">${m===0?"inicio":(m>0?"+":"")+(m/60)+"h"}</text>`).join("")}
+   ${lines}</svg>`;
+}
+function openReport(){
+  $("#report")?.remove();
+  const now=Date.now(), from=now-repDays*864e5;
+  const ga=gArr().filter(g=>g.ms>=from), st=glucoseStats(ga);
+  const acts=activities().filter(x=>x.start>=from).map(x=>({...x,m:actMetrics(x)}));
+  const cats=Object.keys(ACT_CATS).map(k=>{const L=acts.filter(x=>x.cat===k);if(!L.length)return null;const D=L.filter(x=>x.m.has);
+    const curve=Array.from({length:25},(_,i)=>{const vals=D.map(x=>gAt(x.start+(-60+i*15)*6e4,25*6e4)).filter(v=>v!=null);return vals.length?avg(vals):null});
+    return {k,...ACT_CATS[k],cnt:L.length,nd:D.length,before:avg(L.map(x=>x.m.before)),change:avg(L.map(x=>x.m.change)),post:avg(D.map(x=>x.m.postMin)),
+      lows:D.filter(x=>x.m.lows).length,night:D.filter(x=>x.m.nightLow).length,spikes:D.filter(x=>x.m.spike).length,curve}}).filter(Boolean);
+  /* Días con y sin ejercicio */
+  const dayK=ms=>dayKey(new Date(ms)), exDays=new Set(acts.map(x=>dayK(x.start)));
+  const nightLows=on=>{const days=new Set(ga.map(g=>dayK(g.ms)));let n=0,l=0;days.forEach(k=>{const d=new Date(k+"T00:00:00");const prev=new Date(d);prev.setDate(prev.getDate()-1);
+    if(exDays.has(dayKey(prev))!==on)return;const m=gMin(+d,+d+6*36e5);if(!m)return;n++;if(m.v<70)l++});return {n,l}};
+  const nOn=nightLows(true),nOff=nightLows(false);
+  const sOn=glucoseStats(ga.filter(g=>exDays.has(dayK(g.ms)))),sOff=glucoseStats(ga.filter(g=>!exDays.has(dayK(g.ms))));
+  const f=d=>new Date(d).toLocaleDateString("es-ES",{day:"numeric",month:"short",year:"numeric"});
+  const el=document.createElement("div");el.id="report";el.className="report";el.setAttribute("role","dialog");el.setAttribute("aria-label","Informe de glucosa y deporte");
+  el.innerHTML=`<div class="rp">
+   <div class="noprint" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div class="chips">${[30,60,90].map(d=>`<button class="chip" data-act="rep-days" data-d="${d}" style="${d===repDays?"background:var(--ball);color:var(--ballInk)":"background:var(--surface2);color:var(--muted)"}">${d} días</button>`).join("")}</div><button class="iconbtn" data-act="rep-close" aria-label="Cerrar">${ICON.x}</button></div>
+   <header><div class="eyebrow">Informe para el endocrino</div><h2 style="font:800 34px/1.05 var(--display);margin:4px 0">Glucosa y deporte</h2>
+    <div class="small muted">Del ${f(from)} al ${f(now)} · Paciente con diabetes tipo 1 · FreeStyle Libre (LibreView) y registro de entrenamientos de Plan Pádel</div></header>
+   ${!ga.length?`<div class="rbox" style="border-color:var(--warn)"><b>Faltan los datos del sensor.</b><div class="small">Importa la glucosa de LibreView (Progreso → Glucosa y deporte) para ver las curvas y los porcentajes. Ahora solo se usan las glucosas apuntadas a mano.</div></div>`:""}
+   ${st?`<section><h3>1. Resumen del periodo</h3><div class="kpis">
+     <div><b>${st.tir}%</b><span>en rango 70-180</span></div><div><b>${st.tbr}%</b><span>&lt;70 (${st.tbr54}% &lt;54)</span></div><div><b>${st.tar}%</b><span>&gt;180 (${st.tar250}% &gt;250)</span></div>
+     <div><b>${Math.round(st.mean)}</b><span>media mg/dL</span></div><div><b>${fmtNum(Math.round(st.gmi*10)/10)} %</b><span>GMI</span></div><div><b>${Math.round(st.cv)}%</b><span>variabilidad (CV)</span></div></div>
+     <div class="small muted">${st.n.toLocaleString("es-ES")} lecturas. Objetivos habituales del consenso internacional: más del 70% en rango, menos del 4% por debajo de 70 y CV de 36% o menos. Los tuyos los fija tu endocrino.</div></section>`:""}
+   <section><h3>2. Por tipo de actividad</h3>
+    ${cats.length?`<div class="tbl"><table><thead><tr><th>Actividad</th><th>n</th><th>Antes</th><th>Cambio</th><th>Mín. 6 h después</th><th>Bajadas &lt;70</th><th>Noche &lt;70</th><th>&gt;250</th></tr></thead><tbody>
+     ${cats.map(c=>`<tr><td><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${c.c};margin-right:6px"></i>${esc(c.n)}</td><td>${c.cnt}</td><td>${r0(c.before)}</td><td>${c.change==null?"—":(c.change>0?"+":"")+Math.round(c.change)}</td><td>${r0(c.post)}</td><td>${c.nd?`${c.lows}/${c.nd}`:"—"}</td><td>${c.nd?`${c.night}/${c.nd}`:"—"}</td><td>${c.nd?`${c.spikes}/${c.nd}`:"—"}</td></tr>`).join("")}
+    </tbody></table></div>
+    <div class="small muted">Antes: glucosa al empezar (media, mg/dL). Cambio: del inicio al final. Bajadas: actividades con alguna lectura &lt;70 durante o en las 6 h siguientes. Noche: &lt;70 entre las 0 y las 6 h de esa noche. &gt;250: picos durante o en las 2 h siguientes (en competición suelen ser por adrenalina).</div>`
+    :`<p class="small muted">Todavía no hay actividades en este periodo. Se cuentan las sesiones de gimnasio de la app y el pádel (del Apple Watch o apuntado a mano).</p>`}</section>
+   ${cats.some(c=>c.curve.some(v=>v!=null))?`<section><h3>3. Curva media de glucosa alrededor de cada actividad</h3>${curveSvg(cats.filter(c=>c.curve.some(v=>v!=null)))}
+    <div class="legend" style="flex-wrap:wrap">${cats.filter(c=>c.curve.some(v=>v!=null)).map(c=>`<span><i style="background:${c.c}"></i>${esc(c.n)} (${c.nd})</span>`).join("")}</div>
+    <div class="small muted">Desde 1 h antes hasta 5 h después del inicio. La franja gris es la primera hora de actividad; la verde, el rango de 70 a 180.</div></section>`:""}
+   ${st&&sOn&&sOff?`<section><h3>4. Días con deporte frente a días sin deporte</h3><div class="tbl"><table><thead><tr><th></th><th>En rango</th><th>&lt;70</th><th>&gt;180</th><th>Media</th><th>Noches con &lt;70</th></tr></thead><tbody>
+     <tr><td>Con deporte</td><td>${sOn.tir}%</td><td>${sOn.tbr}%</td><td>${sOn.tar}%</td><td>${Math.round(sOn.mean)}</td><td>${nOn.l}/${nOn.n}</td></tr>
+     <tr><td>Sin deporte</td><td>${sOff.tir}%</td><td>${sOff.tbr}%</td><td>${sOff.tar}%</td><td>${Math.round(sOff.mean)}</td><td>${nOff.l}/${nOff.n}</td></tr></tbody></table></div></section>`:""}
+   ${acts.length?`<section><h3>${st?5:3}. Últimas actividades</h3><div class="tbl"><table class="acts"><thead><tr><th>Fecha</th><th>Actividad</th><th>Min</th><th>RPE</th><th>Antes</th><th>Final</th><th>Mín. 6 h</th><th>Noche</th></tr></thead><tbody>
+     ${acts.slice(-25).reverse().map(x=>`<tr><td>${new Date(x.start).toLocaleDateString("es-ES",{day:"numeric",month:"short"})} ${new Date(x.start).toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})}</td><td>${esc(ACT_CATS[x.cat].n)}</td><td>${x.min}</td><td>${x.rpe??"—"}</td><td>${r0(x.m.before)}</td><td>${r0(x.m.end)}</td><td class="${x.m.postMin!=null&&x.m.postMin<70?"lo":""}">${r0(x.m.postMin)}</td><td class="${x.m.nightMin!=null&&x.m.nightMin<70?"lo":""}">${r0(x.m.nightMin)}</td></tr>`).join("")}
+    </tbody></table></div></section>`:""}
+   <p class="small muted">No incluye insulina ni hidratos: interpretar junto con el diario del paciente. Generado con Plan Pádel el ${f(now)}.</p>
+   <div class="noprint" style="display:grid;gap:8px"><button class="ballbtn" data-act="rep-print">Guardar PDF / imprimir</button><button class="ghostbtn" data-act="rep-close">Cerrar</button></div>
+  </div>`;
+  document.body.appendChild(el);
 }
 
 /* ============ EVENTOS ============ */
@@ -1101,6 +1308,15 @@ document.addEventListener("click",e=>{
     case "go-progreso":tab="progreso";render();window.scrollTo(0,0);break;
     case "share-summary":shareSummary();break;
     case "summary-close":$("#summary")?.remove();$("#confetti")?.remove();break;
+    case "padel-log":openPadelLog();break;
+    case "padel-close":$("#padellog")?.remove();break;
+    case "padel-kind":PL.kind=t.dataset.k;document.querySelectorAll("[data-act=padel-kind]").forEach(b=>{const on=b===t;b.style.background=on?"var(--ball)":"var(--surface2)";b.style.color=on?"var(--ballInk)":"var(--muted)"});break;
+    case "padel-save":savePadelLog();break;
+    case "padel-del":S.health.workouts=S.health.workouts.filter(w=>w.id!==t.dataset.id);save();render();break;
+    case "gl-report":openReport();break;
+    case "rep-days":repDays=+t.dataset.d;openReport();break;
+    case "rep-close":$("#report")?.remove();break;
+    case "rep-print":window.print();break;
     case "day-close":$("#dayview")?.remove();break;
     case "day-swap":setDayOpt("swap",t.dataset.id);$("#dayview")?.remove();tab="hoy";render();window.scrollTo(0,0);toast("Hoy haces esta sesión");break;
     case "day-unswap":setDayOpt("swap",null);$("#dayview")?.remove();tab="hoy";render();window.scrollTo(0,0);break;
@@ -1112,6 +1328,7 @@ document.addEventListener("input",e=>{
   if(e.target.id==="f-min"&&F){$("#f-load").textContent=F.rpe*(parseInt(e.target.value,10)||0)}
   if(e.target.id==="imp-txt")$("#imp-err").textContent="";
   if(e.target.id==="restore"&&e.target.files[0])restore(e.target.files[0]);
+  if(e.target.id==="libreview"&&e.target.files[0]){const f=e.target.files[0];const r=new FileReader();r.onload=()=>{toast(importLibreView(String(r.result)));render()};r.readAsText(f);e.target.value=""}
   if(e.target.id==="renpho"&&e.target.files[0]){const f=e.target.files[0];const r=new FileReader();r.onload=()=>{const m=importRenpho(String(r.result));toast(m);render()};r.readAsText(f);e.target.value=""}
   if(e.target.id==="f-knee"){$("#f-knee-v").textContent=e.target.value;$("#f-knee-v").style.color=+e.target.value>=4?"var(--warn)":""}
 });
