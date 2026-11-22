@@ -468,8 +468,8 @@ function renderProgreso(){
   </div>`;
 }
 /* Tu cuerpo: báscula (Renpho → Salud → atajo, o a mano). Lo que cuenta es la tendencia. */
-const BODYM=[{id:"kg",n:"Peso",u:"kg",step:.1},{id:"fat",n:"Grasa",u:"%",step:.1},{id:"skm",n:"Músculo esquelético",short:"Músculo",u:"kg",step:.1}];
-let bodySel="fat";
+const BODYM=[{id:"kg",n:"Peso",u:"kg",step:.1},{id:"fat",n:"Grasa",u:"%",step:.1},{id:"skm",n:"Músculo esquelético",short:"Músculo",u:"kg",step:.1},{id:"waist",n:"Cintura",u:"cm",step:.5}];
+let bodySel="kg";
 function bodyAvg(arr,key,from,to){const v=arr.filter(b=>b[key]!=null&&+new Date(b.d)>=from&&+new Date(b.d)<to).map(b=>b[key]);return v.length?v.reduce((a,x)=>a+x,0)/v.length:null}
 function bodyCard(){
   const B=(S.body||[]).slice().sort((a,b)=>new Date(a.d)-new Date(b.d));
@@ -492,17 +492,39 @@ function bodyCard(){
   const tile=(m,good)=>{const v=has(m.id).at(-1)?.[m.id],dl=delta(m.id);return `<div style="background:var(--surface2);border-radius:14px;padding:10px 8px;text-align:center;min-width:0"><div class="num" style="font-size:22px;font-weight:800">${v!=null?fmtNum(Math.round(v*10)/10):"—"}<span class="small muted" style="font-weight:600"> ${m.u}</span></div><div class="small muted" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.short||m.n}</div>${dl!=null?`<div class="small" style="color:${good==="none"||dl===0?"var(--muted)":(dl<0)===(good==="down")?"var(--ok)":"var(--warn)"}">${dl>0?"▲ +":dl<0?"▼ ":"= "}${fmtNum(Math.round(Math.abs(dl)*10)/10)}</div>`:""}</div>`};
   return `<section class="card" style="display:flex;flex-direction:column;gap:12px">
    <div><div class="eyebrow" style="margin-bottom:4px">Tu cuerpo</div>
-    <p class="small muted" style="margin:0">Para marcar abdominales, pecho y brazos lo que cuenta es que <b>baje la grasa y no baje el músculo</b>, no el peso. La báscula puede fallar 2-3 puntos de grasa (agua, glucosa): fíate de la tendencia.</p></div>
-   ${last?`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">${tile(BODYM[0],"none")}${tile(BODYM[1],"down")}${tile(BODYM[2],"up")}</div>
+    <p class="small muted" style="margin:0">Para marcar abdominales lo que cuenta es que <b>baje la grasa sin perder músculo</b>. Tu Renpho calcula la grasa casi solo a partir del peso, así que fíate más de la <b>cintura</b> (cinta métrica a la altura del ombligo, en ayunas, una vez por semana) y de que tus pesos en el gimnasio no bajen.</p></div>
+   ${last?`<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">${tile(BODYM[0],"none")}${tile(BODYM[3],"down")}${tile(BODYM[1],"down")}${tile(BODYM[2],"up")}</div>
     ${fatKg(last)!=null?`<div class="small muted">Grasa: <b style="color:var(--text)">${fmtNum(Math.round(fatKg(last)*10)/10)} kg</b> · Todo lo demás (masa magra): <b style="color:var(--text)">${fmtNum(Math.round(leanKg(last)*10)/10)} kg</b>${first!==last&&fatKg(first)!=null?` · desde el ${new Date(first.d).toLocaleDateString("es-ES",{day:"numeric",month:"short"})}: grasa ${fatKg(last)-fatKg(first)<=0?"▼":"▲"} ${fmtNum(Math.round(Math.abs(fatKg(last)-fatKg(first))*10)/10)} kg, magra ${leanKg(last)-leanKg(first)>=0?"▲":"▼"} ${fmtNum(Math.round(Math.abs(leanKg(last)-leanKg(first))*10)/10)} kg`:""}</div>`:""}
     <div class="hscroll">${BODYM.map(m=>`<button class="chip" data-body="${m.id}" style="${m.id===bodySel?"background:var(--ball);color:var(--ballInk)":"background:var(--surface2);color:var(--muted)"}">${m.n}</button>`).join("")}</div>
-    ${pts.length?lineChart(pts):`<p class="small muted" style="margin:0">Sin datos de ${M.n.toLowerCase()} todavía.</p>`}
+    ${pts.length?lineChart(pts,{tight:true}):`<p class="small muted" style="margin:0">Sin datos de ${M.n.toLowerCase()} todavía.</p>`}
     <div class="small" style="color:${muscleDrop?"var(--warn)":"var(--muted)"}">${muscleDrop?"El músculo esquelético ha bajado más de 1 kg: sube la proteína y no recortes más comida sin hablarlo con tu endocrino. ":""}${esc(advice)}</div>`
    :`<p class="small muted" style="margin:0">Apunta tu primera medida de la báscula Renpho. Cuando tengamos el atajo de Salud, llegará sola.</p>`}
-   <div style="display:grid;grid-template-columns:repeat(3,1fr) auto;gap:6px;align-items:center">
-    ${BODYM.map(m=>`<input id="b-${m.id}" inputmode="decimal" placeholder="${m.id==="skm"?"Músculo":m.id==="fat"?"Grasa %":"Peso"}" aria-label="${m.n} (${m.u})" style="min-width:0;background:var(--surface2);border:0;border-radius:10px;padding:8px;text-align:center">`).join("")}
-    <button class="chip" style="background:var(--court);color:var(--ink)" data-act="body-save">Guardar</button></div>
+   <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;align-items:center">
+    ${BODYM.map(m=>`<input id="b-${m.id}" inputmode="decimal" placeholder="${m.id==="skm"?"Músculo":m.id==="fat"?"Grasa %":m.id==="waist"?"Cintura":"Peso"}" aria-label="${m.n} (${m.u})" style="min-width:0;background:var(--surface2);border:0;border-radius:10px;padding:8px;text-align:center">`).join("")}
+    </div><button class="chip" style="background:var(--court);color:var(--ink);justify-self:start" data-act="body-save">Guardar medida de hoy</button>
+   <label class="ghostbtn small" style="text-align:center;cursor:pointer">Importar historial de Renpho (CSV)<input type="file" id="renpho" accept=".csv,text/csv,text/plain" hidden></label>
   </section>`;
+}
+/* Historial exportado desde la app de Renpho (CSV, en español o en inglés). Se queda la primera medida de cada día. */
+function importRenpho(txt){
+  const lines=txt.replace(/^\ufeff/,"").split(/\r?\n/).filter(l=>l.trim());
+  if(lines.length<2)return "Ese archivo no tiene medidas.";
+  const split=l=>l.split(/[,;](?=(?:[^"]*"[^"]*")*[^"]*$)/).map(c=>c.replace(/^"|"$/g,"").trim());
+  const H=split(lines[0]).map(h=>h.toLowerCase());
+  const col=re=>H.findIndex(h=>re.test(h));
+  const iD=col(/^(fecha|date)/), iT=col(/^(hora|time)/), iKg=col(/^(peso|weight)\s*\(kg\)/), iF=col(/(grasa corporal|body fat)\s*\(%\)/), iM=col(/(masa muscular esquel|skeletal muscle mass)/);
+  if(iD<0||iKg<0)return "No reconozco el archivo. Exporta el historial desde la app de Renpho en CSV.";
+  const n=v=>{v=(v||"").replace(",",".");return v&&v!=="--"&&isFinite(+v)&&+v>0?+v:null};
+  const byDay={};
+  lines.slice(1).forEach(l=>{const c=split(l);const ds=(c[iD]||"").replace(/[./]/g,"-");const m=ds.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);if(!m)return;
+    const t=(iT>=0&&c[iT])||"08:00:00";const d=new Date(`${m[1]}-${m[2].padStart(2,"0")}-${m[3].padStart(2,"0")}T${t.length===5?t+":00":t}`);if(isNaN(d))return;
+    const rec={d:d.toISOString(),kg:n(c[iKg]),fat:iF>=0?n(c[iF]):null,skm:iM>=0?n(c[iM]):null,src:"renpho"};if(rec.kg==null)return;
+    const k=m[1]+m[2]+m[3];if(!byDay[k]||new Date(byDay[k].d)>d)byDay[k]=rec});
+  const list=Object.values(byDay);if(!list.length)return "No encontré medidas en el archivo.";
+  /* Quita las medidas apuntadas a mano que ya vienen en el historial */
+  S.body=(S.body||[]).filter(b=>b.src||!list.some(r=>r.kg===b.kg&&(b.fat==null||r.fat===b.fat)));
+  const added=addBody(list);save();
+  return `Historial de Renpho: ${added} días nuevos (${list.length} en el archivo)`;
 }
 function addBody(list){S.body=S.body||[];const seen=new Set(S.body.map(b=>String(b.d).slice(0,16)));let n=0;
   list.forEach(b=>{const k=String(b.d).slice(0,16);if(!seen.has(k)){S.body.push(b);seen.add(k);n++}});S.body.sort((a,b)=>new Date(a.d)-new Date(b.d));S.body=S.body.slice(-400);return n}
@@ -529,10 +551,10 @@ function restore(file){
     S=Object.assign({sessions:[],sets:[],health:{glucose:[],workouts:[]}},d.datos);save();toast("Copia restaurada");render()}catch(e){toast("Ese archivo no es una copia de Plan Pádel")}};
   r.readAsText(file);
 }
-function lineChart(pts){
+function lineChart(pts,o={}){
   const W=320,H=170,P={l:30,r:12,t:12,b:24};
   const xs=pts.map(p=>+p.d), ys=pts.map(p=>p.v);
-  const x0=Math.min(...xs), x1=Math.max(...xs)||x0+1, yMin=Math.floor(Math.min(...ys)*0.85), yMax=Math.ceil(Math.max(...ys)*1.08);
+  const x0=Math.min(...xs), x1=Math.max(...xs)||x0+1, yMin=o.tight?Math.floor(Math.min(...ys)-1):Math.floor(Math.min(...ys)*0.85), yMax=o.tight?Math.ceil(Math.max(...ys)+1):Math.ceil(Math.max(...ys)*1.08);
   const X=v=>P.l+(x1===x0?0.5:(v-x0)/(x1-x0))*(W-P.l-P.r), Y=v=>H-P.b-(v-yMin)/((yMax-yMin)||1)*(H-P.t-P.b);
   const path=pts.map((p,i)=>(i?"L":"M")+X(+p.d).toFixed(1)+" "+Y(p.v).toFixed(1)).join(" ");
   const area=pts.length>1?path+` L${X(+pts.at(-1).d).toFixed(1)} ${H-P.b} L${X(+pts[0].d).toFixed(1)} ${H-P.b} Z`:"";
@@ -544,7 +566,7 @@ function lineChart(pts){
    ${months.map(m=>`<text x="${X(+m<x0?x0:+m)}" y="${H-6}" text-anchor="middle" font-size="10" fill="#92a0bb">${m.toLocaleDateString("es-ES",{month:"short"}).replace(".","")}</text>`).join("")}
    ${area?`<path d="${area}" fill="url(#ga)"/>`:""}
    <path d="${path}" fill="none" stroke="#3f7df4" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-   ${pts.map((p,i)=>`<circle cx="${X(+p.d)}" cy="${Y(p.v)}" r="${i===pts.length-1?5.5:3.5}" fill="${i===pts.length-1?"#d9ea4c":"#3f7df4"}"/>`).join("")}
+   ${pts.map((p,i)=>`<circle cx="${X(+p.d)}" cy="${Y(p.v)}" r="${i===pts.length-1?5.5:pts.length>30?1.8:3.5}" fill="${i===pts.length-1?"#d9ea4c":"#3f7df4"}"/>`).join("")}
   </svg>`;
 }
 
@@ -798,6 +820,7 @@ document.addEventListener("input",e=>{
   if(e.target.id==="f-min"&&F){$("#f-load").textContent=F.rpe*(parseInt(e.target.value,10)||0)}
   if(e.target.id==="imp-txt")$("#imp-err").textContent="";
   if(e.target.id==="restore"&&e.target.files[0])restore(e.target.files[0]);
+  if(e.target.id==="renpho"&&e.target.files[0]){const f=e.target.files[0];const r=new FileReader();r.onload=()=>{const m=importRenpho(String(r.result));toast(m);render()};r.readAsText(f);e.target.value=""}
   if(e.target.id==="f-knee"){$("#f-knee-v").textContent=e.target.value;$("#f-knee-v").style.color=+e.target.value>=4?"var(--warn)":""}
 });
 function openExit(){
