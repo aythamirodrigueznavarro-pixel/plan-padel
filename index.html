@@ -180,6 +180,7 @@ nav.tabs button[aria-selected="true"]{color:var(--ball)}
   #report td.lo{color:#c0263a!important}
   #report section{break-inside:avoid}
 }
+.sheet .panel>*{flex-shrink:0}
 .field input[type=date],.field input[type=time]{font-size:17px!important;font-weight:600!important;min-width:0;width:100%}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -1014,8 +1015,8 @@ function drawPlayer(){
      <div class="card" style="margin-top:18px;padding:18px">
        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px"><span style="font:800 22px var(--display)">Serie ${st.set+1} de ${e.sets}</span>${e.rest?`<span class="small muted">⏱ ${restText(e.rest)}</span>`:""}</div>
        ${P.hint&&st.set===0?`<div class="small" style="margin:2px 0 8px;padding:8px 10px;border-radius:10px;background:${P.hint.t==="up"?"color-mix(in srgb,var(--ok) 14%,transparent)":P.hint.t==="down"?"color-mix(in srgb,var(--warn) 14%,transparent)":"var(--surface2)"};color:${P.hint.t==="up"?"var(--ok)":P.hint.t==="down"?"var(--warn)":"var(--muted)"}">${P.hint.t==="up"?"▲ ":P.hint.t==="down"?"▼ ":"= "}${esc(P.hint.txt)}</div>`:""}
-       ${e.metrics.includes("RIR")?`<div class="small muted" style="margin:-2px 0 6px">Al acabar, pon el RIR real: cuántas repeticiones te quedaban.</div>`:""}
-       ${e.metrics.map(m=>`<div class="stepper"><span class="lab">${m==="seg"?"seg":m}${m==="kg"&&e.barbell?"<small>solo discos</small>":""}</span><span></span><button data-step="${m}" data-d="-1" aria-label="Bajar ${m}">−</button><output id="v-${m}" class="num" data-act="edit-val" data-m="${m}" role="button" tabindex="0" aria-label="Escribir ${m}" style="cursor:pointer;text-decoration:underline dotted rgba(255,255,255,.25);text-underline-offset:6px">${fmtNum(P.vals[m]??0)}</output><button data-step="${m}" data-d="1" aria-label="Subir ${m}">+</button></div>`).join("")}
+       ${e.metrics.includes("RIR")?`<div class="small muted" style="margin:-2px 0 6px">Al acabar, pon el RIR real: cuántas repeticiones te quedaban. <button data-act="help-rir" style="color:var(--ball);font-weight:700;text-decoration:underline">¿Qué es el RIR?</button></div>`:""}
+       ${e.metrics.map(m=>`<div class="stepper"><span class="lab">${m==="seg"?"seg":m==="reps"?"reps":m}${m==="kg"&&e.barbell?"<small>solo discos</small>":m==="RIR"?`<small id="rir-help" style="color:var(--ball)">${rirShort(P.vals.RIR??0)}</small>`:m==="reps"?"<small>repeticiones</small>":""}</span><span></span><button data-step="${m}" data-d="-1" aria-label="Bajar ${m}">−</button><output id="v-${m}" class="num" data-act="edit-val" data-m="${m}" role="button" tabindex="0" aria-label="Escribir ${m}" style="cursor:pointer;text-decoration:underline dotted rgba(255,255,255,.25);text-underline-offset:6px">${fmtNum(P.vals[m]??0)}</output><button data-step="${m}" data-d="1" aria-label="Subir ${m}">+</button></div>`).join("")}
      </div>
    </div>
    <button class="ballbtn" data-act="done">${P.i===P.steps.length-1?"Última serie hecha":"Serie hecha"}</button>
@@ -1171,7 +1172,7 @@ function openFinish(partial){
   const el=document.createElement("div"); el.className="sheet"; el.id="finish";
   el.innerHTML=`<div class="panel" role="dialog" aria-modal="true" aria-label="Cerrar la sesión">
    <h2 class="title" id="fin-title">${partial?"Sesión parcial":"Sesión terminada"}</h2>
-   <div><div style="font-weight:600;margin-bottom:8px">¿Qué tan dura ha sido?</div>
+   <div><div style="font-weight:600;margin-bottom:8px">¿Qué tan dura ha sido? (RPE) <button data-act="help-rir" style="color:var(--ball);font-weight:700;text-decoration:underline;font-size:13px">¿Qué es?</button></div>
      <div class="rpe">${Array.from({length:10},(_,k)=>`<button data-rpe="${k+1}" aria-pressed="${k+1===7}">${k+1}</button>`).join("")}</div>
      <div class="small muted" id="rpe-txt" style="margin-top:8px">${rpeText(7)}</div></div>
    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -1184,6 +1185,24 @@ function openFinish(partial){
    <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="small muted">Carga de la sesión</span><span><b id="f-load" class="num" style="font:700 34px var(--body)">${7*mins}</b> <span class="small muted">UA</span></span></div>
    <button class="ballbtn" data-act="save">Guardar sesión</button></div>`;
   $("#layer").appendChild(el);
+}
+/* RIR y RPE, siempre a mano */
+function rirShort(v){v=Math.round(v);return v<=0?"fallo":v===1?"quedaba 1":`quedaban ${v}`}
+const RIR_ROWS=[[0,"10","No podías hacer ni una más (fallo). En este plan, casi nunca."],[1,"9","Te quedaba 1. Muy duro."],[2,"8","Te quedaban 2. Duro pero con buena técnica."],[3,"7","Te quedaban 3. Exigente y controlado."],[4,"6","Te quedaban 4. Cómodo."],["5+","5 o menos","Fácil. Si te pasa siempre, la app te sube el peso."]];
+function openRirHelp(){
+  const el=document.createElement("div");el.className="sheet";el.id="rirhelp";el.style.zIndex="85";
+  el.innerHTML=`<div class="panel" role="dialog" aria-modal="true" aria-label="Qué son el RIR y el RPE">
+   <div style="display:flex;justify-content:space-between;align-items:center"><h2 class="title" style="font-size:28px">RIR y RPE</h2><button class="iconbtn" data-act="rirhelp-close" aria-label="Cerrar">${ICON.x}</button></div>
+   <div class="card" style="padding:14px;display:flex;flex-direction:column;gap:6px"><div><b style="color:var(--ball);font:800 26px var(--display)">RIR</b> <span class="muted">· Repeticiones En Reserva</span></div>
+     <div>Al terminar la serie: <b>¿cuántas más podrías haber hecho bien?</b> Esas son tu RIR.</div>
+     <div class="small muted">Truco: <b style="color:var(--text)">R</b>epeticiones que te quedaban en la <b style="color:var(--text)">R</b>ecámara.</div></div>
+   <div class="card" style="padding:14px;display:flex;flex-direction:column;gap:6px"><div><b style="color:var(--court);font:800 26px var(--display)">RPE</b> <span class="muted">· esfuerzo percibido, del 1 al 10</span></div>
+     <div><b>¿Cómo de dura ha sido?</b> 1 es un paseo y 10, al máximo.</div>
+     <div class="small muted">Truco: <b style="color:var(--text)">P</b> de <b style="color:var(--text)">P</b>esado. Y RPE = 10 − RIR.</div></div>
+   <div class="tbl"><table><thead><tr><th>RIR</th><th>RPE</th><th>Cómo te sentiste</th></tr></thead><tbody>${RIR_ROWS.map(([r,p,t])=>`<tr><td><b>${r}</b></td><td>${p}</td><td style="white-space:normal;text-align:left">${t}</td></tr>`).join("")}</tbody></table></div>
+   <p class="small muted" style="margin:0">En cada serie apuntas el RIR. Al final de la sesión, el RPE de la sesión entera. La app usa tu RIR para subirte o bajarte el peso la vez siguiente.</p>
+   <button class="ballbtn" data-act="rirhelp-close">Entendido</button></div>`;
+  document.body.appendChild(el);
 }
 function rpeText(n){return n<=3?"Muy suave":n<=5?"Moderada":n===6?"Algo dura":n===7?"Dura: te quedaban unas 3 repeticiones":n===8?"Muy dura: te quedaban unas 2":n===9?"Casi al máximo":"Al máximo"}
 function saveSession(){
@@ -1449,8 +1468,10 @@ function openReport(){
 }
 
 /* ============ NOVEDADES Y AJUSTES ============ */
-const APP_VERSION="2026.11.22";
+const APP_VERSION="2026.11.22b";
 const CHANGELOG=[
+ ["❓","¿Qué era el RIR? Toca «¿Qué es el RIR?» en cualquier serie: tabla con RIR y RPE y un truco para recordarlos. Junto al número verás «quedaban 2»."],
+ ["✍️","Toca el número del peso o de las repeticiones para escribirlo directamente."],
  ["🔁","Si te sales de la app en mitad del entreno, al volver la retomas en la misma serie."],
  ["🚦","«¿Cómo llegas hoy?» antes de empezar: semáforo y versión corta si vas tocado."],
  ["🏆","Récords personales en directo y resumen con confeti al terminar, con tarjeta para compartir."],
@@ -1472,6 +1493,7 @@ function openSettings(){
   el.innerHTML=`<div class="panel" role="dialog" aria-modal="true" aria-label="Ajustes">
    <div style="display:flex;justify-content:space-between;align-items:center"><h2 class="title" style="font-size:28px">Ajustes</h2><button class="iconbtn" data-act="settings-close" aria-label="Cerrar">${ICON.x}</button></div>
    <button class="ghostbtn" data-act="whatsnew">✨ Novedades de esta versión</button>
+   <button class="ghostbtn" data-act="help-rir">❓ Qué son el RIR y el RPE</button>
    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="ghostbtn small" data-act="backup">💾 Guardar copia</button><label class="ghostbtn small" style="text-align:center;cursor:pointer">Restaurar copia<input type="file" id="restore" accept="application/json,.json" hidden></label></div>
    <button class="ghostbtn small" data-act="export">Copiar mis registros para tu entrenador</button>
    <div class="small muted">Tus datos viven solo en este iPhone (${used} KB). Nadie más los ve. Versión ${APP_VERSION}.</div>
@@ -1487,7 +1509,7 @@ document.addEventListener("click",e=>{
   if(t.dataset.video){openVideo(t.dataset.video);return}
   if(t.dataset.tab){if(t.dataset.tab==="semana"&&tab!=="semana")weekOff=new Date().getDay()===0?1:0;tab=t.dataset.tab;render();window.scrollTo(0,0);return}
   if(t.dataset.lift){liftSel=t.dataset.lift;render();return}
-  if(t.dataset.step){const m=t.dataset.step,dir=+t.dataset.d,cur=P.vals[m]||0,e=P.steps[P.i].e;const inc=m==="kg"?kgStep(e,cur,dir):STEP[m];P.vals[m]=Math.max(0,Math.round((cur+inc*dir)*10)/10);$("#v-"+m).textContent=fmtNum(P.vals[m]);vibrate(8);return}
+  if(t.dataset.step){const m=t.dataset.step,dir=+t.dataset.d,cur=P.vals[m]||0,e=P.steps[P.i].e;const inc=m==="kg"?kgStep(e,cur,dir):STEP[m];P.vals[m]=Math.max(0,Math.round((cur+inc*dir)*10)/10);$("#v-"+m).textContent=fmtNum(P.vals[m]);if(m==="RIR"&&$("#rir-help"))$("#rir-help").textContent=rirShort(P.vals.RIR);vibrate(8);return}
   if(t.dataset.rpe){F.rpe=+t.dataset.rpe;document.querySelectorAll("[data-rpe]").forEach(b=>b.setAttribute("aria-pressed",b===t));$("#rpe-txt").textContent=rpeText(F.rpe);$("#f-load").textContent=F.rpe*(parseInt($("#f-min").value,10)||0);return}
   if(t.dataset.reason){F.reason=t.dataset.reason;document.querySelectorAll("[data-reason]").forEach(b=>{const on=b===t;b.style.background=on?"var(--ball)":"var(--surface)";b.style.color=on?"var(--ballInk)":"var(--muted)"});return}
   switch(t.dataset.act){
@@ -1528,9 +1550,11 @@ document.addEventListener("click",e=>{
     case "share-summary":shareSummary();break;
     case "summary-close":$("#summary")?.remove();$("#confetti")?.remove();break;
     case "padel-log":openPadelLog();break;
+    case "help-rir":openRirHelp();break;
+    case "rirhelp-close":$("#rirhelp")?.remove();break;
     case "edit-val":{const m=t.dataset.m,lab={kg:"Peso en kg"+(P.steps[P.i].e.barbell?" (solo los discos)":""),reps:"Repeticiones",RIR:"RIR: repeticiones que te quedaban",seg:"Segundos"}[m]||m;
       const r=prompt(lab,fmtNum(P.vals[m]??0));if(r==null)break;const v=parseFloat(String(r).replace(",","."));if(!isFinite(v)||v<0){toast("Escribe un número");break}
-      P.vals[m]=Math.round(v*100)/100;$("#v-"+m).textContent=fmtNum(P.vals[m]);break}
+      P.vals[m]=Math.round(v*100)/100;$("#v-"+m).textContent=fmtNum(P.vals[m]);if(m==="RIR"&&$("#rir-help"))$("#rir-help").textContent=rirShort(P.vals.RIR);break}
     case "settings":openSettings();break;
     case "settings-close":$("#settings")?.remove();break;
     case "whatsnew":$("#settings")?.remove();openWhatsNew();break;
