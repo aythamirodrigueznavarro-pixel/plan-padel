@@ -1131,8 +1131,13 @@ function activities(){
   const L=[];
   S.sessions.filter(s=>s.status!=="en curso"&&s.minutes>0).forEach(s=>{const id=gymIdOf(s);const cat=id==="A"?"A":id==="B"||id==="C"?"BC":id==="D"?"D":id==="X"?"X":null;if(!cat)return;
     L.push({cat,start:+new Date(s.start),min:s.minutes,gB:s.gBefore,gA:s.gAfter,rpe:s.rpe,label:s.title})});
-  S.health.workouts.forEach(w=>{const st=+new Date(w.start);
-    if(w.padel){const cat=w.kind?({Partido:"partido",Entreno:"entreno",Torneo:"torneo"}[w.kind]||"padel"):"padel";L.push({cat,start:st,min:w.minutes,gB:w.gBefore,gA:w.gAfter,rpe:w.rpe,label:w.type})}});
+  /* Pádel: lo apuntado a mano manda; un «Tenis» del reloj a menos de 1 h de uno apuntado es el mismo partido.
+     Sin apuntar: el «Tenis» del jueves por la tarde es el entreno con tu entrenador; el resto, partido. */
+  const manual=S.health.workouts.filter(w=>w.padel&&w.kind).map(w=>+new Date(w.start));
+  S.health.workouts.forEach(w=>{if(!w.padel)return;const st=+new Date(w.start);
+    if(!w.kind&&manual.some(m=>Math.abs(m-st)<36e5))return;
+    const d=new Date(st);const cat=w.kind?({Partido:"partido",Entreno:"entreno",Torneo:"torneo"}[w.kind]||"padel"):(d.getDay()===4&&d.getHours()>=15&&d.getHours()<18?"entreno":"partido");
+    L.push({cat,start:st,min:w.minutes,gB:w.gBefore,gA:w.gAfter,rpe:w.rpe,label:w.type})});
   return L.sort((a,b)=>a.start-b.start);
 }
 function actMetrics(x){
