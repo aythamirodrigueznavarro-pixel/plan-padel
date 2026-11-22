@@ -187,7 +187,7 @@ const SESSION_A={id:"A",wd:1,title:"A · Pierna: fuerza y rodilla",sub:"La sesi�
   ex("rdl","Peso muerto rumano con barra","{S} × 6 · RIR {R}","Cadera atrás, barra pegada a las piernas, espalda larga. Para cuando notes el isquio estirado.","romanian deadlift technique",3,["kg","reps","RIR"],{kg:40,reps:6,RIR:3},20,true),
   ex("copenhague","Copenhague (aductor)","{S} × 20\" por lado","Cuerpo en línea. Si molesta la ingle, apoya la rodilla.","copenhagen plank",3,["seg"],{seg:20},75)]},
  {id:"a3",title:"Rodilla a prueba de pádel",note:"Superserie · 3 rondas",ex:[
-  ex("bulgara","Sentadilla búlgara con mancuernas","{S} × 6 por pierna · RIR {R}","Empieza por la pierna derecha. Rodilla sobre el pie, sin que se vaya hacia dentro.","bulgarian split squat technique",3,["kg","reps","RIR"],{kg:10,reps:6,RIR:3},20),
+  ex("bulgara","Sentadilla búlgara con mancuernas","{S} × 6 por pierna · RIR {R}","Empieza por la pierna derecha. Rodilla sobre el pie, sin que se vaya hacia dentro.","bulgarian split squat technique",3,["kg","reps","RIR"],{kg:12.5,reps:6,RIR:3},20),
   ex("stepdown","Bajada lenta desde cajón (step-down)","{S} × 6 por pierna · 3\" bajando","De pie en el cajón, baja el talón de la otra pierna hasta rozar el suelo. Trabaja el vasto interno, el músculo que estabiliza la rótula.","eccentric step down knee vmo",3,["reps"],{reps:6},60)]},
  {id:"a4",title:"Isquio y core",note:"Superserie · 2 rondas",ex:[
   ex("nordico","Curl nórdico","{S} × 4","Baja lo más lento que puedas; ayúdate con las manos al final.","nordic hamstring curl progression",2,["reps"],{reps:4},20),
@@ -308,7 +308,7 @@ const LIFTS=[
  {id:"pressdb",name:"Press banca mancuernas",unit:"kg por mancuerna",pts:[["2026-04-08",22.5,8],["2026-05-06",20,12]]},
  {id:"squat",name:"Sentadilla trasera",unit:"kg totales",pts:[["2026-04-06",60,5]]},
  {id:"rdl",name:"Peso muerto rumano",unit:"kg totales",pts:[["2026-04-11",60,5]]}];
-const LAST={"sentadilla":"6 abr · 40 kg en discos × 5","rdl":"11 abr · 40 kg en discos × 5","bulgara":"Abr · 10 kg × 6","push-press":"Sep · 25 kg en discos × 4 · Nov 20 × 5","press-db":"Ago · 20 kg × 8-12 (pedía 17 a RPE 9)","landmine-press":"Abr · 10-18 kg × 6","dominada":"Ago · 7 / 5 / 4 · Nov ≈ 7","remo-manc":"12 abr · 12,5 kg × 8","farmer":"Nov · 22,5 kg","pinch":"Jul · 15 kg × 20\"","clean":"Oct · 30-35 kg en discos","hipthrust":"Jun · 40 kg en discos × 8"};
+const LAST={"sentadilla":"Sep · frontal 40 kg × 6 · de cajón 40-70 kg","rdl":"11 abr · 40 kg en discos × 5","bulgara":"Sep · 12,5 kg × 6","push-press":"Sep · 20-25 kg en discos (RPE 8) · Nov 20 × 5","press-db":"Ago · 20 kg × 8-12 (pedía 17 a RPE 9)","landmine-press":"Abr · 10-18 kg × 6","dominada":"Sep · 6 / 5 / 6 / 4 (neutras) · Nov ≈ 7","remo-manc":"12 abr · 12,5 kg × 8","farmer":"Nov · 22,5 kg","pinch":"Jul · 15 kg × 20\"","clean":"Oct · 30-35 kg en discos","hipthrust":"Jun · 40 kg en discos × 8"};
 const TESTS=["400 m","1,5 km","Sentadillas en 1 minuto","Burpees en 1 minuto","Dominadas máximas","Flexiones máximas"];
 
 /* ============ ESTADO (se guarda en este móvil) ============ */
@@ -330,6 +330,25 @@ const dayOpts=()=>((S.opts||{})[dayKey()])||{};
 const setDayOpt=(k,v)=>{S.opts=S.opts||{};const o=S.opts[dayKey()]||{};o[k]=v;S.opts[dayKey()]=o;save()};
 const today=()=>materialize(DAYS[(new Date().getDay()+6)%7],new Date(),dayOpts());
 const yt=q=>"https://www.youtube.com/results?search_query="+encodeURIComponent(q);
+/* Vídeos comprobados (se pueden ver dentro de la app). Si eliges otro, se guarda en S.videos. */
+const VIDEOS={"a-bici":{"v":"h2WtDZrLHmk","autor":"Bestcycling"},"a-tobillo":{"v":"ILSbK8RnGdI","autor":"Squat University"},"a-9090":{"v":"MmBb1latnw0","autor":"Xabier Revuelta - FISIOTERAPEUTA"},"a-monster":{"v":"dHJOQ4mjQ30","autor":"Bret Contreras Glute Guy"},"sentadilla":{"v":"Akd5xmZlsvg","autor":"Catalyst Athletics"},"a-cajon":{"v":"R7sS0PfPfHk","autor":"Ambitious Athletics"},"rdl":{"v":"2POPaloE-SM","autor":"Squat University"},"copenhague":{"v":"ACfxr2P5pGQ","autor":"Xabier Revuelta - FISIOTERAPEUTA"},"bulgara":{"v":"bwhl_9jN_3o","autor":"Squat University"},"stepdown":{"v":"JyhOe6NdQoo","autor":"Trainerclub"},"nordico":{"v":"0ia97P5konQ","autor":"Squat University"},"plancha-abd":{"v":"14--dVJ-tU4","autor":"Proet Ejercicio Terapéutico"},"b-w":{"v":"vQYyHMviZCI","autor":"West Coast Strength"},"b-rot":{"v":"wjBA3Qc_38g","autor":"Clínica Fisiofert"},"b-escap":{"v":"zbVUBByJRqY","autor":"Proet Ejercicio Terapéutico"},"push-press":{"v":"iaBVSJm78ko","autor":"CrossFit"},"lanz-rot":{"v":"o9BC7lgN1bo","autor":"Live Lean TV Daily Exercises"},"press-db":{"v":"mTaiQemkEpU","autor":"Andrew Kwong (DeltaBolic)"},"flex-plio":{"v":"hDP-oskzYUs","autor":"Atomic Athlete"},"landmine-press":{"v":"PFIn5PFiajQ","autor":"Darío Orcajada / Perder la barriga"},"pallof":{"v":"o_CxFP4FJhA","autor":"Instituto de Entrenamiento Personal"},"cuban":{"v":"67ewzBXws7M","autor":"MoveU"},"hollow":{"v":"DKJXFzz9BBk","autor":"Nacho Romero | Proyecto Columna"},"rod-gemelo":{"v":"-MOyVz9lFF4","autor":"Fisio andTherapies"},"rod-cuad":{"v":"-DuuGm0_5r0","autor":"Rude Rock Human Performance"},"rod-espalda":{"v":"NS73eSohTbc","autor":"National Academy of Sports Medicine (NASM)"},"rana":{"v":"ft0F3gQUiM4","autor":"GLORY SPORT PHYSIO"},"toracica":{"v":"yHTbstQDkKc","autor":"Athletic Authority"},"x-eliptica":{"v":"Sbv44Rf-5U0","autor":"fitnessdigital"},"c-colgado":{"v":"ppzZQuBjvN8","autor":"Cuerpo Invertido"},"c-w":{"v":"vQYyHMviZCI","autor":"West Coast Strength"},"dominada":{"v":"pT9ZCIeJhEM","autor":"Your House Fitness"},"facepull":{"v":"sVWAZaYydRo","autor":"ATHLEAN-X Español"},"remo-manc":{"v":"evJBZ_8-2ik","autor":"ATHLEAN-X Español"},"rotext-polea":{"v":"DplyMccjRrE","autor":"Vitar Club"},"farmer":{"v":"8OtwXwrJizk","autor":"PureGym"},"pinch":{"v":"jFTV3DQf3HE","autor":"PureGym"},"muneca-flex":{"v":"Wzt9Io8oKoI","autor":"Clínica Fisiofert"},"pronosup":{"v":"EyZ1IAozAJQ","autor":"FisioFit Cross"},"d-bici":{"v":"h2WtDZrLHmk","autor":"Bestcycling"},"d-skipping":{"v":"ztAesLdFb5k","autor":"Be Happy"},"d-saltitos":{"v":"j0nl5dWuqN4","autor":"Runna"},"clean":{"v":"0aP3tgKZcHQ","autor":"CrossFit"},"longitud":{"v":"dVgtvAXeBQw","autor":"Athletics Coach"},"hipthrust":{"v":"bE76E1sa5rA","autor":"Fit Generation"},"patinador":{"v":"HYWKdSBDb3s","autor":"Whole Strength Physical Therapy"},"lateral-goma":{"v":"WiKjiJfnmoI","autor":"Kinetic | Sports Physical Therapy | Delafield, WI"},"frenada":{"v":"88VqqPRdj58","autor":"Pablo Cartas | Preparador Físico y Fisioterapeuta"},"bici-int":{"v":"jN3HeMMvB5o","autor":"NeuStrength | Personal Trainer Wilmington NC"},"cal-movil":{"v":"XYMBIW3cN9g","autor":"Saigon Physio Sport"},"cal-activ":{"v":"7vVgRvPFQj4","autor":"Raúl Morcillo"},"cal-chispa":{"v":"vyIcjNeGh7M","autor":"The Padel School"},"post-lumbar":{"v":"GB2WGGsSz-Q","autor":"Fisioterapia Gratis Bruna Homs"},"post-rodillo":{"v":"bKL8O3TNbdw","autor":"Robert Arias"},"v-9090":{"v":"MmBb1latnw0","autor":"Xabier Revuelta - FISIOTERAPEUTA"},"v-w":{"v":"vQYyHMviZCI","autor":"West Coast Strength"},"v-cmj":{"v":"26pmBcXAcTg","autor":"Professional Performance Training - Proper"},"v-sprint":{"v":"lX36T2iSPd4","autor":"The Progressive Athlete"}};
+const ytId=u=>{const m=String(u||"").match(/(?:youtu\.be\/|v=|shorts\/|embed\/)([\w-]{11})/);return m?m[1]:(/^[\w-]{11}$/.test(u)?u:null)};
+const exById=id=>{for(const d of [...DAYS,ACTIVATION])for(const b of d.blocks)for(const e of b.ex)if(e.id===id)return e;return null};
+function openVideo(id){
+  const e=exById(id); if(!e)return;
+  const custom=(S.videos||{})[id], v=custom||(VIDEOS[id]&&VIDEOS[id].v);
+  const el=document.createElement("div"); el.className="sheet"; el.id="video";
+  el.innerHTML=`<div class="panel" role="dialog" aria-modal="true" aria-label="Vídeo de ${esc(e.name)}">
+   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 class="title" style="font-size:26px">${esc(e.name)}</h2><button class="iconbtn" data-act="video-close" aria-label="Cerrar vídeo">${ICON.x}</button></div>
+   ${v?`<div style="position:relative;width:100%;aspect-ratio:16/9;max-width:100%;border-radius:16px;overflow:hidden;background:#000"><iframe src="https://www.youtube-nocookie.com/embed/${v}?playsinline=1&rel=0&modestbranding=1" title="${esc(e.name)}" style="position:absolute;inset:0;width:100%;height:100%;border:0" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
+     <div class="small muted">${custom?"Vídeo elegido por ti":VIDEOS[id]?esc(VIDEOS[id].autor||""):""}</div>`
+    :`<p class="muted" style="margin:0">Todavía no hay un vídeo elegido para este ejercicio.</p><a class="vid" href="${yt(e.video)}" target="_blank" rel="noopener">${ICON.play} Buscar en YouTube</a>`}
+   <p class="small" style="margin:0;color:var(--text)">${esc(e.cue)}</p>
+   <div class="field"><label for="vid-url">¿Prefieres otro vídeo? Pega el enlace de YouTube</label><input id="vid-url" placeholder="https://youtu.be/…" style="font:500 15px var(--body)"></div>
+   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="ghostbtn small" data-act="video-save" data-id="${id}">Usar este enlace</button>${custom?`<button class="ghostbtn small" data-act="video-reset" data-id="${id}">Volver al vídeo original</button>`:`<a class="ghostbtn small" style="text-align:center;text-decoration:none" href="${yt(e.video)}" target="_blank" rel="noopener">Buscar otros</a>`}</div>
+  </div>`;
+  $("#layer").appendChild(el);
+}
 const chip=(k,filled=true)=>{const [t,c]=KIND[k];return `<span class="chip" style="${filled?`background:${c};color:var(--ink)`:`background:color-mix(in srgb,${c} 14%,transparent);color:${c}`}">${t}</span>`};
 const plannedLoad=d=>Math.round((d.rpe?(d.rpe[0]+d.rpe[1])/2:3)*d.gym+d.padel*6);
 const sessionsOn=date=>S.sessions.filter(s=>s.status!=="en curso"&&sameDay(new Date(s.start),date));
@@ -384,7 +403,7 @@ function phaseBar(){
 }
 function blockCard(b){
   return `<section class="card"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:6px"><h3 class="h3">${esc(b.title)}</h3><span class="small muted">${esc(b.note)}</span></div>
-  ${b.ex.map(e=>`<div class="ex-row"><span class="dot"></span><div><div style="font-weight:600">${esc(e.name)}</div><div class="small muted">${esc(e.presc)}</div>${LAST[e.id]?`<div class="last">Última vez: ${esc(LAST[e.id])}</div>`:""}</div><a class="play" href="${yt(e.video)}" target="_blank" rel="noopener" aria-label="Vídeo de ${esc(e.name)}">${ICON.play}</a></div>`).join("")}</section>`;
+  ${b.ex.map(e=>`<div class="ex-row"><span class="dot"></span><div><div style="font-weight:600">${esc(e.name)}</div><div class="small muted">${esc(e.presc)}</div>${LAST[e.id]?`<div class="last">Última vez: ${esc(LAST[e.id])}</div>`:""}</div><button class="play" data-video="${e.id}" aria-label="Vídeo de ${esc(e.name)}">${ICON.play}</button></div>`).join("")}</section>`;
 }
 function weekLoad(){
   const m=monday();
@@ -429,8 +448,36 @@ function renderProgreso(){
      ${done.length?done.slice(0,15).map(s=>`<div class="row"><div style="min-width:0"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(s.title)}</div><div class="small muted">${new Date(s.start).toLocaleDateString("es-ES",{day:"numeric",month:"short"})}${s.status==="parcial"?` · <span style="color:var(--warn)">Parcial${s.reason?" · "+esc(s.reason):""}</span>`:""}${s.gBefore?` · ${Math.round(s.gBefore)}→${s.gAfter?Math.round(s.gAfter):"—"} mg/dL`:""}</div></div><div class="num" style="text-align:right"><b style="font-size:20px">${s.rpe*s.minutes}</b><div class="small muted">RPE ${s.rpe} · ${s.minutes}'</div></div></div>`).join(""):'<p class="small muted" style="margin:0">Aquí aparecerá cada sesión que guardes, con su RPE, su carga y tu glucosa antes y después.</p>'}
      <button class="ghostbtn small" style="margin-top:12px" data-act="export">Copiar mis registros para el ajuste mensual</button>
    </section>
+   ${myLiftsCard()}
+   <section class="card"><div class="eyebrow" style="margin-bottom:6px">Copia de seguridad</div>
+     <p class="small muted" style="margin:0 0 10px">Tus registros viven solo en este iPhone. Guarda una copia de vez en cuando (en Archivos o iCloud) por si cambias de móvil.</p>
+     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="ghostbtn small" data-act="backup">Guardar copia</button><label class="ghostbtn small" style="text-align:center;cursor:pointer">Restaurar copia<input type="file" id="restore" accept="application/json,.json" hidden></label></div>
+   </section>
    <section class="card"><div class="eyebrow" style="margin-bottom:6px">Tests de marzo · tu punto de partida</div>${TESTS.map(t=>`<div class="row"><span>${t}</span><span class="small muted">pendiente</span></div>`).join("")}</section>
   </div>`;
+}
+/* Tus ejercicios registrados en esta app: último y mejor peso */
+const EXNAME=(()=>{const m={};[...DAYS,ACTIVATION].forEach(d=>d.blocks.forEach(b=>b.ex.forEach(e=>{m[e.id]=e.name})));return m})();
+function myLiftsCard(){
+  const by={};S.sets.filter(s=>s.kg>0).forEach(s=>{(by[s.ex]=by[s.ex]||[]).push(s)});
+  const rows=Object.entries(by).map(([id,arr])=>{const last=arr.at(-1),best=arr.reduce((a,s)=>s.kg>a.kg?s:a,arr[0]);
+    const firstKg=arr[0].kg;return {id,name:EXNAME[id]||id,last,best,delta:last.kg-firstKg,n:new Set(arr.map(s=>s.sid)).size}})
+    .sort((a,b)=>new Date(b.last.t)-new Date(a.last.t));
+  return `<section class="card"><div class="eyebrow" style="margin-bottom:6px">Tus ejercicios en esta app</div>
+   ${rows.length?rows.map(r=>`<div class="row"><div style="min-width:0"><div style="font-weight:600">${esc(r.name)}</div><div class="small muted">${r.n} ${r.n===1?"sesión":"sesiones"} · mejor ${fmtNum(r.best.kg)} kg × ${r.best.reps??"—"}</div></div><div class="num" style="text-align:right"><b style="font-size:20px">${fmtNum(r.last.kg)} kg</b><div class="small" style="color:${r.delta>0?"var(--ok)":r.delta<0?"var(--warn)":"var(--muted)"}">${r.delta>0?"▲ +"+fmtNum(r.delta):r.delta<0?"▼ "+fmtNum(r.delta):"="} desde el inicio</div></div></div>`).join(""):'<p class="small muted" style="margin:0">Cuando registres series con peso, aquí verás tu último peso, tu mejor marca y cuánto has subido en cada ejercicio.</p>'}
+  </section>`;
+}
+async function backup(){
+  const txt=JSON.stringify({app:"plan-padel",version:1,fecha:new Date().toISOString(),datos:S});
+  const name=`plan-padel-copia-${dayKey()}.json`;
+  try{const f=new File([txt],name,{type:"application/json"});if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:"Copia de Plan Pádel"});return}}catch(e){if(e&&e.name==="AbortError")return}
+  try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([txt],{type:"application/json"}));a.download=name;document.body.appendChild(a);a.click();a.remove();toast("Copia descargada")}catch(e){toast("No se pudo guardar la copia")}
+}
+function restore(file){
+  const r=new FileReader();
+  r.onload=()=>{try{const d=JSON.parse(r.result);if(d.app!=="plan-padel"||!d.datos||!Array.isArray(d.datos.sessions))throw 0;
+    S=Object.assign({sessions:[],sets:[],health:{glucose:[],workouts:[]}},d.datos);save();toast("Copia restaurada");render()}catch(e){toast("Ese archivo no es una copia de Plan Pádel")}};
+  r.readAsText(file);
 }
 function lineChart(pts){
   const W=320,H=170,P={l:30,r:12,t:12,b:24};
@@ -454,10 +501,26 @@ function lineChart(pts){
 /* ============ MODO SESIÓN ============ */
 let P=null; /* estado del modo sesión */
 function buildSteps(day){const st=[];day.blocks.forEach(b=>{const rounds=Math.max(...b.ex.map(e=>e.sets));for(let r=0;r<rounds;r++)b.ex.forEach(e=>{if(r<e.sets)st.push({b,e,set:r})})});return st}
+/* Rellena la serie: dentro de la sesión, igual que la serie anterior; en una sesión nueva,
+   el peso de la última vez ajustado por el RIR que apuntaste (progresión automática). */
 function prefill(step){
-  const last=S.sets.filter(s=>s.ex===step.e.id).at(-1);
-  const v=Object.assign({},step.e.defaults);
-  if(last)step.e.metrics.forEach(m=>{if(last[m]!=null)v[m]=last[m]});
+  const e=step.e, mine=S.sets.filter(s=>s.ex===e.id), last=mine.at(-1);
+  const v=Object.assign({},e.defaults); P&&(P.hint=null);
+  if(!last)return v;
+  e.metrics.forEach(m=>{if(last[m]!=null&&m!=="RIR")v[m]=last[m]});
+  if(P&&last.sid===P.sid)return v;
+  const target=e.defaults.RIR;
+  if(e.metrics.includes("kg")&&target!=null){
+    const prev=mine.filter(s=>s.sid===last.sid&&s.RIR!=null);
+    if(prev.length){
+      const minR=Math.min(...prev.map(s=>s.RIR)), avgR=prev.reduce((a,s)=>a+s.RIR,0)/prev.length;
+      const step=e.barbell?2.5:(v.kg>=20?2.5:1.25);
+      if(minR>=target+1&&avgR>=target+1.5){v.kg=Math.round((v.kg+step*2)/1.25)*1.25;P&&(P.hint={t:"up",txt:`Subo ${fmtNum(step*2)} kg: la última vez te sobraban repeticiones (RIR ${fmtNum(avgR)}).`})}
+      else if(minR>=target+1){v.kg=Math.round((v.kg+step)/1.25)*1.25;P&&(P.hint={t:"up",txt:`Subo ${fmtNum(step)} kg: la última vez lo hiciste con RIR ${fmtNum(avgR)}.`})}
+      else if(minR<target-1){v.kg=Math.max(0,Math.round((v.kg-step)/1.25)*1.25);P&&(P.hint={t:"down",txt:`Bajo ${fmtNum(step)} kg: la última vez llegaste muy justo (RIR ${minR}).`})}
+      else P&&(P.hint={t:"same",txt:`Mismo peso que la última vez: el RIR fue el que tocaba.`});
+    }
+  }
   return v;
 }
 function startSession(){
@@ -487,7 +550,16 @@ function go(){
   S.sessions.push({id:P.sid,dayId:P.day.id,title:P.day.title,start:new Date(P.start).toISOString(),minutes:0,rpe:0,status:"en curso",gBefore:isFinite(gv)?gv:null});
   save(); drawPlayer();
   P.timer=setInterval(tick,250);
+  audioUnlock(); keepAwake();
 }
+/* Pantalla encendida durante la sesión (iPhone con iOS 16.4 o posterior) */
+let wakeLock=null;
+async function keepAwake(){try{if("wakeLock" in navigator&&P)wakeLock=await navigator.wakeLock.request("screen")}catch(e){}}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&P&&P.start)keepAwake()});
+/* Aviso sonoro al acabar el descanso (el iPhone no vibra desde una web) */
+let actx=null;
+function audioUnlock(){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume()}catch(e){}}
+function beep(){try{if(!actx)return;[0,0.22,0.44].forEach((t,i)=>{const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=i===2?1175:880;o.connect(g);g.connect(actx.destination);const s=actx.currentTime+t;g.gain.setValueAtTime(0.0001,s);g.gain.exponentialRampToValueAtTime(0.35,s+0.02);g.gain.exponentialRampToValueAtTime(0.0001,s+0.18);o.start(s);o.stop(s+0.2)})}catch(e){}}
 function drawPlayer(){
   const st=P.steps[P.i], e=st.e;
   $("#layer").innerHTML=`<div class="overlay" role="dialog" aria-modal="true" aria-label="Sesión en curso"><div class="inner">
@@ -498,9 +570,11 @@ function drawPlayer(){
      <h2 class="exname">${esc(e.name)}</h2>
      <div style="font-weight:500;opacity:.88">${esc(e.presc)}</div>
      <p class="small muted" style="margin:6px 0 14px">${esc(e.cue)}</p>
-     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><a class="vid" href="${yt(e.video)}" target="_blank" rel="noopener">${ICON.play} Ver vídeo</a>${LAST[e.id]?`<span class="small muted">Última vez: ${esc(LAST[e.id])}</span>`:""}</div>
+     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button class="vid" data-video="${e.id}">${ICON.play} Ver vídeo</button>${LAST[e.id]?`<span class="small muted">Última vez: ${esc(LAST[e.id])}</span>`:""}</div>
      <div class="card" style="margin-top:18px;padding:18px">
        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px"><span style="font:800 22px var(--display)">Serie ${st.set+1} de ${e.sets}</span>${e.rest?`<span class="small muted">⏱ ${restText(e.rest)}</span>`:""}</div>
+       ${P.hint&&st.set===0?`<div class="small" style="margin:2px 0 8px;padding:8px 10px;border-radius:10px;background:${P.hint.t==="up"?"color-mix(in srgb,var(--ok) 14%,transparent)":P.hint.t==="down"?"color-mix(in srgb,var(--warn) 14%,transparent)":"var(--surface2)"};color:${P.hint.t==="up"?"var(--ok)":P.hint.t==="down"?"var(--warn)":"var(--muted)"}">${P.hint.t==="up"?"▲ ":P.hint.t==="down"?"▼ ":"= "}${esc(P.hint.txt)}</div>`:""}
+       ${e.metrics.includes("RIR")?`<div class="small muted" style="margin:-2px 0 6px">Al acabar, pon el RIR real: cuántas repeticiones te quedaban.</div>`:""}
        ${e.metrics.map(m=>`<div class="stepper"><span class="lab">${m==="seg"?"seg":m}${m==="kg"&&e.barbell?"<small>solo discos</small>":""}</span><span></span><button data-step="${m}" data-d="-1" aria-label="Bajar ${m}">−</button><output id="v-${m}" class="num">${fmtNum(P.vals[m]??0)}</output><button data-step="${m}" data-d="1" aria-label="Subir ${m}">+</button></div>`).join("")}
      </div>
    </div>
@@ -518,7 +592,7 @@ function tick(){
     const o=$("#rest-out"), c=$("#rest-ring");
     if(o)o.textContent=mmss(left);
     if(c)c.style.strokeDashoffset=String(691*(1-Math.max(0,left)/P.restTotal));
-    if(left<=0){P.restEnd=0;vibrate([200,100,200]);const r=$("#rest");if(r)r.remove()}
+    if(left<=0){P.restEnd=0;vibrate([200,100,200]);beep();const r=$("#rest");if(r)r.remove()}
   }
 }
 function completeSet(){
@@ -570,7 +644,7 @@ function saveSession(){
   Object.assign(s,{minutes:mins,rpe:F.rpe,status:$("#f-partial").checked?"parcial":"completa",reason:$("#f-partial").checked?F.reason:null,gAfter:isFinite(gl)?gl:null,note:$("#f-note").value.trim()});
   save(); closePlayer(); toast("Sesión guardada"); render();
 }
-function closePlayer(){if(P&&P.timer)clearInterval(P.timer);P=null;F=null;$("#layer").innerHTML=""}
+function closePlayer(){if(P&&P.timer)clearInterval(P.timer);P=null;F=null;$("#layer").innerHTML="";try{wakeLock&&wakeLock.release()}catch(e){}wakeLock=null}
 
 /* ============ SALUD: importar (atajo) y exportar ============ */
 function openImport(){
@@ -606,7 +680,8 @@ async function exportData(){
 
 /* ============ EVENTOS ============ */
 document.addEventListener("click",e=>{
-  const t=e.target.closest("[data-act],[data-tab],[data-lift],[data-step],[data-rpe],[data-reason]"); if(!t)return;
+  const t=e.target.closest("[data-act],[data-tab],[data-lift],[data-step],[data-rpe],[data-reason],[data-video]"); if(!t)return;
+  if(t.dataset.video){openVideo(t.dataset.video);return}
   if(t.dataset.tab){tab=t.dataset.tab;render();window.scrollTo(0,0);return}
   if(t.dataset.lift){liftSel=t.dataset.lift;render();return}
   if(t.dataset.step){const m=t.dataset.step;P.vals[m]=Math.max(0,Math.round(((P.vals[m]||0)+STEP[m]*(+t.dataset.d))*10)/10);$("#v-"+m).textContent=fmtNum(P.vals[m]);vibrate(8);return}
@@ -628,6 +703,10 @@ document.addEventListener("click",e=>{
     case "imp-close":$("#imp")?.remove();break;
     case "imp-go":{const err=importHealth($("#imp-txt").value);if(err){$("#imp-err").textContent=err}else{$("#imp").remove();render()}break}
     case "export":exportData();break;
+    case "backup":backup();break;
+    case "video-close":$("#video")?.remove();break;
+    case "video-save":{const v=ytId($("#vid-url").value.trim());if(!v){toast("Ese enlace no parece de YouTube");break}S.videos=S.videos||{};S.videos[t.dataset.id]=v;save();$("#video")?.remove();openVideo(t.dataset.id);toast("Vídeo guardado");break}
+    case "video-reset":{if(S.videos)delete S.videos[t.dataset.id];save();$("#video")?.remove();openVideo(t.dataset.id);break}
     case "toggle-compete":setDayOpt("compete",!dayOpts().compete);render();break;
     case "toggle-short":setDayOpt("short",!dayOpts().short);render();break;
   }
@@ -636,6 +715,7 @@ document.addEventListener("input",e=>{
   if(e.target.id==="f-partial"){$("#reasons").style.display=e.target.checked?"":"none";$("#fin-title").textContent=e.target.checked?"Sesión parcial":"Sesión terminada"}
   if(e.target.id==="f-min"&&F){$("#f-load").textContent=F.rpe*(parseInt(e.target.value,10)||0)}
   if(e.target.id==="imp-txt")$("#imp-err").textContent="";
+  if(e.target.id==="restore"&&e.target.files[0])restore(e.target.files[0]);
 });
 function openExit(){
   const el=document.createElement("div"); el.className="sheet"; el.id="exit";
