@@ -369,6 +369,93 @@ const ICON={play:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4v16l
 let tab="hoy";
 function render(){({hoy:renderHoy,semana:renderSemana,progreso:renderProgreso})[tab]();document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===tab))}
 
+/* ============ REORGANIZAR LA SEMANA (si un día no entrenas) ============
+   Reglas: A y D (pierna) primero; nunca pierna dos días seguidos, ni el jueves (entrenador),
+   ni a menos de 6 h de jugar, ni el día antes de competir. Las sesiones futuras no se adelantan. */
+const GYM_IDS=["A","B","C","D"], PRIO=["A","D","B","C"], LEGS=new Set(["A","D"]);
+const natWd=id=>DAYS.find(d=>d.id===id).wd;
+const dayName=wd=>["","lunes","martes","miércoles","jueves","viernes","sábado","domingo"][wd];
+const gymIdOf=s=>s.dayId==="D-act"?"D":s.dayId;
+function weekState(now=new Date()){
+  const m=monday(now), todayWd=(now.getDay()+6)%7+1;
+  const wkS=S.sessions.filter(s=>s.status!=="en curso"&&new Date(s.start)>=m);
+  const doneIds=new Set(wkS.map(gymIdOf));
+  const skipped=new Set(((S.skip||{})[dayKey(m)])||[]);
+  const missed=m<monday(BLOCK_START)?[]:GYM_IDS.filter(id=>natWd(id)<todayWd&&!doneIds.has(id)&&!skipped.has(id));
+  const doneToday=wkS.filter(s=>sameDay(new Date(s.start),now)).map(gymIdOf).find(id=>GYM_IDS.includes(id));
+  const y=new Date(now);y.setDate(y.getDate()-1);
+  const legsYesterday=wkS.some(s=>sameDay(new Date(s.start),y)&&LEGS.has(gymIdOf(s)));
+  return {m,todayWd,doneIds,skipped,missed,doneToday,legsYesterday};
+}
+function planWeek(now=new Date()){
+  const st=weekState(now), o=dayOpts();
+  const queue=[...PRIO.filter(id=>st.missed.includes(id)),...GYM_IDS.filter(id=>natWd(id)>=st.todayWd&&!st.doneIds.has(id)&&!st.skipped.has(id))];
+  const plan={}; let prevLegs=st.legsYesterday;
+  for(let wd=st.todayWd;wd<=5;wd++){
+    const isToday=wd===st.todayWd;
+    if(isToday&&st.doneToday){plan[wd]=st.doneToday;prevLegs=LEGS.has(st.doneToday);continue}
+    const busy=isToday?o.matchSoon===true:DAYS[wd-1].kinds.includes("padel");
+    const competeNext=wd===5&&isToday&&!!o.compete;
+    let pick=null;
+    for(const id of queue){
+      if(!st.missed.includes(id)&&natWd(id)>wd)continue;
+      if(LEGS.has(id)&&(wd===4||busy||prevLegs||(competeNext&&id==="A")))continue; /* si compite mañana, la D es la activación */
+      pick=id;break;
+    }
+    if(pick){queue.splice(queue.indexOf(pick),1);plan[wd]=pick}
+    prevLegs=!!pick&&LEGS.has(pick);
+  }
+  return {plan,dropped:queue,st};
+}
+const shortTitle=id=>DAYS.find(d=>d.id===id).title;
+function rescheduleCard(){
+  const now=new Date(), st=weekState(now);
+  if(!st.missed.length)return "";
+  const miss=st.missed.map(id=>`<b>${esc(shortTitle(id))}</b> (${dayName(natWd(id))})`).join(" y ");
+  if(st.todayWd>5)return `<section class="card coach"><div class="eyebrow" style="color:var(--ball)">Tu semana</div><p style="margin:6px 0 0">Esta semana se quedó sin hacer ${miss}. No la recuperes el fin de semana: el lunes empieza otra y seguimos. No pasa nada.</p></section>`;
+  if(st.doneToday)return "";
+  const o=dayOpts();
+  if(o.matchSoon===undefined)return `<section class="card coach" style="display:flex;flex-direction:column;gap:10px"><div class="eyebrow" style="color:var(--ball)">Reorganizar tu semana</div>
+    <p style="margin:0">Te quedó pendiente ${miss}. Te digo qué hacer hoy, pero antes:</p>
+    <p style="margin:0;font-weight:700">¿Juegas hoy al pádel en las próximas 6 horas?</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="ghostbtn small" data-act="match-yes">Sí, juego</button><button class="ghostbtn small" data-act="match-no">No</button></div></section>`;
+  const {plan,dropped}=planWeek(now), cur=today().id, pick=plan[st.todayWd];
+  const rows=[];for(let wd=st.todayWd;wd<=5;wd++)rows.push(`<div class="row" style="padding:6px 0"><span style="font-weight:600;text-transform:capitalize">${wd===st.todayWd?"Hoy":dayName(wd)}</span><span class="small" style="text-align:right">${plan[wd]?esc(shortTitle(plan[wd])):'<span class="muted">Sin gimnasio · movilidad o descanso</span>'}</span></div>`);
+  const why=pick&&LEGS.has(pick)&&pick!==DAYS[st.todayWd-1].id?"Hoy puedes cargar pierna: la sesión de pierna es la que más velocidad te da.":(!pick||!LEGS.has(pick))&&st.missed.some(id=>LEGS.has(id))?(o.matchSoon?"Como juegas hoy, nada de pierna pesada: la dejamos para cuando llegues fresco.":"Hoy no toca pierna para no cargarla dos días seguidos o antes de tu entrenador."):"";
+  return `<section class="card coach" style="display:flex;flex-direction:column;gap:8px"><div class="eyebrow" style="color:var(--ball)">Reorganizar tu semana</div>
+    <p style="margin:0">Te quedó pendiente ${miss}. Así queda tu semana${o.matchSoon?" (hoy juegas)":""}:</p>
+    <div>${rows.join("")}</div>
+    ${dropped.length?`<p class="small muted" style="margin:0">Se queda fuera esta semana: ${dropped.map(id=>esc(shortTitle(id))).join(", ")}. No pasa nada: mejor una sesión menos que dos el mismo día.</p>`:""}
+    ${why?`<p class="small" style="margin:0;color:var(--ball)">${why}</p>`:""}
+    ${pick&&pick!==cur?`<button class="ballbtn" style="font-size:18px;padding:13px" data-act="plan-apply" data-id="${pick}">Hoy hago la ${pick}</button>`:!pick&&DAYS[st.todayWd-1].gym&&cur!=="X"?`<button class="ballbtn" style="font-size:18px;padding:13px" data-act="plan-apply" data-id="X">Hoy, solo movilidad</button>`:""}
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="chip" style="background:var(--surface2);color:var(--muted)" data-act="match-reset">Cambiar mi respuesta</button><button class="chip" style="background:var(--surface2);color:var(--muted)" data-act="skip-missed">No la voy a recuperar</button></div>
+  </section>`;
+}
+
+/* ============ AVISOS DEL ENTRENADOR ============ */
+function coachNotes(){
+  const now=new Date(), wd=(now.getDay()+6)%7+1, N=[];
+  const tom=new Date(now);tom.setDate(tom.getDate()+1);
+  const todayS=sessionsOn(now);
+  if(wd===7){const w=blockWeek(tom);N.push({i:"📅",t:sameDay(tom,BLOCK_START)?`Mañana empieza el bloque 1. Semana 1: aprendes los pesos (te sobrarán repeticiones a propósito).`:`Mañana empieza la ${WEEK_INFO[w].t.toLowerCase()}.${w===4?" Descarga: menos series y más fácil, para llegar fresco al siguiente bloque.":w===3?" Es la semana más exigente: duerme bien y vigila la glucosa.":""}`})}
+  const tests=Object.values(S.tests||{}).flat().filter(x=>new Date(x.d)>=BLOCK_START);
+  if(now>=BLOCK_START&&blockWeek(now)===1&&!tests.length)N.push({i:"⏱️",t:"Esta semana toca hacer los tests del bloque (salto, frenada, dominadas y 1,5 km) en un día suave. Están en Progreso.",act:"go-progreso"});
+  const B=(S.body||[]).slice().sort((a,b)=>new Date(a.d)-new Date(b.d)), lastB=B.at(-1);
+  if(!lastB||now-new Date(lastB.d)>5*864e5)N.push({i:"⚖️",t:"Pésate mañana al levantarte: en ayunas, después del baño y antes de beber."});
+  const lastW=B.filter(b=>b.waist!=null).at(-1);
+  if(wd===1&&(!lastW||now-new Date(lastW.d)>6*864e5))N.push({i:"📏",t:"Hoy es lunes: mide la cintura a la altura del ombligo, en ayunas, y apúntala en Progreso → Tu cuerpo.",act:"go-progreso"});
+  const lastS=S.sessions.filter(s=>s.status!=="en curso").at(-1);
+  if(lastS&&lastS.knee>=4&&now-new Date(lastS.start)<3*864e5)N.push({i:"🦵",t:`La rodilla marcó ${lastS.knee}/10 en la última sesión. Si hoy sigue molestando, nada de saltos ni frenadas; si dura más de una semana, que la vea tu fisio.`});
+  if(todayS.some(s=>GYM_IDS.includes(gymIdOf(s))))N.push({i:"🧊",t:"Recuperación de hoy: después de la fuerza, nada de baño de agua fría en las siguientes horas (frena lo que acabas de ganar). Ducha normal; jacuzzi o sauna, sí, como mucho 10-15 minutos, bebiendo agua y con la glucosa controlada."});
+  if(todayS.some(s=>s.rpe>=8))N.push({i:"🌙",t:"Hoy has entrenado fuerte: vigila la glucosa esta noche y de madrugada, que es cuando suele bajar después de un entreno duro."});
+  if(wd>=6)N.push({i:"🎾",t:"Si hoy juegas varios partidos o mañana repites: al terminar, 10 minutos en agua fría (10-15 °C) o ducha fría ayudan a llegar mejor al siguiente. Después de partidos sí; después del gimnasio, no."});
+  if(S.sessions.length>=3&&(!S.lastBackup||now-new Date(S.lastBackup)>14*864e5))N.push({i:"💾",t:"Hace tiempo que no guardas una copia de tus registros. Progreso → Copia de seguridad → Guardar copia.",act:"go-progreso"});
+  if(!N.length)return "";
+  return `<section class="card" style="display:flex;flex-direction:column;gap:10px"><div class="eyebrow">Avisos de tu entrenador</div>
+   ${N.map(n=>`<div style="display:flex;gap:10px;align-items:flex-start"><span aria-hidden="true" style="font-size:18px;line-height:1.3">${n.i}</span><div class="small" style="color:var(--text);flex:1">${esc(n.t)}${n.act?` <button class="chip" style="background:var(--surface2);color:var(--court);padding:2px 10px;margin-left:4px" data-act="${n.act}">Ir</button>`:""}</div></div>`).join("")}
+  </section>`;
+}
+
 function renderHoy(){
   const d=today(), now=new Date(), done=sessionsOn(now).find(s=>s.dayId===d.id);
   const g=latestGlucose(), mins=g?Math.round((Date.now()-new Date(g.t))/60000):null;
@@ -378,6 +465,8 @@ function renderHoy(){
   $("#view").innerHTML=`<div class="stack">
    <header style="padding-top:8px"><div class="eyebrow">${now.toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"})}</div><h1 class="big">Hoy</h1></header>
    ${phaseBar()}
+   ${rescheduleCard()}
+   ${coachNotes()}
    <section class="card" aria-label="Cómo llegas hoy">
      <div class="health">
        <div class="metric"><b>${g?Math.round(g.v):"—"}</b><small>mg/dL</small><div style="color:var(--ball)">${ICON.drop} ${g&&mins<120?`Hace ${mins} min`:"Glucosa"}</div></div>
@@ -568,6 +657,7 @@ function myLiftsCard(){
   </section>`;
 }
 async function backup(){
+  S.lastBackup=new Date().toISOString();save();
   const txt=JSON.stringify({app:"plan-padel",version:1,fecha:new Date().toISOString(),datos:S});
   const name=`plan-padel-copia-${dayKey()}.json`;
   try{const f=new File([txt],name,{type:"application/json"});if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:"Copia de Plan Pádel"});return}}catch(e){if(e&&e.name==="AbortError")return}
@@ -857,6 +947,12 @@ document.addEventListener("click",e=>{
     case "week-prev":weekOff--;render();break;
     case "week-next":weekOff++;render();break;
     case "week-now":weekOff=0;render();break;
+    case "match-yes":setDayOpt("matchSoon",true);render();break;
+    case "match-no":setDayOpt("matchSoon",false);render();break;
+    case "match-reset":{const o=dayOpts();delete o.matchSoon;S.opts[dayKey()]=o;save();render();break}
+    case "plan-apply":{const id=t.dataset.id;setDayOpt("swap",id===DAYS[(new Date().getDay()+6)%7].id?null:id);render();window.scrollTo(0,0);toast(id==="X"?"Hoy, movilidad":"Hoy toca la "+id);break}
+    case "skip-missed":{const st=weekState();S.skip=S.skip||{};const k=dayKey(st.m);S.skip[k]=[...new Set([...(S.skip[k]||[]),...st.missed])];save();render();toast("Vale, seguimos con lo que queda de semana");break}
+    case "go-progreso":tab="progreso";render();window.scrollTo(0,0);break;
     case "day-close":$("#dayview")?.remove();break;
     case "day-swap":setDayOpt("swap",t.dataset.id);$("#dayview")?.remove();tab="hoy";render();window.scrollTo(0,0);toast("Hoy haces esta sesión");break;
     case "day-unswap":setDayOpt("swap",null);$("#dayview")?.remove();tab="hoy";render();window.scrollTo(0,0);break;
