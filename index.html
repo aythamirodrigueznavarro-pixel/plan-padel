@@ -817,8 +817,19 @@ function importRenpho(txt){
   const added=addBody(list);save();
   return `Historial de Renpho: ${added} días nuevos (${list.length} en el archivo)`;
 }
-function addBody(list){S.body=S.body||[];const seen=new Set(S.body.map(b=>String(b.d).slice(0,16)));let n=0;
-  list.forEach(b=>{const k=String(b.d).slice(0,16);if(!seen.has(k)){S.body.push(b);seen.add(k);n++}});S.body.sort((a,b)=>new Date(a.d)-new Date(b.d));S.body=S.body.slice(-1500);return n}
+/* Una medida de báscula por día (la primera de la mañana); la cintura se guarda aparte y no se pierde */
+const r2=v=>v==null?null:Math.round(v*100)/100;
+function normalizeBody(){
+  const by={};(S.body||[]).slice().sort((a,b)=>new Date(a.d)-new Date(b.d)).forEach(b=>{
+    ["kg","fat","skm","waist"].forEach(k=>{if(b[k]!=null)b[k]=r2(b[k])});
+    const k=localKey(new Date(b.d)),cur=by[k];
+    if(!cur){by[k]={...b};return}
+    ["kg","fat","skm"].forEach(f=>{if(cur[f]==null&&b[f]!=null)cur[f]=b[f]}); if(b.waist!=null)cur.waist=b.waist;});
+  S.body=Object.values(by).sort((a,b)=>new Date(a.d)-new Date(b.d)).slice(-1500);
+}
+function addBody(list){S.body=S.body||[];const before=new Set(S.body.map(b=>localKey(new Date(b.d))));
+  list.forEach(b=>S.body.push({...b}));normalizeBody();
+  return S.body.filter(b=>!before.has(localKey(new Date(b.d)))).length}
 /* Tus ejercicios registrados en esta app: último y mejor peso */
 const EXNAME=(()=>{const m={};[...DAYS,ACTIVATION].forEach(d=>d.blocks.forEach(b=>b.ex.forEach(e=>{m[e.id]=e.name})));return m})();
 function openExChart(id){
@@ -1626,6 +1637,7 @@ function openExit(){
 (function(){const h=location.hash;if(h.startsWith("#importar=")){try{const err=importHealth(decodeURIComponent(h.slice(10)));if(err)toast(err)}catch(e){}history.replaceState(null,"",location.pathname)}})();
 /* Sin conexión (solo cuando está publicada como web) */
 if("serviceWorker" in navigator&&location.protocol==="https:"&&!location.hostname.endsWith("claude.ai")){navigator.serviceWorker.register("sw.js").catch(()=>{})}
+try{if(S.body&&S.body.length){const n=S.body.length;normalizeBody();if(S.body.length!==n)save()}}catch(e){}
 render();
 if(S.seenVersion!==APP_VERSION)setTimeout(()=>{if(!$("#layer").children.length)openWhatsNew()},600);
 </script>
