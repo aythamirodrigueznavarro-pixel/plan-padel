@@ -412,7 +412,10 @@ function openVideo(id){
 const chip=(k,filled=true)=>{const [t,c]=KIND[k];return `<span class="chip" style="${filled?`background:${c};color:var(--ink)`:`background:color-mix(in srgb,${c} 14%,transparent);color:${c}`}">${t}</span>`};
 const plannedLoad=d=>Math.round((d.rpe?(d.rpe[0]+d.rpe[1])/2:3)*d.gym+d.padel*6);
 const sessionsOn=date=>S.sessions.filter(s=>s.status!=="en curso"&&sameDay(new Date(s.start),date));
-const workoutsOn=date=>S.health.workouts.filter(w=>sameDay(new Date(w.start),date));
+/* Un «Fuerza funcional» del reloj a la vez que una sesión de esta app es la misma sesión: no se cuenta dos veces */
+const dupGym=w=>!w.padel&&S.sessions.some(s=>s.status!=="en curso"&&Math.abs(new Date(s.start)-new Date(w.start))<90*6e4);
+const realWorkouts=()=>S.health.workouts.filter(w=>!dupGym(w));
+const workoutsOn=date=>realWorkouts().filter(w=>sameDay(new Date(w.start),date));
 const latestGlucose=()=>S.health.glucose.slice().sort((a,b)=>new Date(b.t)-new Date(a.t))[0];
 const vibrate=p=>{try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}};
 function toast(t){const el=document.createElement("div");el.className="toast";el.setAttribute("role","status");el.textContent=t;document.body.appendChild(el);setTimeout(()=>el.remove(),2400)}
@@ -579,7 +582,7 @@ function blockCard(b){
 function weekLoad(){
   const m=monday();
   return S.sessions.filter(s=>s.status!=="en curso"&&new Date(s.start)>=m).reduce((a,s)=>a+s.rpe*s.minutes,0)
-       + S.health.workouts.filter(w=>new Date(w.start)>=m).reduce((a,w)=>a+w.minutes*(w.padel?6:w.type==="Caminar"?2:4),0);
+       + realWorkouts().filter(w=>new Date(w.start)>=m).reduce((a,w)=>a+w.minutes*(w.padel?6:w.type==="Caminar"?2:4),0);
 }
 
 let weekOff=0;
@@ -624,7 +627,7 @@ function saveComp(){
 function renderSemana(){
   const m0=dW(1), m1=dW(8), preBlock=m1<=BLOCK_START, bw=blockWeek(m0);
   const load=S.sessions.filter(s=>s.status!=="en curso"&&new Date(s.start)>=m0&&new Date(s.start)<m1).reduce((a,s)=>a+s.rpe*s.minutes,0)
-       + S.health.workouts.filter(w=>new Date(w.start)>=m0&&new Date(w.start)<m1).reduce((a,w)=>a+w.minutes*(w.padel?6:w.type==="Caminar"?2:4),0);
+       + realWorkouts().filter(w=>new Date(w.start)>=m0&&new Date(w.start)<m1).reduce((a,w)=>a+w.minutes*(w.padel?6:w.type==="Caminar"?2:4),0);
   const max=Math.max(...DAYS.map(d=>{const dt=dW(d.wd);return Math.max(plannedLoad(d),dayDone(dt).gym+dayDone(dt).watch)}),1);
   const planned=DAYS.reduce((a,d)=>a+plannedLoad(d),0);
   $("#view").innerHTML=`<div class="stack">
