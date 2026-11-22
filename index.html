@@ -567,7 +567,7 @@ function renderHoy(){
   const padelMin=wk.filter(w=>w.padel).reduce((a,w)=>a+w.minutes,0);
   const nEx=d.blocks.reduce((a,b)=>a+b.ex.length,0);
   $("#view").innerHTML=`<div class="stack">
-   <header style="padding-top:8px"><div class="eyebrow">${now.toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"})}</div><h1 class="big">Hoy</h1></header>
+   <header style="padding-top:8px;display:flex;justify-content:space-between;align-items:flex-end;gap:10px"><div><div class="eyebrow">${now.toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"})}</div><h1 class="big">Hoy</h1></div><button class="iconbtn" data-act="settings" aria-label="Ajustes y novedades" style="font-size:20px">⚙︎</button></header>
    ${phaseBar()}
    ${resumeCard()}
    ${lastWeekCard()}
@@ -1434,6 +1434,37 @@ function openReport(){
   document.body.appendChild(el);
 }
 
+/* ============ NOVEDADES Y AJUSTES ============ */
+const APP_VERSION="2026.11.22";
+const CHANGELOG=[
+ ["🔁","Si te sales de la app en mitad del entreno, al volver la retomas en la misma serie."],
+ ["🚦","«¿Cómo llegas hoy?» antes de empezar: semáforo y versión corta si vas tocado."],
+ ["🏆","Récords personales en directo y resumen con confeti al terminar, con tarjeta para compartir."],
+ ["⭕","Anillos de la semana: gimnasio, pádel y cuerpo."],
+ ["🎾","Apunta tu pádel y elige amistoso, entreno o competición. Tus torneos y tu liga, en Semana."],
+ ["💧","Glucosa de LibreView e informe para tu endocrino, con curvas por deporte."],
+ ["🧠","La semana se reorganiza sola si un día no entrenas o si compites."],
+ ["🛡️","Control de carga para no subir de golpe y la gráfica de progreso de cada ejercicio."]];
+function openWhatsNew(){
+  const el=document.createElement("div");el.className="sheet";el.id="whatsnew";
+  el.innerHTML=`<div class="panel" role="dialog" aria-modal="true" aria-label="Novedades"><div class="eyebrow" style="color:var(--ball)">Novedades</div><h2 class="title" style="font-size:30px">Tu app ha mejorado</h2>
+   <div style="display:flex;flex-direction:column;gap:10px">${CHANGELOG.map(([i,t])=>`<div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:22px;line-height:1.2">${i}</span><span style="color:var(--text)">${esc(t)}</span></div>`).join("")}</div>
+   <button class="ballbtn" data-act="whatsnew-ok">Entendido</button></div>`;
+  $("#layer").appendChild(el);
+}
+function openSettings(){
+  const el=document.createElement("div");el.className="sheet";el.id="settings";
+  const used=(()=>{try{return Math.round((localStorage.getItem(KEY)||"").length/1024)}catch(e){return 0}})();
+  el.innerHTML=`<div class="panel" role="dialog" aria-modal="true" aria-label="Ajustes">
+   <div style="display:flex;justify-content:space-between;align-items:center"><h2 class="title" style="font-size:28px">Ajustes</h2><button class="iconbtn" data-act="settings-close" aria-label="Cerrar">${ICON.x}</button></div>
+   <button class="ghostbtn" data-act="whatsnew">✨ Novedades de esta versión</button>
+   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="ghostbtn small" data-act="backup">💾 Guardar copia</button><label class="ghostbtn small" style="text-align:center;cursor:pointer">Restaurar copia<input type="file" id="restore" accept="application/json,.json" hidden></label></div>
+   <button class="ghostbtn small" data-act="export">Copiar mis registros para tu entrenador</button>
+   <div class="small muted">Tus datos viven solo en este iPhone (${used} KB). Nadie más los ve. Versión ${APP_VERSION}.</div>
+   <button class="ghostbtn small" style="color:var(--heart)" data-act="wipe">Borrar todos mis datos</button></div>`;
+  $("#layer").appendChild(el);
+}
+
 /* ============ EVENTOS ============ */
 document.addEventListener("click",e=>{
   const t=e.target.closest("[data-act],[data-tab],[data-lift],[data-body],[data-step],[data-rpe],[data-reason],[data-video],[data-day]"); if(!t)return;
@@ -1483,6 +1514,11 @@ document.addEventListener("click",e=>{
     case "share-summary":shareSummary();break;
     case "summary-close":$("#summary")?.remove();$("#confetti")?.remove();break;
     case "padel-log":openPadelLog();break;
+    case "settings":openSettings();break;
+    case "settings-close":$("#settings")?.remove();break;
+    case "whatsnew":$("#settings")?.remove();openWhatsNew();break;
+    case "whatsnew-ok":S.seenVersion=APP_VERSION;save();$("#whatsnew")?.remove();break;
+    case "wipe":if(confirm("¿Borrar TODOS tus registros de este iPhone? Guarda antes una copia: no se puede deshacer.")&&confirm("¿Seguro? Se borrarán sesiones, series, pesajes, glucosa y pádel.")){S={sessions:[],sets:[],health:{glucose:[],workouts:[]},seenVersion:APP_VERSION};save();$("#settings")?.remove();render();toast("Datos borrados")}break;
     case "resume":resumeSession(false);break;
     case "resume-finish":resumeSession(true);break;
     case "resume-discard":{const s=openSession();if(s&&confirm("¿Descartar esta sesión y sus series?")){S.sessions=S.sessions.filter(x=>x.id!==s.id);S.sets=S.sets.filter(x=>x.sid!==s.id);save();render();toast("Sesión descartada")}break}
@@ -1533,6 +1569,7 @@ function openExit(){
 /* Sin conexión (solo cuando está publicada como web) */
 if("serviceWorker" in navigator&&location.protocol==="https:"&&!location.hostname.endsWith("claude.ai")){navigator.serviceWorker.register("sw.js").catch(()=>{})}
 render();
+if(S.seenVersion!==APP_VERSION)setTimeout(()=>{if(!$("#layer").children.length)openWhatsNew()},600);
 </script>
 </body>
 </html>
