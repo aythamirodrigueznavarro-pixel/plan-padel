@@ -506,6 +506,33 @@ function weekRings(){
 }
 const animateRings=()=>requestAnimationFrame(()=>requestAnimationFrame(()=>document.querySelectorAll(".ring-p").forEach(c=>c.style.strokeDashoffset=c.dataset.off)));
 
+/* ============ RESUMEN DE LA SEMANA PASADA (lunes y martes) ============ */
+function lastWeekCard(){
+  const now=new Date(), wd=(now.getDay()+6)%7+1; if(wd>2)return "";
+  const m1=monday(now), m0=addDays(m1,-7); if(m0<addDays(BLOCK_START,-1))return "";
+  const ses=S.sessions.filter(s=>s.status!=="en curso"&&new Date(s.start)>=m0&&new Date(s.start)<m1&&GYM_IDS.includes(gymIdOf(s)));
+  const pad=realWorkouts().filter(w=>w.padel&&new Date(w.start)>=m0&&new Date(w.start)<m1);
+  const load=Math.round(loadBetween(m0,m1));
+  const prs=S.sets.filter(x=>new Date(x.t)>=m0&&new Date(x.t)<m1).filter(x=>{const prev=S.sets.filter(y=>y.ex===x.ex&&new Date(y.t)<new Date(x.t)&&y.sid!==x.sid&&y.kg>0);return prev.length&&x.kg>Math.max(...prev.map(y=>y.kg))});
+  const prN=new Set(prs.map(x=>x.ex)).size;
+  const gl=glucoseStats(gArr().filter(g=>g.ms>=+m0&&g.ms<+m1));
+  const kn=ses.map(s=>s.knee).filter(x=>x!=null), knMax=kn.length?Math.max(...kn):null;
+  const B=(S.body||[]).filter(b=>b.kg!=null), w0=avg(B.filter(b=>new Date(b.d)>=addDays(m0,-7)&&new Date(b.d)<m0).map(b=>b.kg)), w1=avg(B.filter(b=>new Date(b.d)>=m0&&new Date(b.d)<m1).map(b=>b.kg));
+  const verdict=ses.length>=4?"Semana completa. Así se gana en pista.":ses.length>=3?"Muy buena semana.":ses.length>=1?"Semana a medias: lo importante es no encadenar dos así.":"Semana sin gimnasio. Esta toca retomar.";
+  return `<section class="card" style="display:flex;flex-direction:column;gap:10px;background:linear-gradient(135deg,rgba(63,125,244,.16),rgba(217,234,76,.06))"><div class="eyebrow" style="color:var(--ball)">Tu semana pasada</div>
+   <div style="font:800 26px/1.1 var(--display);text-transform:uppercase">${verdict}</div>
+   <div class="sgrid" style="grid-template-columns:repeat(3,1fr)">
+     <div><b style="font-size:30px">${ses.length}/4</b><span>gimnasio</span></div>
+     <div><b style="font-size:30px">${pad.reduce((a,w)=>a+w.minutes,0)}'</b><span>pádel (${pad.length})</span></div>
+     <div><b style="font-size:30px">${load}</b><span>carga UA</span></div></div>
+   <div class="small" style="color:var(--text);display:flex;flex-direction:column;gap:4px">
+     ${prN?`<span>🏆 ${prN} ${prN===1?"récord personal":"récords personales"}</span>`:""}
+     ${gl?`<span>💧 ${gl.tir} % en rango · ${gl.tbr} % por debajo de 70</span>`:""}
+     ${w0!=null&&w1!=null?`<span>⚖️ Peso medio ${fmtNum(Math.round(w1*10)/10)} kg (${w1-w0<=0?"":"+"}${fmtNum(Math.round((w1-w0)*10)/10)})</span>`:""}
+     ${knMax!=null?`<span>🦵 Rodilla: máximo ${knMax}/10${knMax>=4?" · vigílala":""}</span>`:""}
+   </div></section>`;
+}
+
 /* ============ AVISOS DEL ENTRENADOR ============ */
 function coachNotes(){
   const now=new Date(), wd=(now.getDay()+6)%7+1, N=[];
@@ -542,6 +569,8 @@ function renderHoy(){
   $("#view").innerHTML=`<div class="stack">
    <header style="padding-top:8px"><div class="eyebrow">${now.toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"})}</div><h1 class="big">Hoy</h1></header>
    ${phaseBar()}
+   ${resumeCard()}
+   ${lastWeekCard()}
    ${weekRings()}
    ${rescheduleCard()}
    ${coachNotes()}
@@ -624,6 +653,25 @@ function saveComp(){
   if(!fr){toast("Pon la fecha");return} if(to<fr)to=fr;
   (S.comps=S.comps||[]).push({id:"c"+Date.now(),name:n,type:CT.type,from:fr,to});save();$("#compadd")?.remove();toast("Competición guardada");render();
 }
+/* Carga de los últimos 7 días frente a la media semanal de las 4 semanas anteriores (agudo:crónico) */
+function loadBetween(a,b){return S.sessions.filter(s=>s.status!=="en curso"&&new Date(s.start)>=a&&new Date(s.start)<b).reduce((x,s)=>x+s.rpe*s.minutes,0)
+  +realWorkouts().filter(w=>new Date(w.start)>=a&&new Date(w.start)<b).reduce((x,w)=>x+w.minutes*(w.padel?(w.rpe||6):w.type==="Caminar"?2:4),0)}
+function acwr(){
+  const now=new Date(), a=loadBetween(addDays(now,-7),now), c=loadBetween(addDays(now,-35),addDays(now,-7))/4;
+  const first=Math.min(...[...S.sessions.map(s=>+new Date(s.start)),...S.health.workouts.map(w=>+new Date(w.start))].filter(isFinite));
+  if(!(c>0)||!isFinite(first)||now-first<21*864e5)return null;
+  return {a:Math.round(a),c:Math.round(c),r:a/c};
+}
+function acwrCard(){
+  const x=acwr(); if(!x)return `<section class="card"><div class="eyebrow" style="margin-bottom:4px">Control de carga</div><p class="small muted" style="margin:0">Con 3 semanas de datos, aquí verás si estás subiendo la carga demasiado deprisa, que es cuando más lesiones hay.</p></section>`;
+  const z=x.r>1.5?{c:"var(--heart)",t:"Subida brusca: es la zona con más riesgo de lesión. Quita una sesión o baja la intensidad esta semana."}:x.r>1.3?{c:"var(--warn)",t:"Por encima de lo habitual. Vigila el sueño y las molestias; sin añadir más."}:x.r<0.8?{c:"var(--court)",t:"Por debajo de lo habitual. Bien si es descarga o semana de torneo; si no, puedes apretar."}:{c:"var(--ok)",t:"Zona buena: estás progresando sin pasarte."};
+  const pos=Math.min(100,Math.max(0,(x.r-0.4)/(1.8-0.4)*100));
+  return `<section class="card" style="display:flex;flex-direction:column;gap:8px"><div class="eyebrow">Control de carga</div>
+   <div style="display:flex;align-items:baseline;gap:10px"><b class="num" style="font:800 40px var(--display);color:${z.c}">${fmtNum(Math.round(x.r*100)/100)}</b><span class="small muted">últimos 7 días: ${x.a} UA · tu media: ${x.c} UA/semana</span></div>
+   <div style="position:relative;height:10px;border-radius:5px;background:linear-gradient(90deg,var(--court) 0 28.5%,var(--ok) 28.5% 64%,var(--warn) 64% 78.5%,var(--heart) 78.5%)"><i style="position:absolute;top:-4px;left:calc(${pos}% - 3px);width:6px;height:18px;border-radius:3px;background:#fff;box-shadow:0 0 0 2px var(--ink)"></i></div>
+   <div class="small muted" style="position:relative;height:16px">${[[0.8,28.5],[1.3,64],[1.5,78.5]].map(([v,l])=>`<span style="position:absolute;left:${l}%;transform:translateX(-50%)">${fmtNum(v)}</span>`).join("")}</div>
+   <div class="small" style="color:var(--text)">${z.t}</div></section>`;
+}
 function renderSemana(){
   const m0=dW(1), m1=dW(8), preBlock=m1<=BLOCK_START, bw=blockWeek(m0);
   const load=S.sessions.filter(s=>s.status!=="en curso"&&new Date(s.start)>=m0&&new Date(s.start)<m1).reduce((a,s)=>a+s.rpe*s.minutes,0)
@@ -649,6 +697,7 @@ function renderSemana(){
        <div>${compOn(dt)?`<div class="small" style="color:var(--heart);font-weight:700;margin-bottom:2px">🏆 ${esc(compOn(dt).name)} · sin gimnasio</div>`:""}<div style="font-weight:600">${esc(d.title)}</div><div class="small muted" style="margin:2px 0 6px">${esc(d.sub)}</div><div class="chips">${d.kinds.map(k=>chip(k,false)).join("")}${pad.length?`<span class="chip" style="background:color-mix(in srgb,var(--ball) 14%,transparent);color:var(--ball)">${ICON.watch} Pádel ${pad.reduce((a,w)=>a+w.minutes,0)}'</span>`:""}</div></div>
        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">${ok?'<span style="color:var(--ok);font-size:22px" aria-label="Hecha">✓</span>':""}${d.gym?`<span class="small muted num">≈${estimateMinutes(materialize(d,dt))}'</span>`:""}<span class="muted" aria-hidden="true" style="font-size:20px">›</span></div></div>`}).join("")}</section>
    <p class="small muted" style="margin:-6px 4px 0">Toca un día para ver sus ejercicios.</p>
+   ${weekOff===0||weekOff===1?acwrCard():""}
    ${padelWeekCard(m0,m1)}
    ${compsCard()}
    ${S.health.workouts.length?`<section class="card"><div class="eyebrow" style="margin-bottom:8px">Grabado con el Apple Watch</div>${S.health.workouts.filter(w=>new Date(w.start)>=monday()).map(w=>`<div class="row"><div><div style="font-weight:600">${esc(w.type)}</div><div class="small muted">${new Date(w.start).toLocaleDateString("es-ES",{weekday:"long",hour:"2-digit",minute:"2-digit"})}</div></div><div class="num" style="text-align:right"><b>${w.minutes} min</b><div class="small muted">${w.kcal?Math.round(w.kcal)+" kcal":""} ${w.hr?Math.round(w.hr)+" ppm":""}</div></div></div>`).join("")||'<p class="small muted" style="margin:0">Nada esta semana todavía.</p>'}</section>`:""}
@@ -764,13 +813,29 @@ function addBody(list){S.body=S.body||[];const seen=new Set(S.body.map(b=>String
   list.forEach(b=>{const k=String(b.d).slice(0,16);if(!seen.has(k)){S.body.push(b);seen.add(k);n++}});S.body.sort((a,b)=>new Date(a.d)-new Date(b.d));S.body=S.body.slice(-400);return n}
 /* Tus ejercicios registrados en esta app: último y mejor peso */
 const EXNAME=(()=>{const m={};[...DAYS,ACTIVATION].forEach(d=>d.blocks.forEach(b=>b.ex.forEach(e=>{m[e.id]=e.name})));return m})();
+function openExChart(id){
+  const e=exById(id), sets=S.sets.filter(x=>x.ex===id&&x.kg>0);if(!sets.length)return;
+  const bySid={};sets.forEach(x=>{(bySid[x.sid]=bySid[x.sid]||[]).push(x)});
+  const ses=Object.entries(bySid).map(([sid,arr])=>{const top=arr.reduce((a,x)=>x.kg>a.kg||(x.kg===a.kg&&(x.reps||0)>(a.reps||0))?x:a,arr[0]);const ss=S.sessions.find(z=>z.id===sid);
+    return {d:new Date(ss?ss.start:top.t),top,e1:Math.max(...arr.map(e1rm)),n:arr.length,rir:avg(arr.map(x=>x.RIR))}}).sort((a,b)=>a.d-b.d);
+  const hasReps=ses.some(z=>z.e1>0), pts=ses.map(z=>({d:z.d,v:hasReps?Math.round(z.e1*10)/10:z.top.kg}));
+  const el=document.createElement("div");el.className="sheet";el.id="exchart";
+  el.innerHTML=`<div class="panel" role="dialog" aria-modal="true" aria-label="Progreso de ${esc(e?e.name:id)}">
+   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 class="title" style="font-size:26px">${esc(e?e.name:id)}</h2><button class="iconbtn" data-act="exchart-close" aria-label="Cerrar">${ICON.x}</button></div>
+   <div class="small muted">${hasReps?"Fuerza estimada (peso × repeticiones, en kg"+(e&&e.barbell?" de discos":"")+") por sesión":"Peso máximo por sesión"}</div>
+   ${lineChart(pts,{tight:true})}
+   <div>${ses.slice().reverse().slice(0,12).map(z=>`<div class="row" style="padding:7px 0"><span class="small">${z.d.toLocaleDateString("es-ES",{day:"numeric",month:"short"})}</span><span class="small num" style="text-align:right"><b>${fmtNum(z.top.kg)} kg × ${z.top.reps??"—"}</b> <span class="muted">· ${z.n} series${z.rir!=null?` · RIR ${fmtNum(Math.round(z.rir*10)/10)}`:""}</span></span></div>`).join("")}</div>
+   ${LAST[id]?`<div class="small muted">Con Marcfit: ${esc(LAST[id])}</div>`:""}
+  </div>`;
+  $("#layer").appendChild(el);
+}
 function myLiftsCard(){
   const by={};S.sets.filter(s=>s.kg>0).forEach(s=>{(by[s.ex]=by[s.ex]||[]).push(s)});
   const rows=Object.entries(by).map(([id,arr])=>{const last=arr.at(-1),best=arr.reduce((a,s)=>s.kg>a.kg?s:a,arr[0]);
     const firstKg=arr[0].kg;return {id,name:EXNAME[id]||id,last,best,delta:last.kg-firstKg,n:new Set(arr.map(s=>s.sid)).size}})
     .sort((a,b)=>new Date(b.last.t)-new Date(a.last.t));
   return `<section class="card"><div class="eyebrow" style="margin-bottom:6px">Tus ejercicios en esta app</div>
-   ${rows.length?rows.map(r=>`<div class="row"><div style="min-width:0"><div style="font-weight:600">${esc(r.name)}</div><div class="small muted">${r.n} ${r.n===1?"sesión":"sesiones"} · mejor ${fmtNum(r.best.kg)} kg × ${r.best.reps??"—"}</div></div><div class="num" style="text-align:right"><b style="font-size:20px">${fmtNum(r.last.kg)} kg</b><div class="small" style="color:${r.delta>0?"var(--ok)":r.delta<0?"var(--warn)":"var(--muted)"}">${r.delta>0?"▲ +"+fmtNum(r.delta):r.delta<0?"▼ "+fmtNum(r.delta):"="} desde el inicio</div></div></div>`).join(""):'<p class="small muted" style="margin:0">Cuando registres series con peso, aquí verás tu último peso, tu mejor marca y cuánto has subido en cada ejercicio.</p>'}
+   ${rows.length?rows.map(r=>`<div class="row" data-act="ex-chart" data-id="${esc(r.id)}" role="button" tabindex="0" style="cursor:pointer"><div style="min-width:0"><div style="font-weight:600">${esc(r.name)}</div><div class="small muted">${r.n} ${r.n===1?"sesión":"sesiones"} · mejor ${fmtNum(r.best.kg)} kg × ${r.best.reps??"—"}</div></div><div class="num" style="text-align:right"><b style="font-size:20px">${fmtNum(r.last.kg)} kg</b><div class="small" style="color:${r.delta>0?"var(--ok)":r.delta<0?"var(--warn)":"var(--muted)"}">${r.delta>0?"▲ +"+fmtNum(r.delta):r.delta<0?"▼ "+fmtNum(r.delta):"="} desde el inicio</div></div></div>`).join(""):'<p class="small muted" style="margin:0">Cuando registres series con peso, aquí verás tu último peso, tu mejor marca y cuánto has subido en cada ejercicio.</p>'}
   </section>`;
 }
 async function backup(){
@@ -834,10 +899,49 @@ function prefill(step){
    mancuernas de 1 en 1 kg hasta 10 y de 2,5 en 2,5 kg a partir de ahí. */
 function snapKg(e,kg){if(e.barbell)return Math.round(kg/2.5)*2.5;return kg<10?Math.round(kg):Math.round(kg/2.5)*2.5}
 function kgStep(e,kg,dir){if(e.barbell)return 2.5;return dir>0?(kg<10?1:2.5):(kg<=10?1:2.5)}
+/* ============ RETOMAR UNA SESIÓN A MEDIAS ============
+   Cada serie se guarda al momento; si la app se cierra, al volver se retoma donde ibas. */
+const openSession=()=>S.sessions.filter(s=>s.status==="en curso").sort((a,b)=>new Date(b.start)-new Date(a.start))[0];
+function rebuildDay(s){const base=s.dayId==="D-act"?ACTIVATION:[...DAYS,ACTIVATION].find(d=>d.id===s.dayId);return base?materialize(base,new Date(s.start),{short:!!s.short}):null}
+function resumeSession(finish){
+  const s=openSession(); if(!s)return; const d=rebuildDay(s); if(!d){toast("No encuentro esa sesión");return}
+  P={day:d,steps:buildSteps(d),i:0,start:+new Date(s.start),vals:null,gText:"",restEnd:0,restTotal:0,timer:null,sid:s.id,prs:[]};
+  const done=S.sets.filter(x=>x.sid===s.id).length; P.i=Math.min(done,P.steps.length-1); P.vals=prefill(P.steps[P.i]);
+  drawPlayer(); P.timer=setInterval(tick,250); audioUnlock(); keepAwake();
+  if(finish||done>=P.steps.length)openFinish(done<P.steps.length);
+}
+function resumeCard(){
+  const s=openSession(); if(!s)return "";
+  const d=rebuildDay(s), total=d?buildSteps(d).length:0, done=S.sets.filter(x=>x.sid===s.id).length, st=new Date(s.start);
+  const old=Date.now()-st>12*36e5;
+  return `<section class="card" style="display:flex;flex-direction:column;gap:10px;border:1px solid var(--ball)"><div class="eyebrow" style="color:var(--ball)">Sesión a medias</div>
+   <div style="font-weight:700">${esc(s.title)}</div>
+   <div class="small muted">Empezada ${sameDay(st,new Date())?"hoy":st.toLocaleDateString("es-ES",{weekday:"long",day:"numeric"})} a las ${st.toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})} · ${done} de ${total} series guardadas</div>
+   <div style="height:8px;border-radius:4px;background:var(--surface2);overflow:hidden"><i style="display:block;height:100%;width:${total?Math.round(done/total*100):0}%;background:var(--ball)"></i></div>
+   ${old?"":`<button class="ballbtn" style="font-size:18px;padding:13px" data-act="resume">Continuar donde lo dejé</button>`}
+   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="ghostbtn small" data-act="resume-finish">Terminar y guardar</button><button class="ghostbtn small" data-act="resume-discard">Descartar</button></div></section>`;
+}
 function startSession(){
+  if(openSession()&&sameDay(new Date(openSession().start),new Date())){resumeSession(false);return}
   const d=today(); const g=latestGlucose();
   P={day:d,steps:buildSteps(d),i:0,start:null,vals:null,gText:g&&(Date.now()-new Date(g.t))<1800000?String(Math.round(g.v)):"",restEnd:0,restTotal:0,timer:null,sid:null};
   P.vals=prefill(P.steps[0]); drawPre();
+}
+/* ¿Cómo llegas hoy? Sueño, piernas, energía y ánimo de 1 a 5 → semáforo */
+const RD_Q=[{k:"sleep",n:"Sueño",lo:"Fatal",hi:"Genial"},{k:"legs",n:"Piernas",lo:"Muy cargadas",hi:"Frescas"},{k:"energy",n:"Energía",lo:"Sin nada",hi:"A tope"},{k:"mood",n:"Ánimo",lo:"Bajo",hi:"Muy bien"}];
+function readiness(rd){const v=RD_Q.map(q=>rd[q.k]).filter(x=>x);if(v.length<RD_Q.length)return null;const sc=v.reduce((a,x)=>a+x,0)/v.length;
+  return {sc,lvl:sc>=3.5&&rd.legs>=3?"verde":sc>=2.5?"amarillo":"rojo"}}
+function readinessBlock(){
+  const rd=P.rd||{}, r=readiness(rd);
+  const y=addDays(new Date(),-1), padelY=workoutsOn(y).filter(w=>w.padel).reduce((a,w)=>a+w.minutes,0);
+  const short=P.day.short, legsDay=P.day.blocks.some(b=>b.ex.some(e=>LEGS.has(P.day.id)));
+  const msg=!r?"":r.lvl==="verde"?"🟢 Llegas bien: sesión normal. A por ella.":r.lvl==="amarillo"?(short?"🟡 Llegas regular: con la versión corta vas bien. Si una serie no sale con el RIR marcado, baja el peso.":"🟡 Llegas regular: haz la sesión, pero si una serie no sale con el RIR marcado, baja el peso. Si vas justo de tiempo o de cuerpo, versión corta."):(short?"🔴 Hoy vas tocado: versión corta suave, sin buscar marcas. O solo movilidad.":"🔴 Hoy vas tocado: mejor versión corta o solo movilidad. Un día flojo bien gestionado no se pierde; uno forzado, a veces sí.");
+  return `<div class="card" style="padding:16px;margin:0 0 14px;display:flex;flex-direction:column;gap:10px"><div style="font-weight:600">¿Cómo llegas hoy?</div>
+   ${RD_Q.map(q=>`<div><div class="small muted" style="display:flex;justify-content:space-between"><span style="color:var(--text);font-weight:600">${q.n}</span><span>${q.lo} → ${q.hi}</span></div>
+     <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:4px">${[1,2,3,4,5].map(v=>`<button data-act="rd" data-k="${q.k}" data-v="${v}" aria-pressed="${rd[q.k]===v}" aria-label="${q.n} ${v}" style="padding:9px 0;border-radius:10px;font-weight:700;background:${rd[q.k]===v?(v<=2?"var(--heart)":v===3?"var(--warn)":"var(--ok)"):"var(--surface2)"};color:${rd[q.k]===v?"var(--ink)":"var(--muted)"}">${v}</button>`).join("")}</div></div>`).join("")}
+   ${padelY>=60&&legsDay?`<div class="small" style="color:var(--warn)">Ayer jugaste ${padelY}' de pádel: ten en cuenta las piernas.</div>`:""}
+   ${msg?`<div class="small" style="color:var(--text);font-weight:600">${msg}</div>`:""}
+   ${r&&r.lvl!=="verde"&&!short?`<button class="ghostbtn small" data-act="pre-short">Cambiar a la versión corta</button>`:""}</div>`;
 }
 function drawPre(){
   $("#layer").innerHTML=`<div class="overlay" role="dialog" aria-modal="true" aria-label="Antes de empezar"><div class="inner">
@@ -850,6 +954,7 @@ function drawPre(){
      <div style="display:flex;align-items:baseline;gap:8px"><input id="g-pre" inputmode="numeric" placeholder="—" value="${esc(P.gText)}" aria-label="Glucosa en mg/dL" style="background:none;border:0;outline:0;font:700 56px var(--body);width:170px;font-variant-numeric:tabular-nums"><span class="muted" style="font-weight:600">mg/dL</span></div>
      <p class="small muted" style="margin:4px 0 0">${P.gText?"Leída de Salud. ":"Escríbela si no la ha importado el atajo. "}Si estás fuera del rango que te ha marcado tu endocrino, no empieces la parte intensa.</p>
    </div>
+   ${readinessBlock()}
    <div style="flex:1"></div>
    <button class="ballbtn" data-act="go">Empezar</button>
   </div></div>`;
@@ -858,7 +963,8 @@ function go(){
   const gv=parseFloat(($("#g-pre").value||"").replace(",","."));
   P.start=Date.now();
   P.sid="s"+P.start;
-  S.sessions.push({id:P.sid,dayId:P.day.id,title:P.day.title,start:new Date(P.start).toISOString(),minutes:0,rpe:0,status:"en curso",gBefore:isFinite(gv)?gv:null});
+  const rr=readiness(P.rd||{});
+  S.sessions.push({id:P.sid,dayId:P.day.id,title:P.day.title,start:new Date(P.start).toISOString(),minutes:0,rpe:0,status:"en curso",short:!!P.day.short,gBefore:isFinite(gv)?gv:null,ready:rr?{...P.rd,sc:Math.round(rr.sc*10)/10,lvl:rr.lvl}:null});
   save(); drawPlayer();
   P.timer=setInterval(tick,250);
   audioUnlock(); keepAwake();
@@ -1046,7 +1152,9 @@ async function shareSummary(){
 }
 
 function openFinish(partial){
-  const mins=Math.max(1,Math.round((Date.now()-P.start)/60000));
+  let mins=Math.max(1,Math.round((Date.now()-P.start)/60000));
+  const ts=S.sets.filter(x=>x.sid===P.sid).map(x=>+new Date(x.t)), lastT=ts.length?Math.max(...ts):0;
+  if(lastT&&Date.now()-lastT>20*6e4)mins=Math.max(1,Math.round((lastT-P.start)/6e4)+2); /* si cerraste la app, no cuentan las horas de después */
   F={rpe:7,partial,reason:null,mins};
   const el=document.createElement("div"); el.className="sheet"; el.id="finish";
   el.innerHTML=`<div class="panel" role="dialog" aria-modal="true" aria-label="Cerrar la sesión">
@@ -1375,6 +1483,13 @@ document.addEventListener("click",e=>{
     case "share-summary":shareSummary();break;
     case "summary-close":$("#summary")?.remove();$("#confetti")?.remove();break;
     case "padel-log":openPadelLog();break;
+    case "resume":resumeSession(false);break;
+    case "resume-finish":resumeSession(true);break;
+    case "resume-discard":{const s=openSession();if(s&&confirm("¿Descartar esta sesión y sus series?")){S.sessions=S.sessions.filter(x=>x.id!==s.id);S.sets=S.sets.filter(x=>x.sid!==s.id);save();render();toast("Sesión descartada")}break}
+    case "rd":{P.gText=$("#g-pre")?.value||P.gText;P.rd=P.rd||{};P.rd[t.dataset.k]=+t.dataset.v;drawPre();break}
+    case "pre-short":{P.gText=$("#g-pre")?.value||P.gText;setDayOpt("short",true);const rd=P.rd,g=P.gText;const d=today();P.day=d;P.steps=buildSteps(d);P.i=0;P.vals=prefill(P.steps[0]);P.rd=rd;P.gText=g;drawPre();toast("Versión corta");break}
+    case "ex-chart":openExChart(t.dataset.id);break;
+    case "exchart-close":$("#exchart")?.remove();break;
     case "padel-set":{const w=S.health.workouts.find(x=>x.id===t.dataset.id);if(w){w.kind=t.dataset.k;save();render()}break}
     case "comp-add":openCompAdd();break;
     case "comp-close":$("#compadd")?.remove();break;
