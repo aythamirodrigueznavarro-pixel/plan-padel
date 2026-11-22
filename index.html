@@ -176,13 +176,16 @@ const WARMUP=[
 
 const SESSION_A={id:"A",wd:1,title:"A · Pierna: fuerza y rodilla",sub:"La sesión más pesada de la semana. Si hoy juegas, que sea a las 20:00, nunca a mediodía.",kinds:["gym"],gym:55,padel:0,rpe:[7,8],warn:"Pierna pesada y saltos: mide la glucosa antes de empezar.",blocks:[
  {id:"a0",title:"Calentamiento",note:"1 vuelta · 8 min",ex:[
-  ex("a-bici","Bici estática","3 min suave","Pedalea fácil, que puedas hablar.","stationary bike warm up",1,["seg"],{seg:180},0),
+  ex("a-bici","Bici estática","2 min suave","Pedalea fácil, que puedas hablar.","stationary bike warm up",1,["seg"],{seg:120},0),
   ex("a-tobillo","Movilidad de tobillo con goma","10 por pierna","Rodilla hacia delante sin levantar el talón.","ankle mobility band knee to wall",1,["reps"],{reps:10},0),
   ex("a-9090","Cadera 90/90","6 cambios por lado","El giro sale de la cadera, espalda recta.","90 90 hip switch mobility",1,["reps"],{reps:6},0),
   ex("a-monster","Paso lateral con goma (monster walk)","10 pasos por lado","Goma por encima de las rodillas. Las rodillas empujan hacia fuera: así se activa el glúteo medio, que sujeta tu rótula.","monster walk band glute medius",1,["reps"],{reps:10},0)]},
+ {id:"a0b",title:"Primer paso y rampa",note:"Superserie · 3 rondas · con las piernas frescas",ex:[
+  ex("lateral-sprint","Salida desde la posición de espera","{S} × 3 salidas de 3-5 m: al frente, lateral y en diagonal hacia atrás","Como en la red: split-step y primer paso explosivo. Cada salida al 100 % y vuelves andando. Así se gana el 80 % de los desplazamientos del pádel, que son de 1-2 m.","lateral shuffle to sprint drill",3,["reps"],{reps:3},15),
+  ex("sprint-rampa","Sprint en rampa","{S} × 1 de 8-10 m cuesta arriba","Cuerpo inclinado, empuja el suelo hacia atrás con pasos potentes. Vuelve andando despacio.","hill sprint acceleration",3,["reps"],{reps:1},45)]},
  {id:"a1",title:"Fuerza + salto",note:"Contraste · 4 rondas",ex:[
   ex("sentadilla","Sentadilla trasera","{S} × 5 · RIR {R}","Baja controlado, rodillas en la línea de los pies. Sube rápido. Apunta solo los discos.","back squat technique",4,["kg","reps","RIR"],{kg:45,reps:5,RIR:3},20,true),
-  ex("a-cajon","Salto al cajón","{S} × 3 · máxima altura","Cae suave sobre el cajón, rodillas hacia fuera. Baja andando, no saltando.","box jump landing technique",4,["reps"],{reps:3},150)]},
+  ex("a-cajon","Salto al cajón","{S} × 3 · máxima altura","Cae suave sobre el cajón, rodillas hacia fuera. Baja andando, no saltando.","box jump landing technique",4,["reps"],{reps:3},120)]},
  {id:"a2",title:"Cadena posterior",note:"Superserie · 3 rondas",ex:[
   ex("rdl","Peso muerto rumano con barra","{S} × 6 · RIR {R}","Cadera atrás, barra pegada a las piernas, espalda larga. Para cuando notes el isquio estirado.","romanian deadlift technique",3,["kg","reps","RIR"],{kg:40,reps:6,RIR:3},20,true),
   ex("copenhague","Copenhague (aductor)","{S} × 20\" por lado","Cuerpo en línea. Si molesta la ingle, apoya la rodilla.","copenhagen plank",3,["seg"],{seg:20},75)]},
@@ -193,7 +196,7 @@ const SESSION_A={id:"A",wd:1,title:"A · Pierna: fuerza y rodilla",sub:"La sesi�
   ex("nordico","Curl nórdico","{S} × 4","Baja lo más lento que puedas; ayúdate con las manos al final.","nordic hamstring curl progression",2,["reps"],{reps:4},20),
   ex("plancha-abd","Plancha lateral con abducción","{S} × 20\" por lado","Cadera alta; sube y baja la pierna de arriba despacio.","side plank hip abduction",2,["seg"],{seg:20},45)]}]};
 
-const SESSION_B={id:"B",wd:2,title:"B · Empuje, lanzamientos y core",sub:"Tren superior: llegas con las piernas frescas al partido de mediodía.",kinds:["gym","padel"],gym:50,padel:90,rpe:[7,8],warn:null,blocks:[
+const SESSION_B={id:"B",wd:2,title:"B · Empuje, lanzamientos y pecho",sub:"Tren superior: llegas con las piernas frescas al partido de mediodía.",kinds:["gym","padel"],gym:50,padel:90,rpe:[7,8],warn:null,blocks:[
  {id:"b0",title:"Calentamiento",note:"1 vuelta · 7 min",ex:[
   ex("b-w","W con goma","15 repeticiones","Codos pegados, aprieta las escápulas.","band w pull apart",1,["reps"],{reps:15},0),
   ex("b-rot","Rotación externa 90/90 con goma","12 por brazo","Codo a la altura del hombro, gira despacio.","90 90 external rotation band",1,["reps"],{reps:12},0),
@@ -207,9 +210,9 @@ const SESSION_B={id:"B",wd:2,title:"B · Empuje, lanzamientos y core",sub:"Tren 
  {id:"b3",title:"Hombro y antirrotación",note:"Superserie · 3 rondas",ex:[
   ex("landmine-press","Landmine press a una mano","{S} × 6 por brazo · RIR {R}","Medio arrodillado. Que no te gire el tronco.","half kneeling landmine press",3,["kg","reps","RIR"],{kg:10,reps:6,RIR:3},15),
   ex("pallof","Press Pallof","{S} × 10 por lado","Empuja al frente y aguanta: la polea no te gira.","pallof press",3,["kg","reps"],{kg:5,reps:10},45)]},
- {id:"b4",title:"Rotadores y core",note:"2 rondas",ex:[
-  ex("cuban","Cuban press con mancuernas ligeras","{S} × 10","Muy poco peso: el objetivo es el control.","cuban press shoulder",2,["kg","reps"],{kg:3,reps:10},15),
-  ex("hollow","Hollow hold","{S} × 25\"","Zona lumbar pegada al suelo.","hollow body hold",2,["seg"],{seg:25},30)]}]};
+ {id:"b4",title:"Pecho y tríceps",note:"Superserie · 3 rondas · la última, serie descendente",ex:[
+  ex("cruce-poleas","Cruce de poleas (aperturas)","{S} × 12 · en la última ronda, al acabar baja el peso y sigue hasta casi el fallo","Un pie adelantado, codos un poco flexionados y junta las manos delante del pecho apretando 1\". Sin dolor en el hombro.","cable chest fly",3,["kg","reps"],{kg:10,reps:12},10),
+  ex("triceps-polea","Extensión de tríceps en polea con cuerda","{S} × 12 · en la última ronda, serie descendente","Codos pegados al cuerpo y quietos. Abre la cuerda abajo y sube controlado.","tricep rope pushdown",3,["kg","reps"],{kg:15,reps:12},40)]}]};
 
 const RECOVERY={id:"X",wd:3,title:"Movilidad y rodillo",sub:"Opcional, 20 minutos. Hoy toca llegar fresco al entreno del jueves.",kinds:["suave","padel"],gym:20,padel:90,rpe:[2,3],warn:null,blocks:[
  {id:"x1",title:"Rodillo",note:"30\" por zona",ex:[
@@ -221,7 +224,7 @@ const RECOVERY={id:"X",wd:3,title:"Movilidad y rodillo",sub:"Opcional, 20 minuto
   ex("toracica","Rotación torácica en cuadrupedia","8 por lado","Sigue el codo con la mirada.","quadruped thoracic rotation",1,["reps"],{reps:8},0),
   ex("x-eliptica","Elíptica suave (opcional)","10 min en zona 2","Puedes hablar sin cortarte. Ideal para recuperar.","elliptical zone 2",1,["seg"],{seg:600},0)]}]};
 
-const SESSION_C={id:"C",wd:4,title:"C · Tracción, agarre y hombro",sub:"Por la mañana. A las 16:00, entreno con tu entrenador: hoy no se toca la pierna.",kinds:["gym","padel"],gym:45,padel:90,rpe:[7,7],warn:null,blocks:[
+const SESSION_C={id:"C",wd:4,title:"C · Tracción, brazos y abdomen",sub:"Por la mañana. A las 16:00, entreno con tu entrenador: hoy no se toca la pierna.",kinds:["gym","padel"],gym:45,padel:90,rpe:[7,7],warn:null,blocks:[
  {id:"c0",title:"Calentamiento",note:"1 vuelta · 6 min",ex:[
   ex("c-colgado","Colgado activo en barra","30\"","Hombros lejos de las orejas.","active dead hang",1,["seg"],{seg:30},0),
   ex("c-w","W con goma","15 repeticiones","Aprieta las escápulas.","band w pull apart",1,["reps"],{reps:15},0)]},
@@ -232,13 +235,16 @@ const SESSION_C={id:"C",wd:4,title:"C · Tracción, agarre y hombro",sub:"Por la
   ex("remo-manc","Remo con mancuerna","{S} × 8 · RIR {R}","Tira con el codo hacia la cadera.","one arm dumbbell row",3,["kg","reps","RIR"],{kg:12.5,reps:8,RIR:2},15),
   ex("rotext-polea","Rotación externa en polea","{S} × 12 por brazo","Codo pegado al cuerpo, gira hacia fuera despacio.","cable external rotation",3,["kg","reps"],{kg:2.5,reps:12},60)]},
  {id:"c3",title:"Agarre",note:"Superserie · 3 rondas",ex:[
-  ex("farmer","Farmer carry","{S} × 30 m","Hombros abajo, pasos cortos y rápidos.","farmer carry form",3,["kg"],{kg:22.5},15),
-  ex("pinch","Plate pinch","{S} × 20\"","Pinza con los dedos, sin apoyar el disco.","plate pinch grip",3,["kg","seg"],{kg:15,seg:20},60)]},
+  ex("farmer","Farmer carry","{S} × 30 m","Hombros abajo, pasos cortos y rápidos.","farmer carry form",2,["kg"],{kg:22.5},15),
+  ex("pinch","Plate pinch","{S} × 20\"","Pinza con los dedos, sin apoyar el disco.","plate pinch grip",2,["kg","seg"],{kg:15,seg:20},45)]},
  {id:"c4",title:"Muñeca",note:"2 rondas",ex:[
   ex("muneca-flex","Flexo-extensión de muñeca con mancuerna","{S} × 12 por mano","Antebrazo apoyado, solo se mueve la muñeca.","wrist flexion extension dumbbell",2,["kg","reps"],{kg:4,reps:12},15),
-  ex("pronosup","Pronosupinación con mancuerna","{S} × 10 por mano","Agarra la mancuerna por un extremo y gírala despacio.","forearm pronation supination dumbbell",2,["kg","reps"],{kg:3,reps:10},30)]}]};
+  ex("pronosup","Pronosupinación con mancuerna","{S} × 10 por mano","Agarra la mancuerna por un extremo y gírala despacio.","forearm pronation supination dumbbell",2,["kg","reps"],{kg:3,reps:10},30)]},
+ {id:"c5",title:"Bíceps y abdomen",note:"Superserie · 3 rondas · la última, serie descendente",ex:[
+  ex("curl-inclinado","Curl de bíceps inclinado con mancuernas","{S} × 10 · en la última ronda, serie descendente","Banco a 45-60°, brazos colgando por detrás del cuerpo. Sube sin adelantar los codos y baja en 2\".","incline dumbbell curl",3,["kg","reps"],{kg:8,reps:10},10),
+  ex("elev-rodillas","Elevación de rodillas colgado","{S} × 10","Colgado de la barra, sube las rodillas y enrolla la pelvis hacia arriba. Baja lento, sin balanceo. Cuando salgan 12 fáciles, piernas rectas.","hanging knee raise",3,["reps"],{reps:10},40)]}]};
 
-const SESSION_D={id:"D",wd:5,title:"D · Potencia y velocidad",sub:"Cargadas, saltos y cambios de dirección. Si mañana compites, pulsa «Compito mañana».",kinds:["gym"],gym:50,padel:0,rpe:[7,8],warn:"Termina con sprints en bici: mide la glucosa antes.",blocks:[
+const SESSION_D={id:"D",wd:5,title:"D · Potencia y velocidad",sub:"Cargadas, saltos, reacción y frenadas. Si mañana compites, pulsa «Compito mañana».",kinds:["gym"],gym:50,padel:0,rpe:[7,8],warn:"Termina con sprints en bici: mide la glucosa antes.",blocks:[
  {id:"d0",title:"Calentamiento",note:"1 vuelta · 8 min",ex:[
   ex("d-bici","Bici estática","3 min, subiendo el ritmo","Termina con 3 aceleraciones de 5\".","stationary bike warm up",1,["seg"],{seg:180},0),
   ex("d-skipping","Skipping y talones al glúteo","2 × 15 m","Pasos cortos y rápidos.","running drills skipping",1,["reps"],{reps:2},0),
@@ -250,7 +256,7 @@ const SESSION_D={id:"D",wd:5,title:"D · Potencia y velocidad",sub:"Cargadas, sa
   ex("hipthrust","Hip thrust con barra","{S} × 6 · rápido, RIR {R}","Sube explosivo y aguanta 1\" arriba. Apunta solo los discos.","barbell hip thrust technique",3,["kg","reps","RIR"],{kg:40,reps:6,RIR:3},15,true),
   ex("patinador","Salto del patinador","{S} × 4 por lado · aguanta la caída","Cae sobre una pierna con la rodilla encima del pie, sin que se vaya hacia dentro.","skater jump stick landing",3,["reps"],{reps:4},90)]},
  {id:"d3",title:"Velocidad y cambios de dirección",note:"Superserie · 4 rondas",ex:[
-  ex("lateral-sprint","Desplazamiento lateral + sprint","{S} × 1 por lado · 3 m lateral y 5 m de sprint","Dos pasos laterales rápidos, giras la cadera y aceleras. Como cuando sales a una bola cruzada.","lateral shuffle to sprint drill",4,["reps"],{reps:1},20),
+  ex("reactiva","Salidas reactivas","{S} × 4 salidas de 2-4 m hacia donde marque la flecha","Abre el modo reacción y pon el móvil delante de ti, o que alguien te suelte una pelota de reacción. No adivines: sal cuando lo veas.","reactive agility drill",4,["reps"],{reps:4},20),
   ex("frenada","Aceleración 10 m y frenada","{S} × 2","Acelera 10 m y frena en 3 pasos, cadera baja. La rodilla de apoyo, alineada con el pie.","acceleration deceleration drill",4,["reps"],{reps:2},75)]},
  {id:"d4",title:"Final metabólico",note:"6 rondas · bici estática",ex:[
   ex("bici-int","Bici estática: intervalos","{S} × 20\" fuerte / 40\" suave","Sube la resistencia en los 20\" fuertes. El mismo ritmo en todas.","stationary bike sprint intervals",6,["seg"],{seg:20},40)]}]};
@@ -332,7 +338,7 @@ const setDayOpt=(k,v)=>{S.opts=S.opts||{};const o=S.opts[dayKey()]||{};o[k]=v;S.
 const today=()=>materialize(DAYS[(new Date().getDay()+6)%7],new Date(),dayOpts());
 const yt=q=>"https://www.youtube.com/results?search_query="+encodeURIComponent(q);
 /* Vídeos comprobados (se pueden ver dentro de la app). Si eliges otro, se guarda en S.videos. */
-const VIDEOS={"lateral-sprint":{"v":"Vu-2wL-dt7Q","autor":"Simple Speed Coach"},"a-bici":{"v":"h2WtDZrLHmk","autor":"Bestcycling"},"a-tobillo":{"v":"ILSbK8RnGdI","autor":"Squat University"},"a-9090":{"v":"MmBb1latnw0","autor":"Xabier Revuelta - FISIOTERAPEUTA"},"a-monster":{"v":"dHJOQ4mjQ30","autor":"Bret Contreras Glute Guy"},"sentadilla":{"v":"Akd5xmZlsvg","autor":"Catalyst Athletics"},"a-cajon":{"v":"R7sS0PfPfHk","autor":"Ambitious Athletics"},"rdl":{"v":"2POPaloE-SM","autor":"Squat University"},"copenhague":{"v":"ACfxr2P5pGQ","autor":"Xabier Revuelta - FISIOTERAPEUTA"},"bulgara":{"v":"bwhl_9jN_3o","autor":"Squat University"},"stepdown":{"v":"JyhOe6NdQoo","autor":"Trainerclub"},"nordico":{"v":"0ia97P5konQ","autor":"Squat University"},"plancha-abd":{"v":"14--dVJ-tU4","autor":"Proet Ejercicio Terapéutico"},"b-w":{"v":"vQYyHMviZCI","autor":"West Coast Strength"},"b-rot":{"v":"wjBA3Qc_38g","autor":"Clínica Fisiofert"},"b-escap":{"v":"zbVUBByJRqY","autor":"Proet Ejercicio Terapéutico"},"push-press":{"v":"iaBVSJm78ko","autor":"CrossFit"},"lanz-rot":{"v":"o9BC7lgN1bo","autor":"Live Lean TV Daily Exercises"},"press-db":{"v":"mTaiQemkEpU","autor":"Andrew Kwong (DeltaBolic)"},"flex-plio":{"v":"hDP-oskzYUs","autor":"Atomic Athlete"},"landmine-press":{"v":"PFIn5PFiajQ","autor":"Darío Orcajada / Perder la barriga"},"pallof":{"v":"o_CxFP4FJhA","autor":"Instituto de Entrenamiento Personal"},"cuban":{"v":"67ewzBXws7M","autor":"MoveU"},"hollow":{"v":"DKJXFzz9BBk","autor":"Nacho Romero | Proyecto Columna"},"rod-gemelo":{"v":"-MOyVz9lFF4","autor":"Fisio andTherapies"},"rod-cuad":{"v":"-DuuGm0_5r0","autor":"Rude Rock Human Performance"},"rod-espalda":{"v":"NS73eSohTbc","autor":"National Academy of Sports Medicine (NASM)"},"rana":{"v":"ft0F3gQUiM4","autor":"GLORY SPORT PHYSIO"},"toracica":{"v":"yHTbstQDkKc","autor":"Athletic Authority"},"x-eliptica":{"v":"Sbv44Rf-5U0","autor":"fitnessdigital"},"c-colgado":{"v":"ppzZQuBjvN8","autor":"Cuerpo Invertido"},"c-w":{"v":"vQYyHMviZCI","autor":"West Coast Strength"},"dominada":{"v":"pT9ZCIeJhEM","autor":"Your House Fitness"},"facepull":{"v":"sVWAZaYydRo","autor":"ATHLEAN-X Español"},"remo-manc":{"v":"evJBZ_8-2ik","autor":"ATHLEAN-X Español"},"rotext-polea":{"v":"DplyMccjRrE","autor":"Vitar Club"},"farmer":{"v":"8OtwXwrJizk","autor":"PureGym"},"pinch":{"v":"jFTV3DQf3HE","autor":"PureGym"},"muneca-flex":{"v":"Wzt9Io8oKoI","autor":"Clínica Fisiofert"},"pronosup":{"v":"EyZ1IAozAJQ","autor":"FisioFit Cross"},"d-bici":{"v":"h2WtDZrLHmk","autor":"Bestcycling"},"d-skipping":{"v":"ztAesLdFb5k","autor":"Be Happy"},"d-saltitos":{"v":"j0nl5dWuqN4","autor":"Runna"},"clean":{"v":"0aP3tgKZcHQ","autor":"CrossFit"},"longitud":{"v":"dVgtvAXeBQw","autor":"Athletics Coach"},"hipthrust":{"v":"bE76E1sa5rA","autor":"Fit Generation"},"patinador":{"v":"HYWKdSBDb3s","autor":"Whole Strength Physical Therapy"},"lateral-goma":{"v":"WiKjiJfnmoI","autor":"Kinetic | Sports Physical Therapy | Delafield, WI"},"frenada":{"v":"88VqqPRdj58","autor":"Pablo Cartas | Preparador Físico y Fisioterapeuta"},"bici-int":{"v":"jN3HeMMvB5o","autor":"NeuStrength | Personal Trainer Wilmington NC"},"cal-movil":{"v":"XYMBIW3cN9g","autor":"Saigon Physio Sport"},"cal-activ":{"v":"7vVgRvPFQj4","autor":"Raúl Morcillo"},"cal-chispa":{"v":"vyIcjNeGh7M","autor":"The Padel School"},"post-lumbar":{"v":"GB2WGGsSz-Q","autor":"Fisioterapia Gratis Bruna Homs"},"post-rodillo":{"v":"bKL8O3TNbdw","autor":"Robert Arias"},"v-9090":{"v":"MmBb1latnw0","autor":"Xabier Revuelta - FISIOTERAPEUTA"},"v-w":{"v":"vQYyHMviZCI","autor":"West Coast Strength"},"v-cmj":{"v":"26pmBcXAcTg","autor":"Professional Performance Training - Proper"},"v-sprint":{"v":"lX36T2iSPd4","autor":"The Progressive Athlete"}};
+const VIDEOS={"sprint-rampa":{"v":"PSNS6n9sMDY","autor":"Omar Powell"},"cruce-poleas":{"v":"JUDTGZh4rhg","autor":"ATHLEAN-X"},"triceps-polea":{"v":"vPeQu_L-1n0","autor":"REP"},"curl-inclinado":{"v":"DCe8f6vMe9A","autor":"ATHLEAN-X"},"elev-rodillas":{"v":"p9hhX_Sx5v0","autor":"Signum Fitness & Nutrition"},"reactiva":{"v":"roiLnGi_29Q","autor":"PowerLux Fitness"},"lateral-sprint":{"v":"Vu-2wL-dt7Q","autor":"Simple Speed Coach"},"a-bici":{"v":"h2WtDZrLHmk","autor":"Bestcycling"},"a-tobillo":{"v":"ILSbK8RnGdI","autor":"Squat University"},"a-9090":{"v":"MmBb1latnw0","autor":"Xabier Revuelta - FISIOTERAPEUTA"},"a-monster":{"v":"dHJOQ4mjQ30","autor":"Bret Contreras Glute Guy"},"sentadilla":{"v":"Akd5xmZlsvg","autor":"Catalyst Athletics"},"a-cajon":{"v":"R7sS0PfPfHk","autor":"Ambitious Athletics"},"rdl":{"v":"2POPaloE-SM","autor":"Squat University"},"copenhague":{"v":"ACfxr2P5pGQ","autor":"Xabier Revuelta - FISIOTERAPEUTA"},"bulgara":{"v":"bwhl_9jN_3o","autor":"Squat University"},"stepdown":{"v":"JyhOe6NdQoo","autor":"Trainerclub"},"nordico":{"v":"0ia97P5konQ","autor":"Squat University"},"plancha-abd":{"v":"14--dVJ-tU4","autor":"Proet Ejercicio Terapéutico"},"b-w":{"v":"vQYyHMviZCI","autor":"West Coast Strength"},"b-rot":{"v":"wjBA3Qc_38g","autor":"Clínica Fisiofert"},"b-escap":{"v":"zbVUBByJRqY","autor":"Proet Ejercicio Terapéutico"},"push-press":{"v":"iaBVSJm78ko","autor":"CrossFit"},"lanz-rot":{"v":"o9BC7lgN1bo","autor":"Live Lean TV Daily Exercises"},"press-db":{"v":"mTaiQemkEpU","autor":"Andrew Kwong (DeltaBolic)"},"flex-plio":{"v":"hDP-oskzYUs","autor":"Atomic Athlete"},"landmine-press":{"v":"PFIn5PFiajQ","autor":"Darío Orcajada / Perder la barriga"},"pallof":{"v":"o_CxFP4FJhA","autor":"Instituto de Entrenamiento Personal"},"cuban":{"v":"67ewzBXws7M","autor":"MoveU"},"hollow":{"v":"DKJXFzz9BBk","autor":"Nacho Romero | Proyecto Columna"},"rod-gemelo":{"v":"-MOyVz9lFF4","autor":"Fisio andTherapies"},"rod-cuad":{"v":"-DuuGm0_5r0","autor":"Rude Rock Human Performance"},"rod-espalda":{"v":"NS73eSohTbc","autor":"National Academy of Sports Medicine (NASM)"},"rana":{"v":"ft0F3gQUiM4","autor":"GLORY SPORT PHYSIO"},"toracica":{"v":"yHTbstQDkKc","autor":"Athletic Authority"},"x-eliptica":{"v":"Sbv44Rf-5U0","autor":"fitnessdigital"},"c-colgado":{"v":"ppzZQuBjvN8","autor":"Cuerpo Invertido"},"c-w":{"v":"vQYyHMviZCI","autor":"West Coast Strength"},"dominada":{"v":"pT9ZCIeJhEM","autor":"Your House Fitness"},"facepull":{"v":"sVWAZaYydRo","autor":"ATHLEAN-X Español"},"remo-manc":{"v":"evJBZ_8-2ik","autor":"ATHLEAN-X Español"},"rotext-polea":{"v":"DplyMccjRrE","autor":"Vitar Club"},"farmer":{"v":"8OtwXwrJizk","autor":"PureGym"},"pinch":{"v":"jFTV3DQf3HE","autor":"PureGym"},"muneca-flex":{"v":"Wzt9Io8oKoI","autor":"Clínica Fisiofert"},"pronosup":{"v":"EyZ1IAozAJQ","autor":"FisioFit Cross"},"d-bici":{"v":"h2WtDZrLHmk","autor":"Bestcycling"},"d-skipping":{"v":"ztAesLdFb5k","autor":"Be Happy"},"d-saltitos":{"v":"j0nl5dWuqN4","autor":"Runna"},"clean":{"v":"0aP3tgKZcHQ","autor":"CrossFit"},"longitud":{"v":"dVgtvAXeBQw","autor":"Athletics Coach"},"hipthrust":{"v":"bE76E1sa5rA","autor":"Fit Generation"},"patinador":{"v":"HYWKdSBDb3s","autor":"Whole Strength Physical Therapy"},"lateral-goma":{"v":"WiKjiJfnmoI","autor":"Kinetic | Sports Physical Therapy | Delafield, WI"},"frenada":{"v":"88VqqPRdj58","autor":"Pablo Cartas | Preparador Físico y Fisioterapeuta"},"bici-int":{"v":"jN3HeMMvB5o","autor":"NeuStrength | Personal Trainer Wilmington NC"},"cal-movil":{"v":"XYMBIW3cN9g","autor":"Saigon Physio Sport"},"cal-activ":{"v":"7vVgRvPFQj4","autor":"Raúl Morcillo"},"cal-chispa":{"v":"vyIcjNeGh7M","autor":"The Padel School"},"post-lumbar":{"v":"GB2WGGsSz-Q","autor":"Fisioterapia Gratis Bruna Homs"},"post-rodillo":{"v":"bKL8O3TNbdw","autor":"Robert Arias"},"v-9090":{"v":"MmBb1latnw0","autor":"Xabier Revuelta - FISIOTERAPEUTA"},"v-w":{"v":"vQYyHMviZCI","autor":"West Coast Strength"},"v-cmj":{"v":"26pmBcXAcTg","autor":"Professional Performance Training - Proper"},"v-sprint":{"v":"lX36T2iSPd4","autor":"The Progressive Athlete"}};
 const ytId=u=>{const m=String(u||"").match(/(?:youtu\.be\/|v=|shorts\/|embed\/)([\w-]{11})/);return m?m[1]:(/^[\w-]{11}$/.test(u)?u:null)};
 const exById=id=>{for(const d of [...DAYS,ACTIVATION])for(const b of d.blocks)for(const e of b.ex)if(e.id===id)return e;return null};
 function openVideo(id){
@@ -614,7 +620,7 @@ function drawPlayer(){
      <h2 class="exname">${esc(e.name)}</h2>
      <div style="font-weight:500;opacity:.88">${esc(e.presc)}</div>
      <p class="small muted" style="margin:6px 0 14px">${esc(e.cue)}</p>
-     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button class="vid" data-video="${e.id}">${ICON.play} Ver vídeo</button>${LAST[e.id]?`<span class="small muted">Última vez: ${esc(LAST[e.id])}</span>`:""}</div>
+     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button class="vid" data-video="${e.id}">${ICON.play} Ver vídeo</button>${e.id==="reactiva"?`<button class="vid" data-act="react" style="background:var(--ball);color:var(--ballInk)">⚡ Modo reacción</button>`:""}${LAST[e.id]?`<span class="small muted">Última vez: ${esc(LAST[e.id])}</span>`:""}</div>
      <div class="card" style="margin-top:18px;padding:18px">
        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px"><span style="font:800 22px var(--display)">Serie ${st.set+1} de ${e.sets}</span>${e.rest?`<span class="small muted">⏱ ${restText(e.rest)}</span>`:""}</div>
        ${P.hint&&st.set===0?`<div class="small" style="margin:2px 0 8px;padding:8px 10px;border-radius:10px;background:${P.hint.t==="up"?"color-mix(in srgb,var(--ok) 14%,transparent)":P.hint.t==="down"?"color-mix(in srgb,var(--warn) 14%,transparent)":"var(--surface2)"};color:${P.hint.t==="up"?"var(--ok)":P.hint.t==="down"?"var(--warn)":"var(--muted)"}">${P.hint.t==="up"?"▲ ":P.hint.t==="down"?"▼ ":"= "}${esc(P.hint.txt)}</div>`:""}
@@ -727,6 +733,27 @@ async function exportData(){
   catch(e){const t=document.createElement("textarea");t.value=txt;t.style.cssText="position:fixed;opacity:0";document.body.appendChild(t);t.select();try{document.execCommand("copy");toast("Copiado. Pégamelo en el chat.")}catch(_){toast("No se pudo copiar")}t.remove()}
 }
 
+/* ============ MODO REACCIÓN: flechas al azar para salir como en pista ============ */
+function ping(){try{if(!actx)return;const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=1320;o.connect(g);g.connect(actx.destination);const t=actx.currentTime;g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.5,t+0.01);g.gain.exponentialRampToValueAtTime(0.0001,t+0.25);o.start(t);o.stop(t+0.27)}catch(e){}}
+function openReaction(n=4){
+  audioUnlock();
+  const DIRS=[{a:"←",t:"Izquierda"},{a:"→",t:"Derecha"},{a:"↑",t:"Al frente"},{a:"↙",t:"Atrás izquierda"},{a:"↘",t:"Atrás derecha"}];
+  const el=document.createElement("div"); el.id="react"; el.setAttribute("role","dialog"); el.setAttribute("aria-label","Modo reacción");
+  el.style.cssText="position:fixed;inset:0;z-index:95;background:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center";
+  el.innerHTML=`<div class="eyebrow">Modo reacción · ${n} salidas</div><div id="r-main" aria-live="assertive" style="font:800 34px var(--display);min-height:50vh;display:flex;flex-direction:column;align-items:center;justify-content:center">Posición de espera.<br>Empieza en 3"</div><div class="small muted" id="r-count">Sal al ver la flecha, corre 2-4 m, frena y vuelve andando.</div><button class="ghostbtn" data-act="react-close" style="max-width:260px">Cerrar</button>`;
+  $("#layer").appendChild(el);
+  const alive=()=>document.body.contains(el), main=el.querySelector("#r-main"), cnt=el.querySelector("#r-count");
+  let k=0, prev=-1;
+  const wait=()=>{if(!alive())return; if(k>=n){main.innerHTML="Hecho 👍";cnt.textContent="Apunta la serie y descansa.";return}
+    main.innerHTML='<span style="font-size:64px;opacity:.35">· · ·</span><span style="font-size:22px" class="muted">Atento…</span>';
+    setTimeout(show,1500+Math.random()*2500)};
+  const show=()=>{if(!alive())return; let i;do{i=Math.floor(Math.random()*DIRS.length)}while(i===prev); prev=i; const d=DIRS[i]; k++;
+    main.innerHTML=`<span style="font:700 min(55vw,260px)/1.15 system-ui,sans-serif;color:var(--ball)">${d.a}</span><span style="font-size:30px;margin-top:16px">${d.t}</span>`;
+    cnt.textContent=`Salida ${k} de ${n}`; ping(); vibrate(80);
+    setTimeout(()=>{if(!alive())return; main.innerHTML='<span style="font-size:26px" class="muted">Frena, vuelve andando<br>y ponte en posición</span>'; setTimeout(wait,6500)},1300)};
+  setTimeout(wait,3000);
+}
+
 /* ============ EVENTOS ============ */
 document.addEventListener("click",e=>{
   const t=e.target.closest("[data-act],[data-tab],[data-lift],[data-body],[data-step],[data-rpe],[data-reason],[data-video]"); if(!t)return;
@@ -756,6 +783,8 @@ document.addEventListener("click",e=>{
     case "backup":backup();break;
     case "body-save":{const r={d:new Date().toISOString()};let ok=false,bad=false;BODYM.forEach(m=>{const v=$("#b-"+m.id).value.trim().replace(",",".");if(v){if(isFinite(+v)&&+v>0){r[m.id]=+v;ok=true}else bad=true}});
       if(bad||!ok){toast("Escribe al menos un número");break}if(r.fat!=null&&r.fat>60){toast("La grasa va en %, por ejemplo 23,5");break}addBody([r]);save();toast("Medida guardada");render();break}
+    case "react":openReaction(P&&P.steps[P.i]?.e?.defaults?.reps||4);break;
+    case "react-close":$("#react")?.remove();break;
     case "test-save":{const id=t.dataset.id,v=$("#t-"+id).value.trim().replace(",",".");if(!v||!isFinite(+v)){toast("Escribe un número");break}S.tests=S.tests||{};(S.tests[id]=S.tests[id]||[]).push({d:new Date().toISOString(),v:+v});save();toast("Test guardado");render();break}
     case "video-close":$("#video")?.remove();break;
     case "video-save":{const v=ytId($("#vid-url").value.trim());if(!v){toast("Ese enlace no parece de YouTube");break}S.videos=S.videos||{};S.videos[t.dataset.id]=v;save();$("#video")?.remove();openVideo(t.dataset.id);toast("Vídeo guardado");break}

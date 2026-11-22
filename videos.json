@@ -1,0 +1,386 @@
+{
+ "a-bici": {
+  "v": "h2WtDZrLHmk",
+  "t": "Pasos para ajustar la bicicleta",
+  "autor": "Bestcycling",
+  "nota": "Ajuste de la bici (sillín y postura) antes del calentamiento."
+ },
+ "a-tobillo": {
+  "v": "ILSbK8RnGdI",
+  "t": "Banded Joint Mobilizations for Stiff Ankles",
+  "autor": "Squat University",
+  "nota": ""
+ },
+ "a-9090": {
+  "v": "MmBb1latnw0",
+  "t": "90-90 CADERA | MOVILIDAD",
+  "autor": "Xabier Revuelta - FISIOTERAPEUTA",
+  "nota": ""
+ },
+ "a-monster": {
+  "v": "dHJOQ4mjQ30",
+  "t": "5 Tips for Better Lateral Band Walks",
+  "autor": "Bret Contreras Glute Guy",
+  "nota": "Paso lateral con mini-banda (lateral band walk)."
+ },
+ "sentadilla": {
+  "v": "Akd5xmZlsvg",
+  "t": "Back Squat | Olympic Weightlifting Exercise Library",
+  "autor": "Catalyst Athletics",
+  "nota": ""
+ },
+ "a-cajon": {
+  "v": "R7sS0PfPfHk",
+  "t": "Box Jump Basics. Stick The Landing",
+  "autor": "Ambitious Athletics",
+  "nota": ""
+ },
+ "rdl": {
+  "v": "2POPaloE-SM",
+  "t": "How To CORRECTLY Do An RDL",
+  "autor": "Squat University",
+  "nota": ""
+ },
+ "copenhague": {
+  "v": "ACfxr2P5pGQ",
+  "t": "PLANCHA COPENHAGUE | COMO PROGRESAR",
+  "autor": "Xabier Revuelta - FISIOTERAPEUTA",
+  "nota": "Incluye progresiones (rodilla apoyada a pierna estirada)."
+ },
+ "bulgara": {
+  "v": "bwhl_9jN_3o",
+  "t": "The BEST Bulgarian Split Squat Tutorial",
+  "autor": "Squat University",
+  "nota": ""
+ },
+ "stepdown": {
+  "v": "JyhOe6NdQoo",
+  "t": "Excentric Step Down / Bajada de Cajón Excéntrica",
+  "autor": "Trainerclub",
+  "nota": ""
+ },
+ "nordico": {
+  "v": "0ia97P5konQ",
+  "t": "4 Steps to MASTER Nordic Curls!",
+  "autor": "Squat University",
+  "nota": ""
+ },
+ "plancha-abd": {
+  "v": "14--dVJ-tU4",
+  "t": "886. Plancha lateral con abducción de cadera",
+  "autor": "Proet Ejercicio Terapéutico",
+  "nota": ""
+ },
+ "b-w": {
+  "v": "vQYyHMviZCI",
+  "t": "W Band Pull-Apart",
+  "autor": "West Coast Strength",
+  "nota": ""
+ },
+ "b-rot": {
+  "v": "wjBA3Qc_38g",
+  "t": "Rotación Externa Abducción a 90° (90/90 External Rotation with Band) -Movilidad del manguito rotador",
+  "autor": "Clínica Fisiofert",
+  "nota": ""
+ },
+ "b-escap": {
+  "v": "zbVUBByJRqY",
+  "t": "903. Retracción y protracción escapular en posición de plancha",
+  "autor": "Proet Ejercicio Terapéutico",
+  "nota": ""
+ },
+ "push-press": {
+  "v": "iaBVSJm78ko",
+  "t": "The Push Press",
+  "autor": "CrossFit",
+  "nota": ""
+ },
+ "lanz-rot": {
+  "v": "o9BC7lgN1bo",
+  "t": "How To Do A STANDING MEDICINE BALL ROTATIONAL THROW AGAINST A WALL | Exercise Demonstration Video",
+  "autor": "Live Lean TV Daily Exercises",
+  "nota": ""
+ },
+ "press-db": {
+  "v": "mTaiQemkEpU",
+  "t": "✅ The PERFECT Dumbbell Chest Press",
+  "autor": "Andrew Kwong (DeltaBolic)",
+  "nota": ""
+ },
+ "flex-plio": {
+  "v": "hDP-oskzYUs",
+  "t": "PLYO PUSH UP",
+  "autor": "Atomic Athlete",
+  "nota": ""
+ },
+ "landmine-press": {
+  "v": "PFIn5PFiajQ",
+  "t": "Press unilateral en landmine (tecnica)",
+  "autor": "Darío Orcajada / Perder la barriga",
+  "nota": ""
+ },
+ "pallof": {
+  "v": "o_CxFP4FJhA",
+  "t": "Press Pallof en polea",
+  "autor": "Instituto de Entrenamiento Personal",
+  "nota": ""
+ },
+ "cuban": {
+  "v": "67ewzBXws7M",
+  "t": "The “Cuban Press” for scapular strength and stability! MoveU",
+  "autor": "MoveU",
+  "nota": ""
+ },
+ "hollow": {
+  "v": "DKJXFzz9BBk",
+  "t": "Hollow Hold 🔥 Cómo hacerlo bien",
+  "autor": "Nacho Romero | Proyecto Columna",
+  "nota": ""
+ },
+ "rod-gemelo": {
+  "v": "-MOyVz9lFF4",
+  "t": "Cómo utilizar el FoamRoller para los gemelos y sóleo",
+  "autor": "Fisio andTherapies",
+  "nota": ""
+ },
+ "rod-cuad": {
+  "v": "-DuuGm0_5r0",
+  "t": "Foam Roll: Quads/Adductors",
+  "autor": "Rude Rock Human Performance",
+  "nota": ""
+ },
+ "rod-espalda": {
+  "v": "NS73eSohTbc",
+  "t": "Self Myofascial Release: Foam Rolling-  Thoracic Spine",
+  "autor": "National Academy of Sports Medicine (NASM)",
+  "nota": ""
+ },
+ "rana": {
+  "v": "ft0F3gQUiM4",
+  "t": "Estiramiento Rana | Movilidad de cadera y aductores",
+  "autor": "GLORY SPORT PHYSIO",
+  "nota": ""
+ },
+ "toracica": {
+  "v": "yHTbstQDkKc",
+  "t": "Rotaciones Torácicas en Cuadrupedia",
+  "autor": "Athletic Authority",
+  "nota": ""
+ },
+ "x-eliptica": {
+  "v": "Sbv44Rf-5U0",
+  "t": "Cómo hacer BICICLETA ELÍPTICA correctamente 🤔 Es la MEJOR OPCIÓN para TI❓",
+  "autor": "fitnessdigital",
+  "nota": "Técnica de uso de la elíptica (3:31); no es específico de zona 2."
+ },
+ "c-colgado": {
+  "v": "ppzZQuBjvN8",
+  "t": "Colgarse - pasivo / activo",
+  "autor": "Cuerpo Invertido",
+  "nota": "Explica la diferencia entre colgado pasivo y activo."
+ },
+ "c-w": {
+  "v": "vQYyHMviZCI",
+  "t": "W Band Pull-Apart",
+  "autor": "West Coast Strength",
+  "nota": ""
+ },
+ "dominada": {
+  "v": "pT9ZCIeJhEM",
+  "t": "Como Hacer Dominadas Pronadas (Pull Ups)",
+  "autor": "Your House Fitness",
+  "nota": ""
+ },
+ "facepull": {
+  "v": "sVWAZaYydRo",
+  "t": "PARA de Hacer Los Jalones a la Cara Así ¡TE LO RUEGO!",
+  "autor": "ATHLEAN-X Español",
+  "nota": ""
+ },
+ "remo-manc": {
+  "v": "evJBZ_8-2ik",
+  "t": "PARA de Hacer Remo a una Mano Así ¡SALVA A UN AMIGO!",
+  "autor": "ATHLEAN-X Español",
+  "nota": ""
+ },
+ "rotext-polea": {
+  "v": "DplyMccjRrE",
+  "t": "🟢ROTACIONES EXTERNAS de Hombro en Polea: ✅ Técnica PERFECTA y SEGURA",
+  "autor": "Vitar Club",
+  "nota": ""
+ },
+ "farmer": {
+  "v": "8OtwXwrJizk",
+  "t": "How To Do A Farmer's Walk (Farmer's Carry)",
+  "autor": "PureGym",
+  "nota": ""
+ },
+ "pinch": {
+  "v": "jFTV3DQf3HE",
+  "t": "How To Do Plate Pinches",
+  "autor": "PureGym",
+  "nota": ""
+ },
+ "muneca-flex": {
+  "v": "Wzt9Io8oKoI",
+  "t": "Flexo-extensión de muñeca con mancuerna",
+  "autor": "Clínica Fisiofert",
+  "nota": ""
+ },
+ "pronosup": {
+  "v": "EyZ1IAozAJQ",
+  "t": "Prono-supinación con mancuerna",
+  "autor": "FisioFit Cross",
+  "nota": ""
+ },
+ "d-bici": {
+  "v": "h2WtDZrLHmk",
+  "t": "Pasos para ajustar la bicicleta",
+  "autor": "Bestcycling",
+  "nota": "Ajuste de la bici (sillín y postura) antes del calentamiento."
+ },
+ "d-skipping": {
+  "v": "ztAesLdFb5k",
+  "t": "Skipping talones a glúteos",
+  "autor": "Be Happy",
+  "nota": "Canal pequeño; el título coincide con los dos ejercicios."
+ },
+ "d-saltitos": {
+  "v": "j0nl5dWuqN4",
+  "t": "Pogo Jumps Tutorial - Proper Form and Technique",
+  "autor": "Runna",
+  "nota": "Pogo jumps: saltos suaves de tobillo en el sitio."
+ },
+ "clean": {
+  "v": "0aP3tgKZcHQ",
+  "t": "The Hang Power Clean",
+  "autor": "CrossFit",
+  "nota": ""
+ },
+ "longitud": {
+  "v": "dVgtvAXeBQw",
+  "t": "The Fundamentals - Standing Long Jump",
+  "autor": "Athletics Coach",
+  "nota": "Salto de longitud a pies juntos; fíjate sobre todo en la recepción."
+ },
+ "hipthrust": {
+  "v": "bE76E1sa5rA",
+  "t": "Técnica perfecta para Hip Thrust",
+  "autor": "Fit Generation",
+  "nota": ""
+ },
+ "patinador": {
+  "v": "HYWKdSBDb3s",
+  "t": "Skater jumps (with stick landing)",
+  "autor": "Whole Strength Physical Therapy",
+  "nota": ""
+ },
+ "lateral-goma": {
+  "v": "WiKjiJfnmoI",
+  "t": "Band resisted lateral shuffle",
+  "autor": "Kinetic | Sports Physical Therapy | Delafield, WI",
+  "nota": ""
+ },
+ "frenada": {
+  "v": "88VqqPRdj58",
+  "t": "Acceleration to Deceleration 5 m",
+  "autor": "Pablo Cartas | Preparador Físico y Fisioterapeuta",
+  "nota": ""
+ },
+ "bici-int": {
+  "v": "jN3HeMMvB5o",
+  "t": "Exercise Bike Sprint Intervals",
+  "autor": "NeuStrength | Personal Trainer Wilmington NC",
+  "nota": "Ejemplo de sprints en bici estática; ajusta tiempos a tu plan."
+ },
+ "cal-movil": {
+  "v": "XYMBIW3cN9g",
+  "t": "5-Minute Full Body Warm-Up for Padel",
+  "autor": "Saigon Physio Sport",
+  "nota": "Vídeo general de calentamiento para pádel (2:32)."
+ },
+ "cal-activ": {
+  "v": "7vVgRvPFQj4",
+  "t": "3 EJERCICIOS para calentar ANTES de un partido de pádel  🔥🔥🔥",
+  "autor": "Raúl Morcillo",
+  "nota": "Vídeo general de calentamiento antes de un partido de pádel."
+ },
+ "cal-chispa": {
+  "v": "vyIcjNeGh7M",
+  "t": "Footwork Warm Up",
+  "autor": "The Padel School",
+  "nota": "Calentamiento de pies/footwork en pista."
+ },
+ "post-lumbar": {
+  "v": "GB2WGGsSz-Q",
+  "t": "DESCOMPRIMIR LA LUMBAR,ALIVIO DOLOR ESPALDA 😜",
+  "autor": "Fisioterapia Gratis Bruna Homs",
+  "nota": ""
+ },
+ "post-rodillo": {
+  "v": "bKL8O3TNbdw",
+  "t": "RUTINA DE RODILLO (Foam roller) ⚙️ | Robert Arias",
+  "autor": "Robert Arias",
+  "nota": "Rutina general de rodillo."
+ },
+ "v-9090": {
+  "v": "MmBb1latnw0",
+  "t": "90-90 CADERA | MOVILIDAD",
+  "autor": "Xabier Revuelta - FISIOTERAPEUTA",
+  "nota": ""
+ },
+ "v-w": {
+  "v": "vQYyHMviZCI",
+  "t": "W Band Pull-Apart",
+  "autor": "West Coast Strength",
+  "nota": ""
+ },
+ "v-cmj": {
+  "v": "26pmBcXAcTg",
+  "t": "Salto en contramovimiento - CMJ - Countermovement jump",
+  "autor": "Professional Performance Training - Proper",
+  "nota": ""
+ },
+ "v-sprint": {
+  "v": "lX36T2iSPd4",
+  "t": "Exercise to Develop First Step Explosiveness & Lateral Quickness!",
+  "autor": "The Progressive Athlete",
+  "nota": "Variante cercana: ejercicio de primer paso explosivo lateral (no es el test exacto de 3 m)."
+ },
+ "sprint-rampa": {
+  "v": "PSNS6n9sMDY",
+  "autor": "Omar Powell",
+  "t": "Run Hill Sprints to Get Intense Speed for improved athletic",
+  "nota": "Comprobado con oEmbed el 22-11-2026"
+ },
+ "cruce-poleas": {
+  "v": "JUDTGZh4rhg",
+  "autor": "ATHLEAN-X",
+  "t": "STOP F*cking Up Cable Flys (PROPER FORM!)",
+  "nota": "Comprobado con oEmbed el 22-11-2026"
+ },
+ "triceps-polea": {
+  "v": "vPeQu_L-1n0",
+  "autor": "REP",
+  "t": "How to Do Tricep Pushdowns with a Rope (Step-by-Step Breakdown)",
+  "nota": "Comprobado con oEmbed el 22-11-2026"
+ },
+ "curl-inclinado": {
+  "v": "DCe8f6vMe9A",
+  "autor": "ATHLEAN-X",
+  "t": "Stop Screwing Up Incline Dumbbell Curls (PROPER FORM!)",
+  "nota": "Comprobado con oEmbed el 22-11-2026"
+ },
+ "elev-rodillas": {
+  "v": "p9hhX_Sx5v0",
+  "autor": "Signum Fitness & Nutrition",
+  "t": "The Hanging Knee Raise | A Tutorial",
+  "nota": "Comprobado con oEmbed el 22-11-2026"
+ },
+ "reactiva": {
+  "v": "roiLnGi_29Q",
+  "autor": "PowerLux Fitness",
+  "t": "Improve your quickness with these reactive agility drills!",
+  "nota": "Comprobado con oEmbed el 22-11-2026"
+ }
+}
