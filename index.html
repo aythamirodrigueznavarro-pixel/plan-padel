@@ -1220,20 +1220,36 @@ function openImport(){
   const el=document.createElement("div"); el.className="sheet"; el.id="imp";
   el.innerHTML=`<div class="panel" role="dialog" aria-modal="true" aria-label="Importar datos de Salud">
    <h2 class="title">Datos de Salud</h2>
-   <p class="muted" style="margin:0">El atajo <b>Plan Pádel · Salud</b> copia tu glucosa y tus entrenos del Apple Watch (Tenis = pádel, Entreno funcional = gimnasio). Pégalos aquí.</p>
-   <div class="field"><label for="imp-txt">Datos copiados por el atajo</label><textarea id="imp-txt" rows="5" placeholder='{"glucose":[...],"workouts":[...]}'></textarea></div>
+   <p class="muted" style="margin:0">El atajo <b>Plan Pádel · Salud</b> copia tus entrenos del Apple Watch (Tenis = pádel, Fuerza funcional = gimnasio) y tu peso de la báscula. Después de ejecutarlo, pulsa el botón amarillo.</p>
+   <button class="ballbtn" data-act="imp-paste">📋 Pegar lo que copió el atajo</button>
+   <details><summary class="small muted" style="cursor:pointer">Si el botón no funciona, pégalo a mano</summary>
+   <div class="field" style="margin-top:8px"><label for="imp-txt">Mantén el dedo en el recuadro → Pegar</label><textarea id="imp-txt" rows="4" placeholder="PLANPADEL…"></textarea></div>
+   <button class="ghostbtn small" data-act="imp-go">Importar lo pegado</button></details>
    <div class="small" id="imp-err" style="color:var(--warn);min-height:1em" role="alert"></div>
-   <button class="ballbtn" data-act="imp-go">Importar</button>
-   <button class="ghostbtn" data-act="imp-close">Cancelar</button></div>`;
+   <button class="ghostbtn" data-act="imp-close">Cerrar</button></div>`;
   $("#layer").appendChild(el);
 }
+/* Formato del atajo (una línea por dato): W|tipo|inicio|fin · P|peso|fecha · G|grasa|fecha · L|glucosa|fecha */
+function parseShortcutLines(raw){
+  const d={workouts:[],body:[],glucose:[]},bodyBy={};
+  const num=v=>{const m=String(v||"").replace(",",".").match(/-?\d+(\.\d+)?/);return m?+m[0]:null};
+  const iso=v=>{const t=new Date(String(v||"").trim());return isNaN(t)?null:t.toISOString()};
+  String(raw).split(/\r?\n/).forEach(l=>{const c=l.split("|").map(x=>x.trim());const k=c[0];
+    if(k==="W"&&c.length>=4){const st=iso(c[2]),en=iso(c[3]);if(st&&en)d.workouts.push({type:c[1]||"Entrenamiento",start:st,end:en})}
+    else if((k==="P"||k==="G")&&c.length>=3){const t=iso(c[2]),v=num(c[1]);if(!t||v==null)return;const key=t.slice(0,16);const b=bodyBy[key]=bodyBy[key]||{t};
+      if(k==="P")b.kg=/lb/i.test(c[1])?Math.round(v*0.4536*10)/10:v;else b.fat=v<1?Math.round(v*1000)/10:v}
+    else if(k==="L"&&c.length>=3){const t=iso(c[2]),v=num(c[1]);if(t&&v!=null)d.glucose.push({t,v:/mmol/i.test(c[1])?Math.round(v*18):v})}});
+  d.body=Object.values(bodyBy);return d;
+}
 function importHealth(raw){
-  let d; try{d=JSON.parse(raw)}catch(e){return "No parecen datos del atajo. Vuelve a ejecutarlo y pega lo que copia."}
+  let d; const txt=String(raw||"").trim();
+  if(/^PLANPADEL/i.test(txt)||/^[WPGL]\|/m.test(txt))d=parseShortcutLines(txt);
+  else{try{d=JSON.parse(txt)}catch(e){return "No parecen datos del atajo. Vuelve a ejecutarlo y pega lo que copia."}}
   const gl=(d.glucose||[]).map(x=>({t:x.t||x.date,v:+(x.v??x.value)})).filter(x=>x.t&&isFinite(x.v));
   const PADEL=/tenis|tennis|pickleball|p[aá]del|squash|raqueta/i;
   const wo=(d.workouts||[]).map(w=>{const type=String(w.type||w.name||"Entrenamiento");const start=w.start||w.startDate;const end=w.end||w.endDate;
     const minutes=Math.round(+(w.minutes??(end?(new Date(end)-new Date(start))/60000:0)));
-    return {id:start+type,type:PADEL.test(type)?"Pádel":/funcional|functional/i.test(type)?"Gimnasio (funcional)":type,padel:PADEL.test(type),start,minutes,kcal:+w.kcal||null,hr:+w.hr||null}}).filter(w=>w.start&&w.minutes>0);
+    return {id:start+type,type:PADEL.test(type)?"Pádel":/funcional|functional|fuerza|strength/i.test(type)?"Gimnasio (funcional)":type,padel:PADEL.test(type),start,minutes,kcal:+w.kcal||null,hr:+w.hr||null}}).filter(w=>w.start&&w.minutes>0);
   const num=v=>v==null||v===""?null:(isFinite(+String(v).replace(",","."))?+String(v).replace(",","."):null);
   const bd=(d.body||[]).map(b=>({d:b.t||b.d||b.date,kg:num(b.kg??b.weight),fat:num(b.fat),skm:num(b.skm??b.muscle)})).filter(b=>b.d&&(b.kg!=null||b.fat!=null||b.skm!=null))
     .map(b=>{if(b.fat!=null&&b.fat<1)b.fat=Math.round(b.fat*1000)/10;return b});
@@ -1526,6 +1542,7 @@ document.addEventListener("click",e=>{
     case "save":saveSession();break;
     case "import":openImport();break;
     case "imp-close":$("#imp")?.remove();break;
+    case "imp-paste":(async()=>{try{const txt=await navigator.clipboard.readText();if(!txt){$("#imp-err").textContent="El portapapeles está vacío: ejecuta antes el atajo.";return}const err=importHealth(txt);if(err){$("#imp-err").textContent=err}else{$("#imp")?.remove();render()}}catch(e){$("#imp-err").textContent="El iPhone no ha dejado leer el portapapeles. Abre «Si el botón no funciona» y pégalo a mano."}})();break;
     case "imp-go":{const err=importHealth($("#imp-txt").value);if(err){$("#imp-err").textContent=err}else{$("#imp").remove();render()}break}
     case "export":exportData();break;
     case "backup":backup();break;
