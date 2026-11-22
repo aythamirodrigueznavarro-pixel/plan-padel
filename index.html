@@ -1015,7 +1015,7 @@ function drawPlayer(){
        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px"><span style="font:800 22px var(--display)">Serie ${st.set+1} de ${e.sets}</span>${e.rest?`<span class="small muted">⏱ ${restText(e.rest)}</span>`:""}</div>
        ${P.hint&&st.set===0?`<div class="small" style="margin:2px 0 8px;padding:8px 10px;border-radius:10px;background:${P.hint.t==="up"?"color-mix(in srgb,var(--ok) 14%,transparent)":P.hint.t==="down"?"color-mix(in srgb,var(--warn) 14%,transparent)":"var(--surface2)"};color:${P.hint.t==="up"?"var(--ok)":P.hint.t==="down"?"var(--warn)":"var(--muted)"}">${P.hint.t==="up"?"▲ ":P.hint.t==="down"?"▼ ":"= "}${esc(P.hint.txt)}</div>`:""}
        ${e.metrics.includes("RIR")?`<div class="small muted" style="margin:-2px 0 6px">Al acabar, pon el RIR real: cuántas repeticiones te quedaban.</div>`:""}
-       ${e.metrics.map(m=>`<div class="stepper"><span class="lab">${m==="seg"?"seg":m}${m==="kg"&&e.barbell?"<small>solo discos</small>":""}</span><span></span><button data-step="${m}" data-d="-1" aria-label="Bajar ${m}">−</button><output id="v-${m}" class="num">${fmtNum(P.vals[m]??0)}</output><button data-step="${m}" data-d="1" aria-label="Subir ${m}">+</button></div>`).join("")}
+       ${e.metrics.map(m=>`<div class="stepper"><span class="lab">${m==="seg"?"seg":m}${m==="kg"&&e.barbell?"<small>solo discos</small>":""}</span><span></span><button data-step="${m}" data-d="-1" aria-label="Bajar ${m}">−</button><output id="v-${m}" class="num" data-act="edit-val" data-m="${m}" role="button" tabindex="0" aria-label="Escribir ${m}" style="cursor:pointer;text-decoration:underline dotted rgba(255,255,255,.25);text-underline-offset:6px">${fmtNum(P.vals[m]??0)}</output><button data-step="${m}" data-d="1" aria-label="Subir ${m}">+</button></div>`).join("")}
      </div>
    </div>
    <button class="ballbtn" data-act="done">${P.i===P.steps.length-1?"Última serie hecha":"Serie hecha"}</button>
@@ -1528,6 +1528,9 @@ document.addEventListener("click",e=>{
     case "share-summary":shareSummary();break;
     case "summary-close":$("#summary")?.remove();$("#confetti")?.remove();break;
     case "padel-log":openPadelLog();break;
+    case "edit-val":{const m=t.dataset.m,lab={kg:"Peso en kg"+(P.steps[P.i].e.barbell?" (solo los discos)":""),reps:"Repeticiones",RIR:"RIR: repeticiones que te quedaban",seg:"Segundos"}[m]||m;
+      const r=prompt(lab,fmtNum(P.vals[m]??0));if(r==null)break;const v=parseFloat(String(r).replace(",","."));if(!isFinite(v)||v<0){toast("Escribe un número");break}
+      P.vals[m]=Math.round(v*100)/100;$("#v-"+m).textContent=fmtNum(P.vals[m]);break}
     case "settings":openSettings();break;
     case "settings-close":$("#settings")?.remove();break;
     case "whatsnew":$("#settings")?.remove();openWhatsNew();break;
