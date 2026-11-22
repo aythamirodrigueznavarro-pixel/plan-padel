@@ -1,5 +1,5 @@
 // Plan Pádel: funciona sin conexión en el gimnasio. Al publicar una versión nueva, sube el número.
-const CACHE = "plan-padel-202611221607";
+const CACHE = "plan-padel-202611221628";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png"];
 self.addEventListener("install", e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())));
 self.addEventListener("activate", e => e.waitUntil(
