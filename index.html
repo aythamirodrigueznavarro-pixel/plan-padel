@@ -577,6 +577,12 @@ function coachNotes(){
   if(todayS.some(s=>s.rpe>=8))N.push({i:"🌙",t:"Hoy has entrenado fuerte: vigila la glucosa esta noche y de madrugada, que es cuando suele bajar después de un entreno duro."});
   if(wd>=6)N.push({i:"🎾",t:"Si hoy juegas varios partidos o mañana repites: al terminar, 10 minutos en agua fría (10-15 °C) o ducha fría ayudan a llegar mejor al siguiente. Después de partidos sí; después del gimnasio, no."});
   if(!S.lastPhotos||now-new Date(S.lastPhotos+"T12:00:00")>28*864e5)N.push({i:"📸",t:"Toca hacer tus fotos de progreso (una vez al mes): Progreso → Fotos de progreso.",act:"go-progreso"});
+  /* Glucosa después del deporte: tu patrón es pico y bajada 2-3 h después */
+  const endsToday=[...todayS.map(s=>+new Date(s.start)+(s.minutes||0)*6e4),...realWorkouts().filter(w=>w.padel&&sameDay(new Date(w.start),now)).map(w=>+new Date(w.start)+w.minutes*6e4)].filter(x=>x<=+now+36e5);
+  if(endsToday.length){const t=new Date(Math.max(...endsToday)+150*6e4);N.push({i:"💧",t:`Mira tu glucosa sobre las ${t.toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})} (2-3 h después del deporte) y otra vez al acostarte: es cuando te suele bajar.`})}
+  /* Un consejo de alimentación distinto cada día */
+  const TIPS=["Proteína: apunta a 130-160 g al día. Un yogur alto en proteína o skyr de 200-250 g en el desayuno suma mucho.","Frutos secos: un puñado (25-30 g) y no más. Son sanos, pero muy calóricos.","Agua con gas: prueba esta semana mitad con gas y mitad sin gas, y sin gas antes de jugar o entrenar. Mira que el sodio sea menor de 50 mg/L.","Antes de entrenar, hidratos lentos como la manzana: te suben menos la glucosa y después te bajan menos.","Después de entrenar o jugar, algo de proteína (yogur proteico o batido) para recuperar el músculo.","Pregunta pendiente para tu endocrino: tu pauta para días de pádel largo o competición (antes, durante, después y la cena).","Duerme 7-9 horas: es lo que más recupera, y con poco sueño se acumula grasa en la barriga.","La cintura de los lunes manda: 0,5-1 cm menos al mes es el ritmo bueno."];
+  const doy=Math.floor((now-new Date(now.getFullYear(),0,0))/864e5);N.push({i:"🥗",t:TIPS[doy%TIPS.length]});
   if(S.sessions.length>=3&&(!S.lastBackup||now-new Date(S.lastBackup)>14*864e5))N.push({i:"💾",t:"Hace tiempo que no guardas una copia de tus registros. Progreso → Copia de seguridad → Guardar copia.",act:"go-progreso"});
   if(!N.length)return "";
   return `<section class="card" style="display:flex;flex-direction:column;gap:10px"><div class="eyebrow">Avisos de tu entrenador</div>
