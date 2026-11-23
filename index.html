@@ -503,17 +503,46 @@ function playedTodayCard(){
     <button class="ballbtn" style="font-size:18px;padding:13px" data-act="plan-apply" data-id="X">Hoy, solo movilidad (20')</button>
   </section>`;
 }
+/* Pregunta del día: qué pádel tienes hoy, para recomendarte la sesión */
+function askDayHtml(eyebrow,intro){
+  return `<section class="card coach" style="display:flex;flex-direction:column;gap:10px"><div class="eyebrow" style="color:var(--ball)">${eyebrow}</div>
+    <p style="margin:0">${intro}</p>
+    <p style="margin:0;font-weight:700">¿Juegas hoy al pádel?</p>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="ghostbtn small" data-act="match-no">No juego hoy</button>
+      <button class="ghostbtn small" data-act="match-yes">Sí, en menos de 6 horas</button>
+      <button class="ghostbtn small" data-act="match-later">Sí, pero dentro de 6 horas o más</button></div></section>`;
+}
+function dailyCard(st){
+  if(st.todayWd>5||st.doneToday)return "";
+  const now=new Date(), d=today(), gid=gymIdOf({dayId:d.id});
+  if(!GYM_IDS.includes(gid))return "";
+  if(workoutsOn(now).some(w=>w.padel&&new Date(w.start)<=now))return ""; /* ya jugó: lo cuenta «Hoy ya jugaste» */
+  const o=dayOpts(), legs=LEGS.has(gid);
+  if(o.matchSoon===undefined)return askDayHtml("Tu día",`Hoy toca <b>${esc(d.title)}</b>. Para recomendarte bien:`);
+  const chip=`<div><button class="chip" style="background:var(--surface2);color:var(--muted)" data-act="match-reset">Cambiar mi respuesta</button></div>`;
+  const card=(t,body)=>`<section class="card coach" style="display:flex;flex-direction:column;gap:8px"><div class="eyebrow" style="color:var(--ball)">${t}</div>${body}${chip}</section>`;
+  if(o.matchSoon===true&&legs){
+    const {plan}=planWeek(now), pick=plan[st.todayWd];
+    const alt=pick&&pick!==d.id?pick:GYM_IDS.find(id=>!LEGS.has(id)&&natWd(id)>st.todayWd&&!st.doneIds.has(id)&&!st.skipped.has(id));
+    return card("Hoy juegas pronto",`<p style="margin:0">Juegas en menos de 6 horas: <b>hoy nada de pierna</b>. Llegarías al partido con las piernas cargadas y lo notarías en pista.</p>
+      ${alt?`<button class="ballbtn" style="font-size:18px;padding:13px" data-act="plan-apply" data-id="${alt}">Adelantar la ${alt} (tren superior)</button>`:""}
+      <button class="${alt?"ghostbtn":"ballbtn"}" style="font-size:${alt?16:18}px;padding:13px" data-act="plan-apply" data-id="X">Hoy, solo movilidad (20')</button>
+      <p class="small muted" style="margin:0">La ${gid} no se pierde: mañana, al abrir la app, te la coloco donde mejor encaje.</p>`);
+  }
+  const msg=o.matchSoon===true?`Hoy toca tren superior, así que puedes jugar sin problema. Deja un rato entre el gimnasio y el partido (mejor 2 horas o más) y <b>mide la glucosa antes de jugar</b>.`
+    :o.matchLater?(legs?`Perfecto: haz la ${gid} por la mañana y deja 6 horas o más hasta el partido. <b>Mide la glucosa antes de jugar</b>: después de pierna puede bajar.`:`Perfecto: entrena con normalidad y <b>mide la glucosa antes de jugar</b>.`)
+    :(legs?`Día ideal para la pierna: sin partido, puedes darlo todo en la ${gid}.`:`Sin partido hoy: entrena tranquilo la ${gid}.`);
+  return card("Tu día",`<p style="margin:0">${msg}</p>`);
+}
 function rescheduleCard(){
   const now=new Date(), st=weekState(now);
-  if(!st.missed.length)return "";
+  if(!st.missed.length)return dailyCard(st);
   const miss=st.missed.map(id=>`<b>${esc(shortTitle(id))}</b> (${dayName(natWd(id))})`).join(" y ");
   if(st.todayWd>5)return `<section class="card coach"><div class="eyebrow" style="color:var(--ball)">Tu semana</div><p style="margin:6px 0 0">Esta semana se quedó sin hacer ${miss}. No la recuperes el fin de semana: el lunes empieza otra y seguimos. No pasa nada.</p></section>`;
   if(st.doneToday)return "";
   const o=dayOpts();
-  if(o.matchSoon===undefined)return `<section class="card coach" style="display:flex;flex-direction:column;gap:10px"><div class="eyebrow" style="color:var(--ball)">Reorganizar tu semana</div>
-    <p style="margin:0">Te quedó pendiente ${miss}. Te digo qué hacer hoy, pero antes:</p>
-    <p style="margin:0;font-weight:700">¿Juegas hoy al pádel en las próximas 6 horas?</p>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="ghostbtn small" data-act="match-yes">Sí, juego</button><button class="ghostbtn small" data-act="match-no">No</button></div></section>`;
+  if(o.matchSoon===undefined)return askDayHtml("Reorganizar tu semana",`Te quedó pendiente ${miss}. Te digo qué hacer hoy, pero antes:`);
   const {plan,dropped}=planWeek(now), cur=today().id, pick=plan[st.todayWd];
   const rows=[];for(let wd=st.todayWd;wd<=5;wd++)rows.push(`<div class="row" style="padding:6px 0"><span style="font-weight:600;text-transform:capitalize">${wd===st.todayWd?"Hoy":dayName(wd)}</span><span class="small" style="text-align:right">${plan[wd]?esc(shortTitle(plan[wd])):'<span class="muted">Sin gimnasio · movilidad o descanso</span>'}</span></div>`);
   const why=pick&&LEGS.has(pick)&&pick!==DAYS[st.todayWd-1].id?"Hoy puedes cargar pierna: la sesión de pierna es la que más velocidad te da.":(!pick||!LEGS.has(pick))&&st.missed.some(id=>LEGS.has(id))?(o.matchSoon?"Como juegas hoy, nada de pierna pesada: la dejamos para cuando llegues fresco.":"Hoy no toca pierna para no cargarla dos días seguidos o antes de tu entrenador."):"";
@@ -539,7 +568,7 @@ function weekRings(){
     return `<circle cx="60" cy="60" r="${rad[i]}" fill="none" stroke="${r.c}" stroke-opacity=".16" stroke-width="${sw}"/><circle class="ring-p" cx="60" cy="60" r="${rad[i]}" fill="none" stroke="${r.c}" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${C.toFixed(1)}" data-off="${(C*(1-k)).toFixed(1)}"/>`}).join("")}</svg>`;
   const done=gym>=4&&padel>=270&&body>=2;
   return `<section class="card" aria-label="Tu semana en anillos"><div class="rings">${svg}<div class="rl">${R3.map(r=>`<div><span style="color:${r.c}">${r.n}</span><b>${r.u}</b></div>`).join("")}</div></div>
-   ${done?'<div class="small" style="margin-top:10px;color:var(--ball);font-weight:600">🔥 Semana redonda: los tres anillos cerrados.</div>':padel===0&&!S.health.workouts.length?'<div class="small muted" style="margin-top:10px">El pádel se llena con tus partidos del Apple Watch, cuando tengamos el atajo de Salud.</div>':""}</section>`;
+   ${done?'<div class="small" style="margin-top:10px;color:var(--ball);font-weight:600">🔥 Semana redonda: los tres anillos cerrados.</div>':padel===0&&!S.health.workouts.length?'<div class="small muted" style="margin-top:10px">El pádel se llena cuando apuntas tus partidos con «🎾 Apuntar pádel», más abajo en esta pantalla.</div>':""}</section>`;
 }
 const animateRings=()=>requestAnimationFrame(()=>requestAnimationFrame(()=>document.querySelectorAll(".ring-p").forEach(c=>c.style.strokeDashoffset=c.dataset.off)));
 
@@ -1624,8 +1653,9 @@ function openReport(){
 }
 
 /* ============ NOVEDADES Y AJUSTES ============ */
-const APP_VERSION="2026.11.23b";
+const APP_VERSION="2026.11.24";
 const CHANGELOG=[
+ ["🗓️","Cada día de gimnasio, «Hoy» te pregunta si juegas al pádel y te recomienda qué hacer: la sesión que toca, adelantar una de tren superior o solo movilidad."],
  ["🎾","Si apuntas un partido el día que tocaba gimnasio, «Hoy» te dice qué hacer con la sesión y que al día siguiente te reorganiza la semana."],
  ["🏅","Logros con medallas: sesiones, semanas completas, récords, horas de pádel, centímetros de cintura… (Progreso)."],
  ["📸","Fotos de progreso privadas, solo en tu iPhone, con comparador «antes y ahora»."],
@@ -1703,9 +1733,10 @@ document.addEventListener("click",e=>{
     case "week-prev":weekOff--;render();break;
     case "week-next":weekOff++;render();break;
     case "week-now":weekOff=0;render();break;
-    case "match-yes":setDayOpt("matchSoon",true);render();break;
-    case "match-no":setDayOpt("matchSoon",false);render();break;
-    case "match-reset":{const o=dayOpts();delete o.matchSoon;S.opts[dayKey()]=o;save();render();break}
+    case "match-yes":setDayOpt("matchLater",false);setDayOpt("matchSoon",true);render();break;
+    case "match-no":setDayOpt("matchLater",false);setDayOpt("matchSoon",false);render();break;
+    case "match-later":setDayOpt("matchLater",true);setDayOpt("matchSoon",false);render();break;
+    case "match-reset":{const o=dayOpts();delete o.matchSoon;delete o.matchLater;S.opts[dayKey()]=o;save();render();break}
     case "plan-apply":{const id=t.dataset.id;setDayOpt("swap",id===DAYS[(new Date().getDay()+6)%7].id?null:id);render();window.scrollTo(0,0);toast(id==="X"?"Hoy, movilidad":"Hoy toca la "+id);break}
     case "skip-missed":{const st=weekState();S.skip=S.skip||{};const k=dayKey(st.m);S.skip[k]=[...new Set([...(S.skip[k]||[]),...st.missed])];save();render();toast("Vale, seguimos con lo que queda de semana");break}
     case "go-progreso":tab="progreso";render();window.scrollTo(0,0);break;
