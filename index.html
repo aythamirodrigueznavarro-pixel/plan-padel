@@ -296,7 +296,7 @@ const SESSION_C={id:"C",wd:4,title:"C · Tracción, agarre y hombro",sub:"Por la
 const SESSION_D={id:"D",wd:5,title:"D · Potencia y velocidad",sub:"Cargadas, saltos, reacción y frenadas. Si mañana compites, pulsa «Compito mañana».",kinds:["gym"],gym:50,padel:0,rpe:[7,8],warn:"Termina con sprints en bici: mide la glucosa antes.",blocks:[
  {id:"d0",title:"Calentamiento",note:"1 vuelta · 8 min",ex:[
   ex("d-bici","Bici estática","3 min, subiendo el ritmo","Termina con 3 aceleraciones de 5\".","stationary bike warm up",1,["seg"],{seg:180},0),
-  ex("d-skipping","Skipping y talones al glúteo","2 × 15 m","Pasos cortos y rápidos.","running drills skipping",1,["reps"],{reps:2},0),
+  ex("d-globo","Retroceso al globo","3 por lado","Desde la red: split-step, giro de cadera, paso cruzado y 2-3 pasos rápidos de lado hacia atrás. Bandeja en sombra y vuelves a la red. No corras de espaldas: de lado y con pasos cortos.","padel footwork bandeja lob",1,["reps"],{reps:3},0),
   ex("d-saltitos","Saltos suaves en el sitio","20 saltos","Tobillos rígidos, como una pelota.","pogo jumps",1,["reps"],{reps:20},0)]},
  {id:"d1",title:"Cargada + salto",note:"Superserie · 5 rondas",ex:[
   ex("clean","Cargada colgante (hang power clean)","{S} × 3 · rápida, RPE 7","Mismo peso en todas. Si la barra se frena, baja 5 kg. Apunta solo los discos.","hang power clean technique",5,["kg","reps"],{kg:25,reps:3},20,true),
@@ -305,7 +305,7 @@ const SESSION_D={id:"D",wd:5,title:"D · Potencia y velocidad",sub:"Cargadas, sa
   ex("hipthrust","Hip thrust con barra","{S} × 6 · rápido, RIR {R}","Sube explosivo y aguanta 1\" arriba. Apunta solo los discos.","barbell hip thrust technique",3,["kg","reps","RIR"],{kg:40,reps:6,RIR:3},15,true),
   ex("patinador","Salto del patinador","{S} × 4 por lado · aguanta la caída","Cae sobre una pierna con la rodilla encima del pie, sin que se vaya hacia dentro.","skater jump stick landing",3,["reps"],{reps:4},90)]},
  {id:"d3",title:"Velocidad y cambios de dirección",note:"Superserie · 4 rondas",ex:[
-  ex("reactiva","Salidas reactivas","{S} × 4 salidas de 2-4 m hacia donde marque la flecha","Abre el modo reacción y pon el móvil delante de ti, o que alguien te suelte una pelota de reacción. No adivines: sal cuando lo veas.","reactive agility drill",4,["reps"],{reps:4},20),
+  ex("reactiva","Salidas reactivas","{S} × 4 salidas de 2-4 m hacia donde marque la flecha","Abre el modo reacción y pon el móvil delante de ti, o que alguien te suelte una pelota de reacción. No adivines: sal cuando lo veas. Flecha hacia atrás (↙ ↘) = te tiran un globo: giro de cadera, paso cruzado, 2-3 pasos de lado hacia atrás y bandeja en sombra.","reactive agility drill",4,["reps"],{reps:4},20),
   ex("frenada","Aceleración 10 m y frenada","{S} × 2","Acelera 10 m y frena en 3 pasos, cadera baja. La rodilla de apoyo, alineada con el pie.","acceleration deceleration drill",4,["reps"],{reps:2},75)]},
  {id:"d4",title:"Final metabólico",note:"6 rondas · bici estática",ex:[
   ex("bici-int","Bici estática: intervalos","{S} × 20\" fuerte / 40\" suave","Sube la resistencia en los 20\" fuertes. El mismo ritmo en todas.","stationary bike sprint intervals",6,["seg"],{seg:20},40)]}]};
@@ -1677,9 +1677,10 @@ function jumpCard(){
 /* ============ DIARIO DE PARTIDO: lo que pasa en pista manda sobre el gimnasio ============ */
 const FAILS=[
  {k:"paso",n:"Primer paso / llegar a la red",r:"Lo trabajan la A (salidas laterales y sprint en rampa) y la D (reacción). Si se repite, subo una serie de salidas."},
+ {k:"globo",n:"Retroceder al globo",r:"Retroceso al globo en el calentamiento de la D (paso cruzado y bandeja en sombra) y salidas hacia atrás en el modo reacción. Díselo también a tu entrenador del jueves."},
  {k:"pared",n:"Frenar y salir de la pared",r:"Frenadas y cambios de dirección: los de la D. Si sigue, meto frenadas excéntricas también en la A."},
  {k:"lateral",n:"Desplazamiento lateral",r:"Patinador y salidas laterales (A y D). Fíjate en el split-step: el saltito justo cuando golpea el rival."},
- {k:"aire",n:"Bandeja y remate",r:"Potencia de hombro y core del golpe (B y C): push press, lanzamientos y landmine."},
+ {k:"aire",n:"Bandeja y remate",r:"El remate tiene tres motores: piernas (el salto), giro del tronco (lanzamientos y landmine de la B) y hombro (push press de la B y el bloque de hombro de la C). El remate por 3 o por 4 es sobre todo técnica: trabájalo con tu entrenador; aquí ponemos el motor."},
  {k:"final",n:"Cansancio al final",r:"Resistencia: el intervalo en bici de la D. Si se repite, añado aeróbico suave el miércoles."},
  {k:"rodilla",n:"Rodilla",r:"Si molesta dos partidos seguidos, quitamos saltos y frenadas esa semana y que la vea tu fisio."},
  {k:"brazo",n:"Codo u hombro",r:"El bloque de codo y hombro de la C, cada semana sin falta. Si duele al golpear, que lo vea tu fisio."},
@@ -1850,8 +1851,9 @@ function openReport(){
 }
 
 /* ============ NOVEDADES Y AJUSTES ============ */
-const APP_VERSION="2026.11.24b";
+const APP_VERSION="2026.11.24c";
 const CHANGELOG=[
+ ["↩️","Nuevo en el calentamiento de la D: retroceso al globo (paso cruzado y bandeja en sombra). En el modo reacción, la flecha hacia atrás es un globo. Y en el diario, nueva opción «Retroceder al globo»."],
  ["📏","Mide tu salto con la cámara lenta del iPhone: ves si ganas potencia y, si un día saltas bastante menos que tu media, la app te baja la sesión (Progreso y antes de la A y la D)."],
  ["📝","Diario de partido: resultado, piernas, si llegabas a las bolas y qué te falló. Con 3 partidos, la app te dice qué trabajar en el gimnasio (Progreso → Tu pádel)."],
  ["🩺","Tu pauta del endocrino: la escribes una vez y te la recuerda antes de entrenar y de jugar (Ajustes)."],
