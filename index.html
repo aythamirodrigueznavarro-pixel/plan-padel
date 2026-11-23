@@ -576,6 +576,7 @@ function coachNotes(){
   if(todayS.some(s=>GYM_IDS.includes(gymIdOf(s))))N.push({i:"🧊",t:"Recuperación de hoy: después de la fuerza, nada de baño de agua fría en las siguientes horas (frena lo que acabas de ganar). Ducha normal; jacuzzi o sauna, sí, como mucho 10-15 minutos, bebiendo agua y con la glucosa controlada."});
   if(todayS.some(s=>s.rpe>=8))N.push({i:"🌙",t:"Hoy has entrenado fuerte: vigila la glucosa esta noche y de madrugada, que es cuando suele bajar después de un entreno duro."});
   if(wd>=6)N.push({i:"🎾",t:"Si hoy juegas varios partidos o mañana repites: al terminar, 10 minutos en agua fría (10-15 °C) o ducha fría ayudan a llegar mejor al siguiente. Después de partidos sí; después del gimnasio, no."});
+  if(!S.lastPhotos||now-new Date(S.lastPhotos+"T12:00:00")>28*864e5)N.push({i:"📸",t:"Toca hacer tus fotos de progreso (una vez al mes): Progreso → Fotos de progreso.",act:"go-progreso"});
   if(S.sessions.length>=3&&(!S.lastBackup||now-new Date(S.lastBackup)>14*864e5))N.push({i:"💾",t:"Hace tiempo que no guardas una copia de tus registros. Progreso → Copia de seguridad → Guardar copia.",act:"go-progreso"});
   if(!N.length)return "";
   return `<section class="card" style="display:flex;flex-direction:column;gap:10px"><div class="eyebrow">Avisos de tu entrenador</div>
@@ -761,6 +762,8 @@ function renderProgreso(){
      ${done.length?done.slice(0,15).map(s=>`<div class="row"><div style="min-width:0"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(s.title)}</div><div class="small muted">${new Date(s.start).toLocaleDateString("es-ES",{day:"numeric",month:"short"})}${s.status==="parcial"?` · <span style="color:var(--warn)">Parcial${s.reason?" · "+esc(s.reason):""}</span>`:""}${s.gBefore?` · ${Math.round(s.gBefore)}→${s.gAfter?Math.round(s.gAfter):"—"} mg/dL`:""}</div></div><div class="num" style="text-align:right"><b style="font-size:20px">${s.rpe*s.minutes}</b><div class="small muted">RPE ${s.rpe} · ${s.minutes}'</div></div></div>`).join(""):'<p class="small muted" style="margin:0">Aquí aparecerá cada sesión que guardes, con su RPE, su carga y tu glucosa antes y después.</p>'}
      <button class="ghostbtn small" style="margin-top:12px" data-act="export">Copiar mis registros para el ajuste mensual</button>
    </section>
+   ${badgesCard()}
+   ${photosCard()}
    ${glucoseCard()}
    ${myLiftsCard()}
    <section class="card"><div class="eyebrow" style="margin-bottom:6px">Copia de seguridad</div>
@@ -777,6 +780,16 @@ function renderProgreso(){
 const BODYM=[{id:"kg",n:"Peso",u:"kg",step:.1},{id:"fat",n:"Grasa",u:"%",step:.1},{id:"skm",n:"Músculo esquelético",short:"Músculo",u:"kg",step:.1},{id:"waist",n:"Cintura",u:"cm",step:.5}];
 let bodySel="kg";
 function bodyAvg(arr,key,from,to){const v=arr.filter(b=>b[key]!=null&&+new Date(b.d)>=from&&+new Date(b.d)<to).map(b=>b[key]);return v.length?v.reduce((a,x)=>a+x,0)/v.length:null}
+/* Objetivo de cintura: es el mejor indicador de grasa abdominal */
+function waistGoal(){const W=(S.body||[]).filter(b=>b.waist!=null).sort((a,b)=>new Date(a.d)-new Date(b.d));if(!W.length)return null;
+  const g=S.goals&&S.goals.waist||{};const start=g.start??W.find(b=>new Date(b.d)>=addDays(BLOCK_START,-1))?.waist??W[0].waist;const target=g.target??start-6;const now=W.at(-1).waist;
+  const pct=start>target?Math.max(0,Math.min(100,Math.round((start-now)/(start-target)*100))):0;return {start,target,now,pct}}
+function waistGoalHtml(){const g=waistGoal();if(!g)return `<div class="small muted">🎯 Apunta tu cintura y te pongo un objetivo.</div>`;
+  return `<div style="background:var(--surface2);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px">
+   <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><b>🎯 Objetivo de cintura</b><button class="chip" style="background:var(--surface);color:var(--muted)" data-act="goal-waist">Cambiar</button></div>
+   <div class="small" style="color:var(--text)">${fmtNum(g.start)} cm → <b>${fmtNum(g.target)} cm</b> · ahora <b>${fmtNum(g.now)} cm</b></div>
+   <div style="height:10px;border-radius:5px;background:var(--surface);overflow:hidden"><i style="display:block;height:100%;width:${g.pct}%;background:var(--ok)"></i></div>
+   <div class="small muted">${g.pct>=100?"🏆 ¡Objetivo cumplido! Ponte uno nuevo.":`${g.pct} % hecho · te quedan ${fmtNum(Math.max(0,Math.round((g.now-g.target)*10)/10))} cm. Ritmo sano: 0,5-1 cm al mes.`}</div></div>`}
 function bodyCard(){
   const B=(S.body||[]).slice().sort((a,b)=>new Date(a.d)-new Date(b.d));
   const M=BODYM.find(m=>m.id===bodySel), pts=B.filter(b=>b[bodySel]!=null).map(b=>({d:new Date(b.d),v:b[bodySel]}));
@@ -808,6 +821,7 @@ function bodyCard(){
    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;align-items:center">
     ${BODYM.map(m=>`<input id="b-${m.id}" inputmode="decimal" placeholder="${m.id==="skm"?"Músculo":m.id==="fat"?"Grasa %":m.id==="waist"?"Cintura":"Peso"}" aria-label="${m.n} (${m.u})" style="min-width:0;background:var(--surface2);border:0;border-radius:10px;padding:8px;text-align:center">`).join("")}
     </div><button class="chip" style="background:var(--court);color:var(--ink);justify-self:start" data-act="body-save">Guardar medida de hoy</button>
+   ${waistGoalHtml()}
    <label class="ghostbtn small" style="text-align:center;cursor:pointer">Importar historial de Renpho (CSV)<input type="file" id="renpho" accept=".csv,text/csv,text/plain" hidden></label>
   </section>`;
 }
@@ -1087,6 +1101,84 @@ function showRest(sec){
 
 /* ============ CIERRE DE SESIÓN ============ */
 let F=null;
+/* ============ LOGROS ============ */
+function badgeCtx(){
+  const gym=S.sessions.filter(s=>s.status!=="en curso"&&GYM_IDS.includes(gymIdOf(s)));
+  const pad=realWorkouts().filter(w=>w.padel), padMin=pad.reduce((a,w)=>a+w.minutes,0);
+  /* récords: series que superan el máximo previo de ese ejercicio en otra sesión */
+  let pr=0;const best={},seenSid={};S.sets.slice().sort((a,b)=>new Date(a.t)-new Date(b.t)).forEach(x=>{if(!(x.kg>0))return;const b=best[x.ex];if(b&&b.sid!==x.sid&&x.kg>b.kg)pr++;if(!b||x.kg>b.kg)best[x.ex]={kg:x.kg,sid:x.sid}});
+  const weeks={};gym.forEach(s=>{const k=dayKey(monday(new Date(s.start)));weeks[k]=(weeks[k]||0)+1});
+  const full=Object.keys(weeks).filter(k=>weeks[k]>=4).sort();let streak=0,best4=0,prev=null;full.forEach(k=>{streak=prev&&(new Date(k)-new Date(prev))/864e5<=8?streak+1:1;best4=Math.max(best4,streak);prev=k});
+  const W=(S.body||[]).filter(b=>b.waist!=null);const wDrop=W.length>1?Math.max(...W.map(b=>b.waist))-W.at(-1).waist:0;
+  const testsOK=BTESTS.every(t=>((S.tests||{})[t.id]||[]).length);
+  const round=Object.keys(weeks).some(k=>{const m0=new Date(k+"T00:00:00"),m1=addDays(m0,7);return weeks[k]>=4&&pad.filter(w=>new Date(w.start)>=m0&&new Date(w.start)<m1).reduce((a,w)=>a+w.minutes,0)>=270&&(S.body||[]).filter(b=>new Date(b.d)>=m0&&new Date(b.d)<m1).length>=2});
+  return {n:gym.length,pr,padH:padMin/60,full:full.length,best4,wDrop,testsOK,round,extra:gym.filter(s=>s.extra).length};
+}
+const BADGES=[
+ ["s1","🎾","Primera sesión",c=>c.n>=1,c=>`${Math.min(c.n,1)}/1`],["s5","🔥","5 sesiones",c=>c.n>=5,c=>`${c.n}/5`],["s25","💪","25 sesiones",c=>c.n>=25,c=>`${c.n}/25`],["s50","🦾","50 sesiones",c=>c.n>=50,c=>`${c.n}/50`],["s100","👑","100 sesiones",c=>c.n>=100,c=>`${c.n}/100`],
+ ["w1","📅","Semana completa (4/4)",c=>c.full>=1,c=>`${c.full}/1`],["w4","🗓️","4 semanas completas seguidas",c=>c.best4>=4,c=>`${c.best4}/4`],["r1","⭕","Semana redonda: los 3 anillos",c=>c.round,()=>""],
+ ["pr1","🏆","Primer récord",c=>c.pr>=1,c=>`${c.pr}/1`],["pr10","🥇","10 récords",c=>c.pr>=10,c=>`${c.pr}/10`],["pr25","💎","25 récords",c=>c.pr>=25,c=>`${c.pr}/25`],
+ ["p10","⏱️","10 h de pádel",c=>c.padH>=10,c=>`${Math.floor(c.padH)}/10 h`],["p50","🏟️","50 h de pádel",c=>c.padH>=50,c=>`${Math.floor(c.padH)}/50 h`],
+ ["c2","📏","−2 cm de cintura",c=>c.wDrop>=2,c=>`${fmtNum(Math.max(0,Math.round(c.wDrop*10)/10))}/2`],["c4","📉","−4 cm de cintura",c=>c.wDrop>=4,c=>`${fmtNum(Math.max(0,Math.round(c.wDrop*10)/10))}/4`],["c6","✨","−6 cm de cintura",c=>c.wDrop>=6,c=>`${fmtNum(Math.max(0,Math.round(c.wDrop*10)/10))}/6`],
+ ["t1","⏱","Tests del bloque hechos",c=>c.testsOK,()=>""],["x5","➕","5 bloques extra",c=>c.extra>=5,c=>`${c.extra}/5`]];
+function checkBadges(silent){
+  const c=badgeCtx();S.badges=S.badges||{};const fresh=[];
+  BADGES.forEach(([id,ic,n,test])=>{if(!S.badges[id]&&test(c)){S.badges[id]=new Date().toISOString();fresh.push([ic,n])}});
+  if(fresh.length){save();if(!silent)fresh.forEach(([ic,n],i)=>setTimeout(()=>badgeBanner(ic,n),400+i*3800))}
+}
+function badgeBanner(ic,n){document.querySelector(".pr-banner")?.remove();const el=document.createElement("div");el.className="pr-banner";el.setAttribute("role","status");
+  el.innerHTML=`<span style="font-size:26px">${ic}</span><div>Logro desbloqueado<small>${esc(n)}</small></div>`;document.body.appendChild(el);vibrate([40,30,40]);setTimeout(()=>el.remove(),3500)}
+function badgesCard(){
+  const c=badgeCtx(),E=S.badges||{},got=BADGES.filter(b=>E[b[0]]).length;
+  return `<section class="card" style="display:flex;flex-direction:column;gap:10px"><div style="display:flex;justify-content:space-between;align-items:baseline"><div class="eyebrow">Logros</div><span class="small muted">${got} de ${BADGES.length}</span></div>
+   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">${BADGES.map(([id,ic,n,test,prog])=>{const on=!!E[id];return `<div style="background:var(--surface2);border-radius:14px;padding:10px 6px;text-align:center;${on?"box-shadow:inset 0 0 0 1px rgba(217,234,76,.45)":"opacity:.5"}"><div style="font-size:26px;${on?"":"filter:grayscale(1)"}">${ic}</div><div class="small" style="color:var(--text);font-weight:600;line-height:1.2;margin-top:2px">${esc(n)}</div><div class="small muted" style="font-size:11px">${on?new Date(E[id]).toLocaleDateString("es-ES",{day:"numeric",month:"short"}):esc(prog(c))}</div></div>`}).join("")}</div></section>`;
+}
+
+/* ============ FOTOS DE PROGRESO (solo en este iPhone, IndexedDB) ============ */
+const POSES=[["frente","De frente"],["perfil","De perfil"],["espalda","De espalda"]];
+let PH=[],phLoaded=false;
+function phDB(){return new Promise((res,rej)=>{const r=indexedDB.open("planpadel-fotos",1);r.onupgradeneeded=()=>r.result.createObjectStore("photos",{keyPath:"id"});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+async function phAll(){try{const db=await phDB();return await new Promise(res=>{const q=db.transaction("photos").objectStore("photos").getAll();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>res([])})}catch(e){return []}}
+async function phPut(o){const db=await phDB();return new Promise((res,rej)=>{const t=db.transaction("photos","readwrite");t.objectStore("photos").put(o);t.oncomplete=res;t.onerror=()=>rej(t.error)})}
+async function phDel(ids){const db=await phDB();return new Promise(res=>{const t=db.transaction("photos","readwrite");ids.forEach(id=>t.objectStore("photos").delete(id));t.oncomplete=res})}
+async function phLoad(){PH=await phAll();phLoaded=true;S.lastPhotos=PH.length?PH.map(p=>p.date).sort().at(-1):null;save();if(tab==="progreso")render()}
+function shrink(file){return new Promise((res,rej)=>{const img=new Image();img.onload=()=>{const k=Math.min(1,1280/Math.max(img.width,img.height)),c=document.createElement("canvas");c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);c.getContext("2d").drawImage(img,0,0,c.width,c.height);c.toBlob(b=>b?res(b):rej(),"image/jpeg",0.82);URL.revokeObjectURL(img.src)};img.onerror=rej;img.src=URL.createObjectURL(file)})}
+const phURL=new Map();const urlOf=p=>{if(!phURL.has(p.id))phURL.set(p.id,URL.createObjectURL(p.blob));return phURL.get(p.id)};
+function photoDates(){return [...new Set(PH.map(p=>p.date))].sort().reverse()}
+function photosCard(){
+  if(!phLoaded){phLoad();return `<section class="card"><div class="eyebrow">Fotos de progreso</div><p class="small muted" style="margin:6px 0 0">Cargando…</p></section>`}
+  const dates=photoDates();
+  return `<section class="card" style="display:flex;flex-direction:column;gap:10px"><div class="eyebrow">Fotos de progreso</div>
+   <p class="small muted" style="margin:0">Una vez al mes: misma pared, misma luz y misma ropa, de frente, de perfil y de espalda. Se quedan <b>solo en este iPhone</b>: no van en la copia de seguridad.</p>
+   ${dates.slice(0,3).map(d=>`<div><div class="small" style="display:flex;justify-content:space-between;align-items:center"><b>${new Date(d+"T12:00:00").toLocaleDateString("es-ES",{day:"numeric",month:"long",year:"numeric"})}</b><button class="chip" style="background:var(--surface2);color:var(--muted)" data-act="ph-del" data-d="${d}" aria-label="Borrar fotos del ${d}">✕</button></div>
+     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px">${POSES.map(([k,n])=>{const p=PH.find(x=>x.date===d&&x.pose===k);return p?`<img src="${urlOf(p)}" alt="${n}, ${d}" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:10px">`:`<div style="aspect-ratio:3/4;border-radius:10px;background:var(--surface2);display:flex;align-items:center;justify-content:center" class="small muted">${n}</div>`}).join("")}</div></div>`).join("")}
+   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="ballbtn" style="font-size:16px;padding:12px" data-act="ph-new">📸 Nuevas fotos</button><button class="ghostbtn small" data-act="ph-compare" ${dates.length<2?"disabled":""}>Comparar fechas</button></div>
+  </section>`;
+}
+function openPhotoNew(){
+  const el=document.createElement("div");el.className="sheet";el.id="phnew";
+  el.innerHTML=`<div class="panel" role="dialog" aria-modal="true" aria-label="Nuevas fotos de progreso">
+   <div style="display:flex;justify-content:space-between;align-items:center"><h2 class="title" style="font-size:28px">📸 Fotos de hoy</h2><button class="iconbtn" data-act="ph-close" aria-label="Cerrar">${ICON.x}</button></div>
+   <p class="small muted" style="margin:0">Toca cada recuadro: puedes hacer la foto o elegirla de tu galería. Se guardan con la fecha de hoy.</p>
+   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">${POSES.map(([k,n])=>{const p=PH.find(x=>x.date===localKey(new Date())&&x.pose===k);return `<label style="cursor:pointer;display:flex;flex-direction:column;gap:6px;align-items:center">${p?`<img src="${urlOf(p)}" alt="${n}" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:12px">`:`<div style="width:100%;aspect-ratio:3/4;border-radius:12px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:28px">＋</div>`}<span class="small" style="color:var(--text);font-weight:600">${n}</span><input type="file" accept="image/*" data-pose="${k}" class="ph-input" hidden></label>`}).join("")}</div>
+   <button class="ballbtn" data-act="ph-close">Hecho</button></div>`;
+  $("#layer").appendChild(el);
+}
+function openPhotoCompare(a,b){
+  const dates=photoDates().slice().reverse();if(dates.length<2)return;a=a||dates[0];b=b||dates.at(-1);
+  $("#phcmp")?.remove();const el=document.createElement("div");el.className="sheet";el.id="phcmp";
+  const sel=(id,v)=>`<select id="${id}" style="background:var(--surface2);border:0;border-radius:10px;padding:8px;color:var(--text);width:100%">${dates.map(d=>`<option value="${d}" ${d===v?"selected":""}>${new Date(d+"T12:00:00").toLocaleDateString("es-ES",{day:"numeric",month:"short",year:"numeric"})}</option>`).join("")}</select>`;
+  const W=(S.body||[]).filter(x=>x.waist!=null);const wAt=d=>{const r=W.filter(x=>localKey(new Date(x.d))<=d).at(-1);return r?r.waist:null};
+  el.innerHTML=`<div class="panel" role="dialog" aria-modal="true" aria-label="Comparar fotos">
+   <div style="display:flex;justify-content:space-between;align-items:center"><h2 class="title" style="font-size:28px">Antes y ahora</h2><button class="iconbtn" data-act="ph-cmp-close" aria-label="Cerrar">${ICON.x}</button></div>
+   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${sel("ph-a",a)}${sel("ph-b",b)}</div>
+   ${[a,b].some(d=>wAt(d)!=null)?`<div class="small muted" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center"><span>Cintura ${wAt(a)!=null?fmtNum(wAt(a))+" cm":"—"}</span><span>Cintura ${wAt(b)!=null?fmtNum(wAt(b))+" cm":"—"}</span></div>`:""}
+   ${POSES.map(([k,n])=>{const pa=PH.find(x=>x.date===a&&x.pose===k),pb=PH.find(x=>x.date===b&&x.pose===k);if(!pa&&!pb)return "";const im=p=>p?`<img src="${urlOf(p)}" alt="${n}" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:12px">`:`<div style="aspect-ratio:3/4;border-radius:12px;background:var(--surface2)"></div>`;
+     return `<div><div class="small" style="font-weight:600;margin-bottom:4px">${n}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${im(pa)}${im(pb)}</div></div>`}).join("")}
+  </div>`;
+  $("#layer").appendChild(el);
+}
+
 /* ============ RÉCORDS PERSONALES ============ */
 const e1rm=x=>x.kg>0&&x.reps>0?x.kg*(1+Math.min(x.reps,12)/30):0;
 function checkPR(rec){
@@ -1237,7 +1329,7 @@ function saveSession(){
   const mins=parseInt($("#f-min").value,10)||F.mins;
   const gl=parseFloat(($("#f-gl").value||"").replace(",","."));
   Object.assign(s,{minutes:mins,rpe:F.rpe,status:$("#f-partial").checked?"parcial":"completa",reason:$("#f-partial").checked?F.reason:null,gAfter:isFinite(gl)?gl:null,note:$("#f-note").value.trim(),knee:+$("#f-knee").value});
-  save(); const sm=sessionSummary(s); closePlayer(); render(); showSummary(sm);
+  save(); const sm=sessionSummary(s); closePlayer(); render(); showSummary(sm); setTimeout(()=>checkBadges(),4200);
   if(s.knee>=4)toast("Rodilla con molestia: mañana sin saltos y, si sigue, consúltalo con tu fisio.");
 }
 function closePlayer(){if(P&&P.timer)clearInterval(P.timer);P=null;F=null;$("#layer").innerHTML="";try{wakeLock&&wakeLock.release()}catch(e){}wakeLock=null;awakeVideo(false)}
@@ -1443,7 +1535,7 @@ function savePadelLog(){
   const st=new Date(`${d}T${h}:00`); if(isNaN(st)){toast("Fecha no válida");return}
   const n=v=>{v=parseFloat((v||"").replace(",","."));return isFinite(v)?v:null};
   S.health.workouts.push({id:"m"+st.getTime(),src:"manual",type:"Pádel · "+PL.kind,kind:PL.kind,padel:true,start:st.toISOString(),minutes:m,rpe:n($("#pl-r").value),gBefore:n($("#pl-gb").value),gAfter:n($("#pl-ga").value)});
-  save();$("#padellog")?.remove();toast("Pádel apuntado");render();
+  save();$("#padellog")?.remove();toast("Pádel apuntado");render();checkBadges();
 }
 
 /* Informe para el endocrino (pantalla imprimible → PDF) */
@@ -1511,8 +1603,11 @@ function openReport(){
 }
 
 /* ============ NOVEDADES Y AJUSTES ============ */
-const APP_VERSION="2026.11.22c";
+const APP_VERSION="2026.11.23";
 const CHANGELOG=[
+ ["🏅","Logros con medallas: sesiones, semanas completas, récords, horas de pádel, centímetros de cintura… (Progreso)."],
+ ["📸","Fotos de progreso privadas, solo en tu iPhone, con comparador «antes y ahora»."],
+ ["🎯","Objetivo de cintura con el porcentaje cumplido."],
  ["➕","¿Vas sobrado? Si en «¿Cómo llegas hoy?» sale verde, puedes añadir un bloque extra de 10' al final: velocidad (lunes), brazos y core (martes), bíceps y abdomen (jueves) o potencia (viernes)."],
  ["❓","¿Qué era el RIR? Toca «¿Qué es el RIR?» en cualquier serie: tabla con RIR y RPE y un truco para recordarlos. Junto al número verás «quedaban 2»."],
  ["✍️","Toca el número del peso o de las repeticiones para escribirlo directamente."],
@@ -1575,10 +1670,10 @@ document.addEventListener("click",e=>{
     case "export":exportData();break;
     case "backup":backup();break;
     case "body-save":{const r={d:new Date().toISOString()};let ok=false,bad=false;BODYM.forEach(m=>{const v=$("#b-"+m.id).value.trim().replace(",",".");if(v){if(isFinite(+v)&&+v>0){r[m.id]=+v;ok=true}else bad=true}});
-      if(bad||!ok){toast("Escribe al menos un número");break}if(r.fat!=null&&r.fat>60){toast("La grasa va en %, por ejemplo 23,5");break}addBody([r]);save();toast("Medida guardada");render();break}
+      if(bad||!ok){toast("Escribe al menos un número");break}if(r.fat!=null&&r.fat>60){toast("La grasa va en %, por ejemplo 23,5");break}addBody([r]);save();toast("Medida guardada");render();checkBadges();break}
     case "react":openReaction(P&&P.steps[P.i]?.e?.defaults?.reps||4);break;
     case "react-close":$("#react")?.remove();break;
-    case "test-save":{const id=t.dataset.id,v=$("#t-"+id).value.trim().replace(",",".");if(!v||!isFinite(+v)){toast("Escribe un número");break}S.tests=S.tests||{};(S.tests[id]=S.tests[id]||[]).push({d:new Date().toISOString(),v:+v});save();toast("Test guardado");render();break}
+    case "test-save":{const id=t.dataset.id,v=$("#t-"+id).value.trim().replace(",",".");if(!v||!isFinite(+v)){toast("Escribe un número");break}S.tests=S.tests||{};(S.tests[id]=S.tests[id]||[]).push({d:new Date().toISOString(),v:+v});save();toast("Test guardado");render();checkBadges();break}
     case "video-close":$("#video")?.remove();break;
     case "video-save":{const v=ytId($("#vid-url").value.trim());if(!v){toast("Ese enlace no parece de YouTube");break}S.videos=S.videos||{};S.videos[t.dataset.id]=v;save();$("#video")?.remove();openVideo(t.dataset.id);toast("Vídeo guardado");break}
     case "video-reset":{if(S.videos)delete S.videos[t.dataset.id];save();$("#video")?.remove();openVideo(t.dataset.id);break}
@@ -1595,6 +1690,13 @@ document.addEventListener("click",e=>{
     case "share-summary":shareSummary();break;
     case "summary-close":$("#summary")?.remove();$("#confetti")?.remove();break;
     case "padel-log":openPadelLog();break;
+    case "goal-waist":{const g=waistGoal();const r=prompt("¿Qué cintura quieres alcanzar (cm)?",g?fmtNum(g.target):"84");if(r==null)break;const v=parseFloat(String(r).replace(",","."));if(!isFinite(v)||v<50||v>150){toast("Escribe los cm, por ejemplo 84");break}
+      S.goals=S.goals||{};S.goals.waist={start:g?g.start:v+6,target:v};save();render();break}
+    case "ph-new":openPhotoNew();break;
+    case "ph-close":$("#phnew")?.remove();render();break;
+    case "ph-compare":openPhotoCompare();break;
+    case "ph-cmp-close":$("#phcmp")?.remove();break;
+    case "ph-del":{const d=t.dataset.d;if(!confirm("¿Borrar las fotos de ese día?"))break;phDel(PH.filter(p=>p.date===d).map(p=>p.id)).then(phLoad);break}
     case "help-rir":openRirHelp();break;
     case "rirhelp-close":$("#rirhelp")?.remove();break;
     case "edit-val":{const m=t.dataset.m,lab={kg:"Peso en kg"+(P.steps[P.i].e.barbell?" (solo los discos)":""),reps:"Repeticiones",RIR:"RIR: repeticiones que te quedaban",seg:"Segundos"}[m]||m;
@@ -1638,6 +1740,9 @@ document.addEventListener("input",e=>{
   if(e.target.id==="f-min"&&F){$("#f-load").textContent=F.rpe*(parseInt(e.target.value,10)||0)}
   if(e.target.id==="imp-txt")$("#imp-err").textContent="";
   if(e.target.id==="restore"&&e.target.files[0])restore(e.target.files[0]);
+  if(e.target.classList&&e.target.classList.contains("ph-input")&&e.target.files[0]){const pose=e.target.dataset.pose,f=e.target.files[0];
+    shrink(f).then(blob=>{const date=localKey(new Date());const old=PH.find(p=>p.date===date&&p.pose===pose);return phPut({id:old?old.id:"p"+Date.now()+pose,date,pose,blob})}).then(async()=>{PH=await phAll();phURL.clear();S.lastPhotos=localKey(new Date());save();$("#phnew")?.remove();openPhotoNew();toast("Foto guardada")}).catch(()=>toast("No se pudo guardar la foto"));e.target.value=""}
+  if(e.target.id==="ph-a"||e.target.id==="ph-b"){openPhotoCompare($("#ph-a").value,$("#ph-b").value)}
   if(e.target.id==="libreview"&&e.target.files[0]){const f=e.target.files[0];const r=new FileReader();r.onload=()=>{toast(importLibreView(String(r.result)));render()};r.readAsText(f);e.target.value=""}
   if(e.target.id==="renpho"&&e.target.files[0]){const f=e.target.files[0];const r=new FileReader();r.onload=()=>{const m=importRenpho(String(r.result));toast(m);render()};r.readAsText(f);e.target.value=""}
   if(e.target.id==="f-knee"){$("#f-knee-v").textContent=e.target.value;$("#f-knee-v").style.color=+e.target.value>=4?"var(--warn)":""}
@@ -1657,6 +1762,7 @@ function openExit(){
 if("serviceWorker" in navigator&&location.protocol==="https:"&&!location.hostname.endsWith("claude.ai")){navigator.serviceWorker.register("sw.js").catch(()=>{})}
 try{if(S.body&&S.body.length){const n=S.body.length;normalizeBody();if(S.body.length!==n)save()}}catch(e){}
 render();
+setTimeout(()=>checkBadges(S.seenVersion!==APP_VERSION),1500);
 if(S.seenVersion!==APP_VERSION)setTimeout(()=>{if(!$("#layer").children.length)openWhatsNew()},600);
 </script>
 </body>
