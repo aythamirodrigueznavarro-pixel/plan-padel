@@ -489,6 +489,20 @@ function planWeek(now=new Date()){
   return {plan,dropped:queue,st};
 }
 const shortTitle=id=>DAYS.find(d=>d.id===id).title;
+/* Hoy ya jugaste al pádel y la sesión de gimnasio sigue sin hacer: qué pasa con ella */
+function playedTodayCard(){
+  const now=new Date(), d=today(), st=weekState(now);
+  if(st.todayWd>5||st.doneToday||!GYM_IDS.includes(d.id))return "";
+  const pl=workoutsOn(now).filter(w=>w.padel&&new Date(w.start)<=now);
+  if(!pl.length)return "";
+  const w=pl[pl.length-1], mins=pl.reduce((a,x)=>a+x.minutes,0), legs=LEGS.has(d.id);
+  const tmw=dayName(st.todayWd+1);
+  return `<section class="card coach" style="display:flex;flex-direction:column;gap:8px"><div class="eyebrow" style="color:var(--ball)">Hoy ya jugaste</div>
+    <p style="margin:0">Apuntaste ${esc((KIND_LABEL[padelKind(w)]||"pádel").toLowerCase())} · ${mins} min. ${legs?`<b>No hagas hoy la ${d.id}</b>: pierna pesada después de jugar es mucha carga y mañana lo notarías en pista.`:`La ${d.id} es de tren superior: si te ves bien, puedes hacerla. Si llegas cansado, déjala.`}</p>
+    <p class="small" style="margin:0">No tienes que hacer nada más: <b>mañana ${tmw}</b>, al abrir la app, te sale la tarjeta «Reorganizar tu semana». Te pregunta si juegas ese día y te coloca la ${d.id} donde mejor encaje.</p>
+    <button class="ballbtn" style="font-size:18px;padding:13px" data-act="plan-apply" data-id="X">Hoy, solo movilidad (20')</button>
+  </section>`;
+}
 function rescheduleCard(){
   const now=new Date(), st=weekState(now);
   if(!st.missed.length)return "";
@@ -602,6 +616,7 @@ function renderHoy(){
    ${resumeCard()}
    ${lastWeekCard()}
    ${weekRings()}
+   ${playedTodayCard()}
    ${rescheduleCard()}
    ${coachNotes()}
    <section class="card" aria-label="Cómo llegas hoy">
@@ -1609,8 +1624,9 @@ function openReport(){
 }
 
 /* ============ NOVEDADES Y AJUSTES ============ */
-const APP_VERSION="2026.11.23";
+const APP_VERSION="2026.11.23b";
 const CHANGELOG=[
+ ["🎾","Si apuntas un partido el día que tocaba gimnasio, «Hoy» te dice qué hacer con la sesión y que al día siguiente te reorganiza la semana."],
  ["🏅","Logros con medallas: sesiones, semanas completas, récords, horas de pádel, centímetros de cintura… (Progreso)."],
  ["📸","Fotos de progreso privadas, solo en tu iPhone, con comparador «antes y ahora»."],
  ["🎯","Objetivo de cintura con el porcentaje cumplido."],
