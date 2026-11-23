@@ -554,7 +554,7 @@ function weekAssign(off){
   return res;
 }
 /* ============ CALENDARIO: pasar las sesiones de gimnasio al calendario del iPhone (atajo «Plan Pádel · Calendario») ============
-   La app copia líneas «inicio|fin|título|notas» y abre el atajo, que borra los eventos «(Plan Pádel)» y crea los nuevos. */
+   La app manda (como entrada del atajo) líneas «inicio|fin|título|notas» y abre el atajo, que borra los eventos «(Plan Pádel)» y crea los nuevos. */
 const CAL_SC="Plan Pádel · Calendario", CAL_H="09:30";
 function calLines(){
   const L=[], now=new Date(), st=weekState(now);
@@ -578,10 +578,9 @@ async function syncCal(){
   const L=calLines();
   if(!L.length){toast("No hay sesiones de gimnasio que pasar");return}
   const txt=L.join("\n");
-  let ok=false;try{await navigator.clipboard.writeText(txt);ok=true}catch(e){const t=document.createElement("textarea");t.value=txt;t.style.cssText="position:fixed;opacity:0";document.body.appendChild(t);t.select();try{ok=document.execCommand("copy")}catch(_){}t.remove()}
-  if(!ok){toast("No se pudo copiar. Vuelve a intentarlo");return}
   S.calSig=txt;S.calOn=true;S.calAt=new Date().toISOString();save();
-  location.href="shortcuts://run-shortcut?name="+encodeURIComponent(CAL_SC);
+  /* la semana va directa al atajo (sin portapapeles) */
+  location.href="shortcuts://run-shortcut?name="+encodeURIComponent(CAL_SC)+"&input=text&text="+encodeURIComponent(txt);
 }
 function calButton(small){
   const stale=calStale(), first=!S.calOn;
@@ -2132,7 +2131,7 @@ function openReport(){
 }
 
 /* ============ NOVEDADES Y AJUSTES ============ */
-const APP_VERSION="2026.11.24k";
+const APP_VERSION="2026.11.24l";
 const CHANGELOG=[
  ["📅","Tus sesiones de gimnasio, en tu calendario: en Semana, «Pasar al calendario» (con el atajo «Plan Pádel · Calendario»). Si la semana cambia, la app te avisa y con un toque lo recoloca."],
  ["🧹","Fuera los días de pádel fijos: ya no se da por hecho que juegas martes y miércoles ni que la clase es el jueves. Manda lo que planificas cada semana, y el día de clase (sea cual sea) no hay pierna."],
