@@ -553,6 +553,45 @@ function weekAssign(off){
   }
   return res;
 }
+/* ============ CALENDARIO: pasar las sesiones de gimnasio al calendario del iPhone (atajo «Plan Pádel · Calendario») ============
+   La app copia líneas «inicio|fin|título|notas» y abre el atajo, que borra los eventos «(Plan Pádel)» y crea los nuevos. */
+const CAL_SC="Plan Pádel · Calendario", CAL_H="09:30";
+function calLines(){
+  const L=[], now=new Date(), st=weekState(now);
+  const add=(dt,id)=>{const tom=addDays(dt,1);let d=DAYS.find(x=>x.id===id);if(!d)return;
+    if(id==="D"&&compOn(tom))d=ACTIVATION;
+    const k=localKey(dt), mins=Math.max(20,estimateMinutes(materialize(d,dt))), st0=new Date(k+"T"+CAL_H+":00"), en=new Date(+st0+mins*6e4);
+    const hh=x=>String(x.getHours()).padStart(2,"0")+":"+String(x.getMinutes()).padStart(2,"0");
+    const notes=(d===ACTIVATION?d.sub:(SUBG[id]||d.sub||"")+(LEGS.has(id)?" Mide la glucosa antes.":""))+" Ábrela en Plan Pádel para empezar.";
+    L.push(`${k} ${CAL_H}|${k} ${hh(en)}|🏋️ ${d.title} (Plan Pádel)|${notes.replace(/[|\n]/g," ")}`)};
+  if(st.todayWd<=5){const p=planWeek(now).plan;
+    for(let wd=st.todayWd;wd<=5;wd++){const dt=addDays(st.m,wd-1);
+      if(wd===st.todayWd){if(st.doneToday||dayClosed(now))continue;const tid=gymIdOf({dayId:todayBase().id});if(GYM_IDS.includes(tid))add(dt,tid);continue}
+      if(p[wd])add(dt,p[wd])}}
+  const m1=addDays(monday(now),7);
+  if(weekPlanned(m1)){const p=planWeek(m1,{}).plan;for(let wd=1;wd<=5;wd++)if(p[wd])add(addDays(m1,wd-1),p[wd])}
+  return L;
+}
+const calSig=()=>calLines().join("\n");
+const calStale=()=>!!S.calOn&&S.calSig!==calSig();
+async function syncCal(){
+  const L=calLines();
+  if(!L.length){toast("No hay sesiones de gimnasio que pasar");return}
+  const txt=L.join("\n");
+  let ok=false;try{await navigator.clipboard.writeText(txt);ok=true}catch(e){const t=document.createElement("textarea");t.value=txt;t.style.cssText="position:fixed;opacity:0";document.body.appendChild(t);t.select();try{ok=document.execCommand("copy")}catch(_){}t.remove()}
+  if(!ok){toast("No se pudo copiar. Vuelve a intentarlo");return}
+  S.calSig=txt;S.calOn=true;S.calAt=new Date().toISOString();save();
+  location.href="shortcuts://run-shortcut?name="+encodeURIComponent(CAL_SC);
+}
+function calButton(small){
+  const stale=calStale(), first=!S.calOn;
+  return `<button class="${stale||first?"ballbtn":"ghostbtn small"}" ${stale||first?'style="font-size:17px;padding:12px;background:var(--court);color:var(--ink)"':""} data-act="cal-sync">📅 ${first?"Pasar al calendario":stale?"Actualizar el calendario":"Calendario al día ✓ · volver a pasar"}</button>${first&&!small?`<p class="small muted" style="margin:0">La primera vez necesitas el atajo «Plan Pádel · Calendario» (está en iCloud Drive → Plan Pádel). Pone tus sesiones de gimnasio en el calendario y, si cambias la semana, las recoloca.</p>`:""}`;
+}
+function calStaleCard(){
+  if(!calStale())return "";
+  return `<section class="card coach" style="display:flex;flex-direction:column;gap:8px"><div class="eyebrow" style="color:var(--court)">Tu calendario no está al día</div>
+    <p class="small" style="margin:0">Tu semana ha cambiado desde la última vez que la pasaste al calendario. Un toque y lo recoloco.</p>${calButton(true)}</section>`;
+}
 /* ---------- Tarjeta y pantalla del planificador ---------- */
 let PLN={off:0,wd:1,kind:"Partido",h:"19:00",min:"90",name:"",dirty:false};
 function planWeekCard(m0){
@@ -562,7 +601,8 @@ function planWeekCard(m0){
   return `<section class="card coach" style="display:flex;flex-direction:column;gap:8px"><div class="eyebrow" style="color:var(--ball)">Tu semana de pádel</div>
     <p class="small" style="margin:0">${wp?`Planificada: ${n?`${pads.length} ${pads.length===1?"partido o clase":"partidos o clases"}${comps.length?` y ${comps.length} ${comps.length===1?"competición":"competiciones"}`:""}`:"sin pádel"}. Las sesiones de abajo ya están colocadas para que no hagas pierna antes de jugar ni la víspera de competir.`:`¿Ya sabes qué días juegas${off===1?" la semana que viene":" esta semana"}? Apúntalos con la hora y te recoloco las sesiones del gimnasio alrededor.`}</p>
     ${wp?(()=>{const dr=(off===0?planWeek(new Date()):planWeek(m0,{})).dropped;return dr.length?`<p class="small muted" style="margin:0">Esta semana no cabe ${dr.map(id=>`la ${id}`).join(" ni ")}: con tus partidos no hay hueco sin cargar la pierna antes de jugar. Mejor una sesión menos que llegar sin piernas.</p>`:""})():""}
-    <button class="${wp?"ghostbtn small":"ballbtn"}" ${wp?"":'style="font-size:18px;padding:13px"'} data-act="pln-open" data-off="${off}">🗓️ ${wp?"Cambiar mi semana":"Planificar mi semana"}</button></section>`;
+    <button class="${wp?"ghostbtn small":"ballbtn"}" ${wp?"":'style="font-size:18px;padding:13px"'} data-act="pln-open" data-off="${off}">🗓️ ${wp?"Cambiar mi semana":"Planificar mi semana"}</button>
+    ${wp?calButton():""}</section>`;
 }
 function openPlanner(off){
   PLN.off=+off||0;PLN.dirty=false;PLN.name="";const now=new Date();PLN.wd=PLN.off===0?Math.min(7,(now.getDay()+6)%7+1):1;
@@ -878,6 +918,7 @@ function renderHoy(){
    ${resumeCard()}
    ${plannedLogCard()}
    ${planReminderCard()}
+   ${calStaleCard()}
    ${lastWeekCard()}
    ${weekRings()}
    ${playedTodayCard()}
@@ -2091,8 +2132,9 @@ function openReport(){
 }
 
 /* ============ NOVEDADES Y AJUSTES ============ */
-const APP_VERSION="2026.11.24j";
+const APP_VERSION="2026.11.24k";
 const CHANGELOG=[
+ ["📅","Tus sesiones de gimnasio, en tu calendario: en Semana, «Pasar al calendario» (con el atajo «Plan Pádel · Calendario»). Si la semana cambia, la app te avisa y con un toque lo recoloca."],
  ["🧹","Fuera los días de pádel fijos: ya no se da por hecho que juegas martes y miércoles ni que la clase es el jueves. Manda lo que planificas cada semana, y el día de clase (sea cual sea) no hay pierna."],
  ["🔔","El domingo (y entre semana si se te pasa), Hoy te recuerda planificar la semana. Si tu entrenador cambia la clase, la cambias y todo se recoloca."],
  ["🔄","Semana más fiel a lo que apuntas: el fin de semana muestra tu competición (con hora) o descanso, las barras cuentan la competición, y cada sesión movida de día lleva su propia explicación."],
@@ -2232,6 +2274,7 @@ document.addEventListener("click",e=>{
     case "padel-save":savePadelLog();break;
     case "padel-diary":openPadelLog(t.dataset.id);break;
     case "pln-open":openPlanner(t.dataset.off);break;
+    case "cal-sync":syncCal();break;
     case "pp-log":{const x=plannedPending().find(y=>y.ref===t.dataset.ref&&y.d===t.dataset.d);if(x)openPadelLog(null,x);break}
     case "pp-skip":{const it=(S.pad||[]).find(x=>x.id===t.dataset.ref)||(S.comps||[]).find(x=>x.id===t.dataset.ref);if(it){(it.skip=it.skip||{})[t.dataset.d]=true;save();render();toast("Vale, no cuenta")}break}
     case "pln-close":$("#planner")?.remove();render();break;
@@ -2242,7 +2285,7 @@ document.addEventListener("click",e=>{
     case "pln-done":{
       if(PLN.dirty||($("#pln-n")&&$("#pln-n").value.trim())){const dd=addDays(addDays(monday(),7*PLN.off),PLN.wd-1).toLocaleDateString("es-ES",{weekday:"long",day:"numeric"}),nm=($("#pln-n")?.value||"").trim()||PADK[PLN.kind];
         if(confirm(`Te ha quedado sin añadir: ${nm} · ${dd}. ¿Lo añado?`)){if(plannerAdd()===false)break}}
-      const m=addDays(monday(),7*PLN.off);S.planned=S.planned||{};S.planned[localKey(m)]=true;save();$("#planner")?.remove();render();window.scrollTo(0,0);toast("Semana planificada: sesiones colocadas");break}
+      const m=addDays(monday(),7*PLN.off);S.planned=S.planned||{};S.planned[localKey(m)]=true;save();$("#planner")?.remove();render();window.scrollTo(0,0);toast(S.calOn?"Semana planificada. Actualiza el calendario con el botón azul":"Semana planificada: sesiones colocadas");break}
     case "spa-guide":openSpaGuide();break;
     case "spa-close":$("#spa")?.remove();break;
     case "pl-set":{const k=t.dataset.k,v=k==="res"?t.dataset.v:+t.dataset.v;PL[k]=PL[k]===v?null:v;plPaint();break}
