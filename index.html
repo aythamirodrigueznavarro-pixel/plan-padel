@@ -224,7 +224,7 @@ const WARMUP=[
   ex("post-lumbar","Descarga lumbar","Rodillas al pecho y rotaciones tumbado · 3 min","Respira lento.","lower back decompression after sport",1,["seg"],{seg:180},0),
   ex("post-rodillo","Rodillo","Gemelos, cuádriceps y glúteo · 5 min","Sin buscar dolor.","foam roll after match",1,["seg"],{seg:300},0)]}];
 
-const SESSION_A={id:"A",wd:1,title:"A · Pierna: primer paso, fuerza y rodilla",sub:"La sesión más pesada de la semana. Si hoy juegas, que sea a las 20:00, nunca a mediodía.",kinds:["gym"],gym:55,padel:0,rpe:[7,8],warn:"Pierna pesada y saltos: mide la glucosa antes de empezar.",blocks:[
+const SESSION_A={id:"A",wd:1,title:"A · Pierna: primer paso, fuerza y rodilla",sub:"Pierna pesada, primer paso y rodilla: la sesión más exigente de la semana. Nunca a menos de 6 horas de jugar.",kinds:["gym"],gym:55,padel:0,rpe:[7,8],warn:"Pierna pesada y saltos: mide la glucosa antes de empezar.",blocks:[
  {id:"a0",title:"Calentamiento",note:"1 vuelta · 7 min",ex:[
   ex("a-bici","Bici estática","2 min suave","Pedalea fácil, que puedas hablar.","stationary bike warm up",1,["seg"],{seg:120},0),
   ex("a-tobillo","Movilidad de tobillo con goma","10 por pierna","Rodilla hacia delante sin levantar el talón.","ankle mobility band knee to wall",1,["reps"],{reps:10},0),
@@ -246,7 +246,7 @@ const SESSION_A={id:"A",wd:1,title:"A · Pierna: primer paso, fuerza y rodilla",
   ex("nordico","Curl nórdico","{S} × 4","Talones trabados bajo la barra de la Smith bloqueada abajo (o la barra cargada en la jaula, apoyada en los seguros para que no ruede), con una toalla sobre los tobillos y una esterilla bajo las rodillas. Cuerpo recto de rodillas a cabeza, glúteo apretado: baja lo más lento que puedas y ayúdate con las manos al final. Empuja con las manos para volver arriba.","nordic hamstring curl progression",2,["reps"],{reps:4},20),
   ex("plancha-abd","Plancha lateral con abducción","{S} × 20\" por lado","Cadera alta; sube y baja la pierna de arriba despacio.","side plank hip abduction",2,["seg"],{seg:20},45)]}]};
 
-const SESSION_B={id:"B",wd:2,title:"B · Empuje, lanzamientos y core",sub:"Tren superior: llegas con las piernas frescas al partido de mediodía.",kinds:["gym","padel"],gym:50,padel:90,rpe:[7,8],warn:null,blocks:[
+const SESSION_B={id:"B",wd:2,title:"B · Empuje, lanzamientos y core",sub:"Tren superior: empuje, lanzamientos y core. Las piernas descansan.",kinds:["gym"],gym:50,padel:0,rpe:[7,8],warn:null,blocks:[
  {id:"b0",title:"Calentamiento",note:"1 vuelta · 7 min",ex:[
   ex("b-w","W con goma","15 repeticiones","Codos pegados, aprieta las escápulas.","band w pull apart",1,["reps"],{reps:15},0),
   ex("b-rot","Rotación externa 90/90 con goma","12 por brazo","Codo a la altura del hombro, gira despacio.","90 90 external rotation band",1,["reps"],{reps:12},0),
@@ -264,7 +264,7 @@ const SESSION_B={id:"B",wd:2,title:"B · Empuje, lanzamientos y core",sub:"Tren 
   ex("landmine-rot","Arcoíris con landmine","{S} × 6 por lado","De pie, brazos casi rectos: lleva la punta de la barra de una cadera a la otra y frena el giro con el abdomen. Es la fuerza que carga y frena tu derecha, tu revés y tu remate.","landmine rainbow",3,["kg","reps"],{kg:5,reps:6},15),
   ex("elev-rodillas","Elevación de rodillas colgado","{S} × 10","Colgado de la barra, sube las rodillas y enrolla la pelvis hacia arriba. Baja lento, sin balanceo. Cuando salgan 12 fáciles, piernas rectas.","hanging knee raise",3,["reps"],{reps:10},45)]}]};
 
-const RECOVERY={id:"X",wd:3,title:"Movilidad y rodillo",sub:"Opcional, 20 minutos. Hoy toca llegar fresco al entreno del jueves.",kinds:["suave","padel"],gym:20,padel:90,rpe:[2,3],warn:null,blocks:[
+const RECOVERY={id:"X",wd:3,title:"Movilidad y rodillo",sub:"Opcional, 20 minutos de movilidad y rodillo para llegar fresco a lo que venga.",kinds:["suave"],gym:20,padel:0,rpe:[2,3],warn:null,blocks:[
  {id:"x1",title:"Rodillo",note:"30\" por zona",ex:[
   ex("rod-gemelo","Rodillo: gemelos y sóleo","30\" por pierna","Lento. Para 5\" en los puntos cargados.","foam roll calves",1,["seg"],{seg:30},0),
   ex("rod-cuad","Rodillo: cuádriceps y aductor","30\" por pierna","Sin prisa, respirando.","foam roll quads adductors",1,["seg"],{seg:30},0),
@@ -274,7 +274,7 @@ const RECOVERY={id:"X",wd:3,title:"Movilidad y rodillo",sub:"Opcional, 20 minuto
   ex("toracica","Rotación torácica en cuadrupedia","8 por lado","Sigue el codo con la mirada.","quadruped thoracic rotation",1,["reps"],{reps:8},0),
   ex("x-eliptica","Elíptica suave (opcional)","10 min en zona 2","Puedes hablar sin cortarte. Ideal para recuperar.","elliptical zone 2",1,["seg"],{seg:600},0)]}]};
 
-const SESSION_C={id:"C",wd:4,title:"C · Tracción, agarre y hombro",sub:"Por la mañana. A las 16:00, entreno con tu entrenador: hoy no se toca la pierna.",kinds:["gym","padel"],gym:45,padel:90,rpe:[7,7],warn:null,blocks:[
+const SESSION_C={id:"C",wd:4,title:"C · Tracción, agarre y hombro",sub:"Tracción, agarre, codo y hombro. Las piernas descansan.",kinds:["gym"],gym:45,padel:0,rpe:[7,7],warn:null,blocks:[
  {id:"c0",title:"Calentamiento",note:"1 vuelta · 6 min",ex:[
   ex("c-colgado","Colgado activo en barra","30\"","Hombros lejos de las orejas.","active dead hang",1,["seg"],{seg:30},0),
   ex("c-w","W con goma","15 repeticiones","Aprieta las escápulas.","band w pull apart",1,["reps"],{reps:15},0)]},
@@ -336,8 +336,8 @@ const EXTRA={
 function withExtra(day){const x=EXTRA[day.id];if(!x)return day;const b={...x,ex:x.ex.map(e=>({...e,presc:e.presc.replace("{S}",e.sets)}))};return {...day,blocks:[...day.blocks,b],extra:true}}
 const DAYS=[
  SESSION_A, SESSION_B, RECOVERY, SESSION_C, SESSION_D,
- {id:"sab",wd:6,title:"Partidos o competición",sub:"Calentamiento competitivo antes de jugar y recuperación al terminar.",kinds:["compite"],gym:0,padel:120,rpe:null,warn:"Ten a mano tu pauta de hidratos para los partidos largos.",blocks:WARMUP},
- {id:"dom",wd:7,title:"Descanso o torneo",sub:"Si no juegas, paseo y movilidad. Si juegas, el mismo calentamiento.",kinds:["compite","descanso"],gym:0,padel:60,rpe:null,warn:null,blocks:WARMUP}];
+ {id:"sab",wd:6,title:"Partido o descanso",sub:"Si juegas: calentamiento antes y recuperación al terminar. Si no, descanso.",kinds:[],gym:0,padel:0,rpe:null,warn:"Ten a mano tu pauta de hidratos para los partidos largos.",blocks:WARMUP},
+ {id:"dom",wd:7,title:"Descanso o partido",sub:"Si no juegas, paseo y movilidad. Si juegas, el mismo calentamiento.",kinds:["descanso"],gym:0,padel:0,rpe:null,warn:null,blocks:WARMUP}];
 
 /* Ajusta una sesión a la semana del bloque, a la versión corta y al «compito mañana» */
 function materialize(day,date=new Date(),opts={}){
@@ -464,7 +464,7 @@ let tab="hoy";
 function render(){({hoy:renderHoy,semana:renderSemana,progreso:renderProgreso})[tab]();if(tab==="hoy")animateRings();document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===tab))}
 
 /* ============ REORGANIZAR LA SEMANA (si un día no entrenas) ============
-   Reglas: A y D (pierna) primero; nunca pierna dos días seguidos, ni el jueves (entrenador),
+   Reglas: A y D (pierna) primero; nunca pierna dos días seguidos, ni el día de clase con el entrenador,
    ni a menos de 6 h de jugar, ni el día antes de competir. Las sesiones futuras no se adelantan. */
 const GYM_IDS=["A","B","C","D"], PRIO=["A","D","B","C"], LEGS=new Set(["A","D"]);
 const natWd=id=>DAYS.find(d=>d.id===id).wd;
@@ -489,7 +489,7 @@ const hNum=h=>{const m=String(h||"").match(/(\d{1,2}):(\d{2})/);return m?+m[1]+(
 const padOn=d=>{const k=localKey(d);return (S.pad||[]).filter(p=>p.d===k).sort((a,b)=>hNum(a.h)-hNum(b.h))};
 const weekPlanned=m=>!!(S.planned||{})[localKey(m)];
 /* Reparto de las sesiones de la semana: busca la mejor combinación que cumpla las reglas
-   (A y D primero; nunca pierna dos días seguidos, ni el jueves, ni a menos de 6 h de jugar, ni la víspera de competir,
+   (A y D primero; nunca pierna dos días seguidos, ni el día de clase, ni a menos de 6 h de jugar, ni la víspera de competir,
    salvo la activación del viernes). Sin planificar, las sesiones futuras no se adelantan; planificada, sí, si encaja mejor. */
 function planWeek(now=new Date(),optsIn){
   const st=weekState(now), o=optsIn||((S.opts||{})[localKey(now)])||{}, planned=weekPlanned(st.m);
@@ -503,13 +503,15 @@ function planWeek(now=new Date(),optsIn){
     let busy;
     if(isToday){const soon=pl.some(p=>{const t=new Date(localKey(dDay)+"T"+p.h+":00");return t-now>-2*36e5&&t-now<6*36e5});
       busy=o.matchSoon===true||playedToday(now)||(o.matchSoon===undefined&&(planned?soon||(now.getHours()<GYM_END_H-6&&early):false))}
-    else busy=planned?early:DAYS[wd-1].kinds.includes("padel");
+    else busy=planned?early:false;
+    const cls=planned&&pl.some(p=>p.kind==="Entreno"); /* el día de clase con tu entrenador, nada de pierna */
+    const clsTom=planned&&padOn(addDays(dDay,1)).some(p=>p.kind==="Entreno"); /* y mejor no la víspera */
     const preComp=isToday?(o.compete!=null?!!o.compete:!!compOn(addDays(dDay,1))):!!compOn(addDays(dDay,1));
-    days.push({wd,busy,preComp});
+    days.push({wd,busy,preComp,cls,clsTom});
   }
   const ok=(id,d,prevLegs)=>{
     if(!planned&&!st.missed.includes(id)&&natWd(id)>d.wd)return false;
-    if(LEGS.has(id)&&(d.wd===4||d.busy||prevLegs||(d.preComp&&(id==="A"||d.wd!==5))))return false;
+    if(LEGS.has(id)&&(d.cls||d.busy||prevLegs||(d.preComp&&(id==="A"||d.wd!==5))))return false;
     return true};
   let best={sc:-1e9,a:{}};
   const go=(i,left,prevLegs,sc,a)=>{
@@ -517,7 +519,7 @@ function planWeek(now=new Date(),optsIn){
     const d=days[i];
     if(d.fixed){a[d.wd]=d.fixed;go(i+1,left,LEGS.has(d.fixed),sc,a);delete a[d.wd];return}
     if(!d.comp)left.forEach((id,j)=>{if(!ok(id,d,prevLegs))return;
-      a[d.wd]=id;go(i+1,left.filter((_,k)=>k!==j),LEGS.has(id),sc+W[id]*100-3*Math.abs(d.wd-natWd(id))-(d.wd===3?4:0),a);delete a[d.wd]});
+      a[d.wd]=id;go(i+1,left.filter((_,k)=>k!==j),LEGS.has(id),sc+W[id]*100-3*Math.abs(d.wd-natWd(id))-(d.wd===3?4:0)-(LEGS.has(id)&&d.clsTom?6:0),a);delete a[d.wd]});
     go(i+1,left,false,sc,a);
   };
   go(0,rem,st.legsYesterday,0,{});
@@ -578,7 +580,7 @@ function drawPlanner(){
     ...comps.map(c=>({k:c.from<ks[0]?ks[0]:c.from,t:c.h?hNum(c.h):0,txt:`🏆 ${c.name}${c.h?" · "+c.h:""}${c.to&&c.to!==c.from?` (hasta el ${new Date(c.to+"T12:00:00").toLocaleDateString("es-ES",{weekday:"long"})})`:""}`,id:c.id}))].sort((a,b)=>a.k<b.k?-1:a.k>b.k?1:a.t-b.t);
   const isPast=wd=>PLN.off===0&&localKey(days[wd-1].dt)<localKey(new Date());
   pn.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><h2 class="title" style="font-size:28px">🗓️ Tu semana</h2><button class="iconbtn" data-act="pln-close" aria-label="Cerrar">${ICON.x}</button></div>
-   <p class="small muted" style="margin:0">${fd(days[0].dt)} – ${fd(days[6].dt)}. Apunta cada partido, clase o competición. Con eso coloco el gimnasio: nada de pierna si juegas antes de las 16:30, ni el jueves, ni la víspera de competir.</p>
+   <p class="small muted" style="margin:0">${fd(days[0].dt)} – ${fd(days[6].dt)}. Apunta cada partido, clase o competición. Con eso coloco el gimnasio: nada de pierna si juegas antes de las 16:30, ni el día de clase con tu entrenador, ni la víspera de competir. Si algo cambia a mitad de semana, vuelve aquí y cámbialo.</p>
    <div><div class="small muted" style="font-weight:600;margin-bottom:6px">Día</div>
     <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">${days.map(x=>`<button data-act="pln-day" data-wd="${x.wd}" ${isPast(x.wd)?"disabled":""} style="padding:8px 0;border-radius:10px;font-weight:700;font-size:13px;line-height:1.2;${x.wd===PLN.wd?"background:var(--ball);color:var(--ballInk)":"background:var(--surface2);color:var(--muted)"};${isPast(x.wd)?"opacity:.35":""}">${x.dt.toLocaleDateString("es-ES",{weekday:"narrow"})}<br>${x.dt.getDate()}</button>`).join("")}</div></div>
    <div class="chips">${Object.keys(PADK).map(k=>`<button class="chip" data-act="pln-kind" data-k="${k}" style="${k===PLN.kind?"background:var(--ball);color:var(--ballInk)":"background:var(--surface2);color:var(--muted)"}">${PADK[k]}</button>`).join("")}</div>
@@ -613,7 +615,7 @@ function recoveryCtx(now=new Date()){
   const pad=workoutsOn(now).filter(w=>w.padel&&new Date(w.start)<=now);
   const ends=[...S0.map(s=>+new Date(s.start)+(s.minutes||0)*6e4),...pad.map(w=>+new Date(w.start)+w.minutes*6e4)];
   const tom=addDays(now,1), compToday=!!compOn(now), compTom=!!compOn(tom);
-  const padTom=weekPlanned(monday(tom))?padOn(tom).length>0:DAYS[(tom.getDay()+6)%7].kinds.includes("padel");
+  const padTom=padOn(tom).length>0;
   const st=weekState(now), tWd=(tom.getDay()+6)%7+1, gymTom=tWd<=5&&tWd>st.todayWd?planWeek(now).plan[tWd]:null;
   const legsLow=pad.some(w=>w.legs!=null&&w.legs<=2);
   return {gym:gymS?gymIdOf(gymS):null,legs:gymS&&LEGS.has(gymIdOf(gymS)),pad,padMin:pad.reduce((a,w)=>a+w.minutes,0),end:ends.length?Math.max(...ends):null,compToday,compTom,padTom,gymTom,legsLow};
@@ -684,6 +686,17 @@ function plannedPending(now=new Date()){
       if(+st+90*6e4<=+now&&!(c.logged&&c.logged[k])&&!(c.skip&&c.skip[k])&&!wos.some(w=>padelKind(w)==="Torneo"||Math.abs(new Date(w.start)-st)<5*36e5))
         out.push({ref:c.id,d:k,h:c.h||"10:00",min:90,kind:"Torneo",name:c.name,txt:`🏆 ${c.name}${c.h?" · "+c.h:""}`})}});
   return out;
+}
+/* Domingo (para la semana siguiente) y entre semana si aún no la has planificado */
+function planReminderCard(){
+  const now=new Date(), wd=(now.getDay()+6)%7+1;
+  let off=null;
+  if(wd===7&&now.getHours()>=10&&!weekPlanned(addDays(monday(now),7)))off=1;
+  else if(wd<=5&&!weekPlanned(monday(now)))off=0;
+  if(off===null)return "";
+  return `<section class="card coach" style="display:flex;flex-direction:column;gap:8px"><div class="eyebrow" style="color:var(--ball)">${off?"Prepara la semana que viene":"Planifica tu semana"}</div>
+    <p class="small" style="margin:0">${off?"Es domingo: apunta los partidos, clases y competiciones de la semana que viene y te coloco el gimnasio alrededor.":"Aún no has apuntado tu pádel de esta semana. Con 1 minuto te coloco el gimnasio para que no hagas pierna antes de jugar ni el día de clase."} Si luego cambia algo (tu entrenador mueve la clase, sale un partido), lo cambias y se recoloca solo.</p>
+    <button class="ballbtn" style="font-size:18px;padding:13px" data-act="pln-open" data-off="${off}">🗓️ Planificar ${off?"la semana que viene":"mi semana"}</button></section>`;
 }
 function plannedLogCard(){
   const L=plannedPending();if(!L.length)return "";
@@ -864,6 +877,7 @@ function renderHoy(){
    ${phaseBar()}
    ${resumeCard()}
    ${plannedLogCard()}
+   ${planReminderCard()}
    ${lastWeekCard()}
    ${weekRings()}
    ${playedTodayCard()}
@@ -888,7 +902,7 @@ function renderHoy(){
        <button class="chip" data-act="toggle-short" style="${dayOpts().short?"background:var(--court);color:var(--ink)":"background:var(--surface2);color:var(--muted)"}">${dayOpts().short?"✓ ":""}Versión corta (poco tiempo o día malo)</button>
      </div>`:""}
      ${d.warn?`<div style="background:color-mix(in srgb,var(--ball) 10%,transparent);color:var(--ball);border-radius:14px;padding:12px;font-size:13px;font-weight:500">${ICON.drop} ${esc(d.warn)}</div>`:""}
-     ${done?`<div style="color:var(--ok);font-weight:600">✓ Sesión guardada · RPE ${done.rpe} · carga ${done.rpe*done.minutes} UA</div>`:`<button class="ballbtn" data-act="start">${d.kinds.includes("compite")?"Empezar calentamiento":"Empezar sesión"}</button>`}
+     ${done?`<div style="color:var(--ok);font-weight:600">✓ Sesión guardada · RPE ${done.rpe} · carga ${done.rpe*done.minutes} UA</div>`:`<button class="ballbtn" data-act="start">${d.kinds.includes("compite")||d.id==="sab"||d.id==="dom"?"Empezar calentamiento":"Empezar sesión"}</button>`}
    </section>
    ${d.blocks.map(blockCard).join("")}
   </div>`;
@@ -1734,11 +1748,11 @@ const gMin=(a,b)=>{const r=gRange(a,b);return r.length?r.reduce((m,x)=>x.v<m.v?x
 const gMax=(a,b)=>{const r=gRange(a,b);return r.length?r.reduce((m,x)=>x.v>m.v?x:m):null};
 
 /* Partido amistoso, entreno o competición: lo que elijas manda; si no, el tipo del reloj
-   (Pickleball = entreno, Squash = competición), tus fechas de competición y el jueves por la tarde (entreno). */
+   (Pickleball = entreno, Squash = competición), tus fechas de competición y lo que planificaste a esa hora. */
 function padelKind(w){
   if(w.kind)return w.kind; const t=String(w.type||""), d=new Date(w.start);
   if(/pickleball/i.test(t))return "Entreno"; if(/squash|racquet|raqueta|front[oó]n/i.test(t))return "Torneo";
-  if(compOn(d))return "Torneo"; if(d.getDay()===4&&d.getHours()>=15&&d.getHours()<18)return "Entreno"; return "Partido";
+  if(compOn(d))return "Torneo"; const pl=padOn(d).find(p=>Math.abs(new Date(localKey(d)+"T"+p.h+":00")-d)<2*36e5); if(pl)return pl.kind; return "Partido";
 }
 const KIND_LABEL={Partido:"Amistoso",Entreno:"Entreno",Torneo:"Competición"};
 const ACT_CATS={A:{n:"Gimnasio · pierna y saltos (A)",c:"#3f7df4"},BC:{n:"Gimnasio · tren superior (B y C)",c:"#8b7cf6"},D:{n:"Gimnasio · potencia y velocidad (D)",c:"#f5a844"},
@@ -1748,7 +1762,7 @@ function activities(){
   S.sessions.filter(s=>s.status!=="en curso"&&s.minutes>0).forEach(s=>{const id=gymIdOf(s);const cat=id==="A"?"A":id==="B"||id==="C"?"BC":id==="D"?"D":id==="X"?"X":null;if(!cat)return;
     L.push({cat,start:+new Date(s.start),min:s.minutes,gB:s.gBefore,gA:s.gAfter,rpe:s.rpe,label:s.title})});
   /* Pádel: lo apuntado a mano manda; un «Tenis» del reloj a menos de 1 h de uno apuntado es el mismo partido.
-     Sin apuntar: el «Tenis» del jueves por la tarde es el entreno con tu entrenador; el resto, partido. */
+     Sin apuntar: el «Tenis» se clasifica según lo que planificaste a esa hora; si no hay nada, partido. */
   const manual=S.health.workouts.filter(w=>w.padel&&w.src==="manual").map(w=>+new Date(w.start));
   S.health.workouts.forEach(w=>{if(!w.padel)return;const st=+new Date(w.start);
     if(w.src!=="manual"&&manual.some(m=>Math.abs(m-st)<36e5))return;
@@ -1900,7 +1914,7 @@ function jumpCard(){
 /* ============ DIARIO DE PARTIDO: lo que pasa en pista manda sobre el gimnasio ============ */
 const FAILS=[
  {k:"paso",n:"Primer paso / llegar a la red",r:"Lo trabajan la A (salidas laterales y sprint en rampa) y la D (reacción). Si se repite, subo una serie de salidas."},
- {k:"globo",n:"Retroceder al globo",r:"Retroceso al globo en el calentamiento de la D (paso cruzado y bandeja en sombra) y salidas hacia atrás en el modo reacción. Díselo también a tu entrenador del jueves."},
+ {k:"globo",n:"Retroceder al globo",r:"Retroceso al globo en el calentamiento de la D (paso cruzado y bandeja en sombra) y salidas hacia atrás en el modo reacción. Díselo también a tu entrenador en la próxima clase."},
  {k:"pared",n:"Frenar y salir de la pared",r:"Frenadas y cambios de dirección: los de la D. Si sigue, meto frenadas excéntricas también en la A."},
  {k:"lateral",n:"Desplazamiento lateral",r:"Patinador y salidas laterales (A y D). Fíjate en el split-step: el saltito justo cuando golpea el rival."},
  {k:"aire",n:"Bandeja y remate",r:"El remate tiene tres motores: piernas (el salto), giro del tronco (lanzamientos y landmine de la B) y hombro (push press de la B y el bloque de hombro de la C). El remate por 3 o por 4 es sobre todo técnica: trabájalo con tu entrenador; aquí ponemos el motor."},
@@ -2077,8 +2091,10 @@ function openReport(){
 }
 
 /* ============ NOVEDADES Y AJUSTES ============ */
-const APP_VERSION="2026.11.24i";
+const APP_VERSION="2026.11.24j";
 const CHANGELOG=[
+ ["🧹","Fuera los días de pádel fijos: ya no se da por hecho que juegas martes y miércoles ni que la clase es el jueves. Manda lo que planificas cada semana, y el día de clase (sea cual sea) no hay pierna."],
+ ["🔔","El domingo (y entre semana si se te pasa), Hoy te recuerda planificar la semana. Si tu entrenador cambia la clase, la cambias y todo se recoloca."],
  ["🔄","Semana más fiel a lo que apuntas: el fin de semana muestra tu competición (con hora) o descanso, las barras cuentan la competición, y cada sesión movida de día lleva su propia explicación."],
  ["✅","Lo planificado pasa a lo jugado: cuando termina un partido o competición que tenías apuntado, Hoy te pregunta «¿Lo jugaste?» y lo apuntas con un toque."],
  ["🌙","Si ya has jugado o son más de las 21:00, Hoy ya no te propone gimnasio: te dice qué toca mañana."],
