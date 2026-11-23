@@ -553,9 +553,9 @@ function weekAssign(off){
   }
   return res;
 }
-/* ============ CALENDARIO: pasar las sesiones de gimnasio al calendario del iPhone (atajo «Plan Pádel · Calendario») ============
+/* ============ CALENDARIO: pasar las sesiones de gimnasio al calendario del iPhone (atajo «Plan Padel Calendario») ============
    La app manda (como entrada del atajo) líneas «inicio|fin|título|notas» y abre el atajo, que borra los eventos «(Plan Pádel)» y crea los nuevos. */
-const CAL_SC="Plan Pádel · Calendario", CAL_H="09:30";
+const CAL_SC="Plan Padel Calendario", CAL_H="09:30"; /* sin tildes ni símbolos: el iPhone no encontraba el nombre con «á» y «·» */
 function calLines(){
   const L=[], now=new Date(), st=weekState(now);
   const add=(dt,id)=>{const tom=addDays(dt,1);let d=DAYS.find(x=>x.id===id);if(!d)return;
@@ -584,7 +584,7 @@ async function syncCal(){
 }
 function calButton(small){
   const stale=calStale(), first=!S.calOn;
-  return `<button class="${stale||first?"ballbtn":"ghostbtn small"}" ${stale||first?'style="font-size:17px;padding:12px;background:var(--court);color:var(--ink)"':""} data-act="cal-sync">📅 ${first?"Pasar al calendario":stale?"Actualizar el calendario":"Calendario al día ✓ · volver a pasar"}</button>${first&&!small?`<p class="small muted" style="margin:0">La primera vez necesitas el atajo «Plan Pádel · Calendario» (está en iCloud Drive → Plan Pádel). Pone tus sesiones de gimnasio en el calendario y, si cambias la semana, las recoloca.</p>`:""}`;
+  return `<button class="${stale||first?"ballbtn":"ghostbtn small"}" ${stale||first?'style="font-size:17px;padding:12px;background:var(--court);color:var(--ink)"':""} data-act="cal-sync">📅 ${first?"Pasar al calendario":stale?"Actualizar el calendario":"Calendario al día ✓ · volver a pasar"}</button>${first&&!small?`<p class="small muted" style="margin:0">La primera vez necesitas el atajo «Plan Padel Calendario» (está en iCloud Drive → Plan Pádel). Pone tus sesiones de gimnasio en el calendario y, si cambias la semana, las recoloca.</p>`:""}`;
 }
 function calStaleCard(){
   if(!calStale())return "";
@@ -2131,9 +2131,10 @@ function openReport(){
 }
 
 /* ============ NOVEDADES Y AJUSTES ============ */
-const APP_VERSION="2026.11.24l";
+const APP_VERSION="2026.11.24m";
 const CHANGELOG=[
- ["📅","Tus sesiones de gimnasio, en tu calendario: en Semana, «Pasar al calendario» (con el atajo «Plan Pádel · Calendario»). Si la semana cambia, la app te avisa y con un toque lo recoloca."],
+ ["🔧","El atajo del calendario ahora se llama «Plan Padel Calendario» (sin tilde): el iPhone no lo encontraba con el nombre anterior. Bórralo e instala el nuevo desde iCloud Drive → Plan Pádel."],
+ ["📅","Tus sesiones de gimnasio, en tu calendario: en Semana, «Pasar al calendario» (con el atajo «Plan Padel Calendario»). Si la semana cambia, la app te avisa y con un toque lo recoloca."],
  ["🧹","Fuera los días de pádel fijos: ya no se da por hecho que juegas martes y miércoles ni que la clase es el jueves. Manda lo que planificas cada semana, y el día de clase (sea cual sea) no hay pierna."],
  ["🔔","El domingo (y entre semana si se te pasa), Hoy te recuerda planificar la semana. Si tu entrenador cambia la clase, la cambias y todo se recoloca."],
  ["🔄","Semana más fiel a lo que apuntas: el fin de semana muestra tu competición (con hora) o descanso, las barras cuentan la competición, y cada sesión movida de día lleva su propia explicación."],
@@ -2278,11 +2279,11 @@ document.addEventListener("click",e=>{
     case "pp-skip":{const it=(S.pad||[]).find(x=>x.id===t.dataset.ref)||(S.comps||[]).find(x=>x.id===t.dataset.ref);if(it){(it.skip=it.skip||{})[t.dataset.d]=true;save();render();toast("Vale, no cuenta")}break}
     case "pln-close":$("#planner")?.remove();render();break;
     case "pln-day":case "pln-kind":{if(t.dataset.act==="pln-day")PLN.wd=+t.dataset.wd;else PLN.kind=t.dataset.k;
-      if($("#pln-h"))PLN.h=$("#pln-h").value||PLN.h;if($("#pln-m"))PLN.min=$("#pln-m").value||PLN.min;if($("#pln-n"))PLN.name=$("#pln-n").value;PLN.dirty=true;drawPlanner();break}
+      if($("#pln-h"))PLN.h=$("#pln-h").value||PLN.h;if($("#pln-m"))PLN.min=$("#pln-m").value||PLN.min;if($("#pln-n"))PLN.name=$("#pln-n").value;drawPlanner();break}
     case "pln-add":plannerAdd();break;
     case "pln-del":{const id=t.dataset.id;S.pad=(S.pad||[]).filter(x=>x.id!==id);S.comps=(S.comps||[]).filter(x=>x.id!==id);save();drawPlanner();break}
     case "pln-done":{
-      if(PLN.dirty||($("#pln-n")&&$("#pln-n").value.trim())){const dd=addDays(addDays(monday(),7*PLN.off),PLN.wd-1).toLocaleDateString("es-ES",{weekday:"long",day:"numeric"}),nm=($("#pln-n")?.value||"").trim()||PADK[PLN.kind];
+      if(PLN.dirty&&(($("#pln-n")&&$("#pln-n").value.trim())||PLN.kind!=="Partido"||($("#pln-h")&&$("#pln-h").value!=="19:00"))){const dd=addDays(addDays(monday(),7*PLN.off),PLN.wd-1).toLocaleDateString("es-ES",{weekday:"long",day:"numeric"}),nm=($("#pln-n")?.value||"").trim()||PADK[PLN.kind];
         if(confirm(`Te ha quedado sin añadir: ${nm} · ${dd}. ¿Lo añado?`)){if(plannerAdd()===false)break}}
       const m=addDays(monday(),7*PLN.off);S.planned=S.planned||{};S.planned[localKey(m)]=true;save();$("#planner")?.remove();render();window.scrollTo(0,0);toast(S.calOn?"Semana planificada. Actualiza el calendario con el botón azul":"Semana planificada: sesiones colocadas");break}
     case "spa-guide":openSpaGuide();break;
