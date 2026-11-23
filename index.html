@@ -554,14 +554,14 @@ function weekAssign(off){
   return res;
 }
 /* ============ CALENDARIO: pasar las sesiones de gimnasio al calendario del iPhone (atajo «Plan Padel Calendario») ============
-   La app manda (como entrada del atajo) líneas «inicio|fin|título|notas» y abre el atajo, que borra los eventos «(Plan Pádel)» y crea los nuevos. */
+   La app manda (como entrada del atajo) líneas «inicio|fin|título|notas» y abre el atajo, que borra los eventos «(Plan Padel)» (sin tilde: con «á» el iPhone no los encontraba) y crea los nuevos. */
 const CAL_SC="Plan Padel Calendario", CAL_H="09:30"; /* sin tildes ni símbolos: el iPhone no encontraba el nombre con «á» y «·» */
 function calLines(){
   const L=[], now=new Date(), st=weekState(now), tk=localKey(now);
   const hh=x=>String(x.getHours()).padStart(2,"0")+":"+String(x.getMinutes()).padStart(2,"0");
   const clean=t=>String(t||"").replace(/[|\n]/g," ");
   const push=(dt,h,mins,title,notes)=>{const k=localKey(dt), s0=new Date(k+"T"+h+":00"), en=new Date(+s0+mins*6e4);
-    L.push(`${k} ${h}|${localKey(en)} ${hh(en)}|${clean(title)} (Plan Pádel)|${clean(notes)}`)};
+    L.push(`${k} ${h}|${localKey(en)} ${hh(en)}|${clean(title)} (Plan Padel)|${clean(notes)}`)};
   const gym=(dt,id,done)=>{let d=DAYS.find(x=>x.id===id);if(!d)return;
     if(id==="D"&&compOn(addDays(dt,1)))d=ACTIVATION;
     const mins=Math.max(20,estimateMinutes(materialize(d,dt)));
@@ -2147,8 +2147,9 @@ function openReport(){
 }
 
 /* ============ NOVEDADES Y AJUSTES ============ */
-const APP_VERSION="2026.11.24n";
+const APP_VERSION="2026.11.24o";
 const CHANGELOG=[
+ ["🔧","Calendario: los eventos llevan ahora «(Plan Padel)» sin tilde, para que el atajo los encuentre y no se dupliquen. Reinstala el atajo «Plan Padel Calendario» desde iCloud Drive."],
  ["🎾","El calendario ahora lleva también tus partidos, clases y competiciones (con su hora), además del gimnasio. Y la semana entera: lo hecho sale con ✅."],
  ["🔧","El atajo del calendario ahora se llama «Plan Padel Calendario» (sin tilde): el iPhone no lo encontraba con el nombre anterior. Bórralo e instala el nuevo desde iCloud Drive → Plan Pádel."],
  ["📅","Tus sesiones de gimnasio, en tu calendario: en Semana, «Pasar al calendario» (con el atajo «Plan Padel Calendario»). Si la semana cambia, la app te avisa y con un toque lo recoloca."],
