@@ -129,7 +129,8 @@ nav.tabs button[aria-selected="true"]{color:var(--ball)}
 .rpe{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
 .rpe button{padding:12px 0;border-radius:12px;background:var(--surface2);font:700 22px var(--body)}
 .rpe button[aria-pressed="true"]{background:var(--court);color:var(--ink)}
-.field{background:var(--surface2);border-radius:16px;padding:12px 14px}
+.field{background:var(--surface2);border-radius:16px;padding:12px 14px;min-width:0}
+.field input[type=date],.field input[type=time]{font-size:16px;min-width:0;-webkit-appearance:none;appearance:none}
 .field label{display:block;font-size:12px;font-weight:600;color:var(--muted)}
 .field input,.field textarea{width:100%;background:none;border:0;outline:0;padding:2px 0}
 .field input{font:700 28px var(--body);font-variant-numeric:tabular-nums}
@@ -500,6 +501,7 @@ function playedTodayCard(){
   return `<section class="card coach" style="display:flex;flex-direction:column;gap:8px"><div class="eyebrow" style="color:var(--ball)">Hoy ya jugaste</div>
     <p style="margin:0">Apuntaste ${esc((KIND_LABEL[padelKind(w)]||"pádel").toLowerCase())} · ${mins} min. ${legs?`<b>No hagas hoy la ${d.id}</b>: pierna pesada después de jugar es mucha carga y mañana lo notarías en pista.`:`La ${d.id} es de tren superior: si te ves bien, puedes hacerla. Si llegas cansado, déjala.`}</p>
     <p class="small" style="margin:0">No tienes que hacer nada más: <b>mañana ${tmw}</b>, al abrir la app, te sale la tarjeta «Reorganizar tu semana». Te pregunta si juegas ese día y te coloca la ${d.id} donde mejor encaje.</p>
+    ${isDiary(w)?"":`<button class="ghostbtn small" style="border:1px solid var(--ball);color:var(--ball)" data-act="padel-diary" data-id="${esc(w.id)}">Cuéntame cómo fue (20 s)</button>`}
     <button class="ballbtn" style="font-size:18px;padding:13px" data-act="plan-apply" data-id="X">Hoy, solo movilidad (20')</button>
   </section>`;
 }
@@ -528,12 +530,12 @@ function dailyCard(st){
     return card("Hoy juegas pronto",`<p style="margin:0">Juegas en menos de 6 horas: <b>hoy nada de pierna</b>. Llegarías al partido con las piernas cargadas y lo notarías en pista.</p>
       ${alt?`<button class="ballbtn" style="font-size:18px;padding:13px" data-act="plan-apply" data-id="${alt}">Adelantar la ${alt} (tren superior)</button>`:""}
       <button class="${alt?"ghostbtn":"ballbtn"}" style="font-size:${alt?16:18}px;padding:13px" data-act="plan-apply" data-id="X">Hoy, solo movilidad (20')</button>
-      <p class="small muted" style="margin:0">La ${gid} no se pierde: mañana, al abrir la app, te la coloco donde mejor encaje.</p>`);
+      <p class="small muted" style="margin:0">La ${gid} no se pierde: mañana, al abrir la app, te la coloco donde mejor encaje.</p>${endoBox("padel")}`);
   }
   const msg=o.matchSoon===true?`Hoy toca tren superior, así que puedes jugar sin problema. Deja un rato entre el gimnasio y el partido (mejor 2 horas o más) y <b>mide la glucosa antes de jugar</b>.`
     :o.matchLater?(legs?`Perfecto: haz la ${gid} por la mañana y deja 6 horas o más hasta el partido. <b>Mide la glucosa antes de jugar</b>: después de pierna puede bajar.`:`Perfecto: entrena con normalidad y <b>mide la glucosa antes de jugar</b>.`)
     :(legs?`Día ideal para la pierna: sin partido, puedes darlo todo en la ${gid}.`:`Sin partido hoy: entrena tranquilo la ${gid}.`);
-  return card("Tu día",`<p style="margin:0">${msg}</p>`);
+  return card("Tu día",`<p style="margin:0">${msg}</p>${o.matchSoon===true||o.matchLater?endoBox("padel"):""}`);
 }
 function rescheduleCard(){
   const now=new Date(), st=weekState(now);
@@ -801,6 +803,8 @@ function renderProgreso(){
   const done=S.sessions.filter(s=>s.status!=="en curso").slice().reverse();
   $("#view").innerHTML=`<div class="stack">
    <header style="padding-top:8px"><div class="eyebrow">Desde marzo de 2026</div><h1 class="big">Progreso</h1></header>
+   ${padelInsightsCard()}
+   ${jumpCard()}
    <section class="card" style="padding:18px;display:flex;flex-direction:column;gap:12px">
      <div class="hscroll">${LIFTS.map(l=>`<button class="chip" data-lift="${l.id}" style="${l.id===liftSel?"background:var(--ball);color:var(--ballInk)":"background:var(--surface2);color:var(--muted)"}">${esc(l.name)}</button>`).join("")}</div>
      <div class="best"><b>${fmtNum(best.v)}</b><span class="muted" style="font-weight:600">${L.unit==="repeticiones"?"reps":"kg"}</span>${best.r?`<span class="muted num" style="font-size:20px">× ${best.r}</span>`:""}<span class="small muted" style="margin-left:auto">${best.d.toLocaleDateString("es-ES",{day:"numeric",month:"short"})}</span></div>
@@ -1032,15 +1036,16 @@ function readiness(rd){const v=RD_Q.map(q=>rd[q.k]).filter(x=>x);if(v.length<RD_
 function readinessBlock(){
   const rd=P.rd||{}, r=readiness(rd);
   const y=addDays(new Date(),-1), padelY=workoutsOn(y).filter(w=>w.padel).reduce((a,w)=>a+w.minutes,0);
-  const short=P.day.short, legsDay=P.day.blocks.some(b=>b.ex.some(e=>LEGS.has(P.day.id)));
+  const short=P.day.short, legsDay=LEGS.has(P.day.id), js=jumpStatus(), jTired=js.lvl==="amarillo"||js.lvl==="rojo";
   const msg=!r?"":r.lvl==="verde"?"🟢 Llegas bien: sesión normal. A por ella.":r.lvl==="amarillo"?(short?"🟡 Llegas regular: con la versión corta vas bien. Si una serie no sale con el RIR marcado, baja el peso.":"🟡 Llegas regular: haz la sesión, pero si una serie no sale con el RIR marcado, baja el peso. Si vas justo de tiempo o de cuerpo, versión corta."):(short?"🔴 Hoy vas tocado: versión corta suave, sin buscar marcas. O solo movilidad.":"🔴 Hoy vas tocado: mejor versión corta o solo movilidad. Un día flojo bien gestionado no se pierde; uno forzado, a veces sí.");
   return `<div class="card" style="padding:16px;margin:0 0 14px;display:flex;flex-direction:column;gap:10px"><div style="font-weight:600">¿Cómo llegas hoy?</div>
    ${RD_Q.map(q=>`<div><div class="small muted" style="display:flex;justify-content:space-between"><span style="color:var(--text);font-weight:600">${q.n}</span><span>${q.lo} → ${q.hi}</span></div>
      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:4px">${[1,2,3,4,5].map(v=>`<button data-act="rd" data-k="${q.k}" data-v="${v}" aria-pressed="${rd[q.k]===v}" aria-label="${q.n} ${v}" style="padding:9px 0;border-radius:10px;font-weight:700;background:${rd[q.k]===v?(v<=2?"var(--heart)":v===3?"var(--warn)":"var(--ok)"):"var(--surface2)"};color:${rd[q.k]===v?"var(--ink)":"var(--muted)"}">${v}</button>`).join("")}</div></div>`).join("")}
    ${padelY>=60&&legsDay?`<div class="small" style="color:var(--warn)">Ayer jugaste ${padelY}' de pádel: ten en cuenta las piernas.</div>`:""}
    ${msg?`<div class="small" style="color:var(--text);font-weight:600">${msg}</div>`:""}
-   ${r&&r.lvl!=="verde"&&!short?`<button class="ghostbtn small" data-act="pre-short">Cambiar a la versión corta</button>`:""}
-   ${r&&r.lvl==="verde"&&!short&&EXTRA[P.day.id]&&P.day.week!==4?(P.day.extra?`<div class="small" style="color:var(--ok);font-weight:600">✓ Añadido: ${esc(EXTRA[P.day.id].title)} (≈10' al final)</div><button class="ghostbtn small" data-act="pre-extra">Quitar el bloque extra</button>`:`<button class="ghostbtn small" style="border:1px solid var(--ball);color:var(--ball)" data-act="pre-extra">➕ Vas sobrado: añadir ${esc(EXTRA[P.day.id].title.toLowerCase())} (≈10')</button>`):""}</div>`;
+   ${legsDay?`<div style="display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:10px">${jumpStatusHtml()}<button class="ghostbtn small" data-act="jump-open">📏 ${js.today?"Añadir otro salto":"Medir el salto (30 s, opcional)"}</button></div>`:""}
+   ${(r&&r.lvl!=="verde"||jTired)&&!short?`<button class="ghostbtn small" data-act="pre-short">Cambiar a la versión corta</button>`:""}
+   ${r&&r.lvl==="verde"&&!jTired&&!short&&EXTRA[P.day.id]&&P.day.week!==4?(P.day.extra?`<div class="small" style="color:var(--ok);font-weight:600">✓ Añadido: ${esc(EXTRA[P.day.id].title)} (≈10' al final)</div><button class="ghostbtn small" data-act="pre-extra">Quitar el bloque extra</button>`:`<button class="ghostbtn small" style="border:1px solid var(--ball);color:var(--ball)" data-act="pre-extra">➕ Vas sobrado: añadir ${esc(EXTRA[P.day.id].title.toLowerCase())} (≈10')</button>`):""}</div>`;
 }
 function drawPre(){
   $("#layer").innerHTML=`<div class="overlay" role="dialog" aria-modal="true" aria-label="Antes de empezar"><div class="inner">
@@ -1053,6 +1058,7 @@ function drawPre(){
      <div style="display:flex;align-items:baseline;gap:8px"><input id="g-pre" inputmode="numeric" placeholder="—" value="${esc(P.gText)}" aria-label="Glucosa en mg/dL" style="background:none;border:0;outline:0;font:700 56px var(--body);width:170px;font-variant-numeric:tabular-nums"><span class="muted" style="font-weight:600">mg/dL</span></div>
      <p class="small muted" style="margin:4px 0 0">${P.gText?"Leída de Salud. ":"Escríbela si no la ha importado el atajo. "}Si estás fuera del rango que te ha marcado tu endocrino, no empieces la parte intensa.</p>
    </div>
+   <div style="margin:-6px 0 14px">${endoBox("gym")}</div>
    ${readinessBlock()}
    <div style="flex:1"></div>
    <button class="ballbtn" data-act="go">Empezar</button>
@@ -1432,7 +1438,7 @@ function importHealth(raw){
   toast(nb&&!gl.length&&!wo.length?`Importadas ${nb} medidas de la báscula`:`Importado: ${gl.length} glucosas, ${wo.length} entrenos${nb?` y ${nb} pesajes`:""}`); return null;
 }
 async function exportData(){
-  const txt=JSON.stringify({exportado:new Date().toISOString(),sesiones:S.sessions.filter(s=>s.status!=="en curso"),series:S.sets,salud:S.health,cuerpo:S.body||[],tests:S.tests||{}});
+  const txt=JSON.stringify({exportado:new Date().toISOString(),sesiones:S.sessions.filter(s=>s.status!=="en curso"),series:S.sets,salud:S.health,cuerpo:S.body||[],tests:S.tests||{},saltos:S.jumps||[],pauta:S.endo||null});
   try{await navigator.clipboard.writeText(txt);toast("Copiado. Pégamelo en el chat.")}
   catch(e){const t=document.createElement("textarea");t.value=txt;t.style.cssText="position:fixed;opacity:0";document.body.appendChild(t);t.select();try{document.execCommand("copy");toast("Copiado. Pégamelo en el chat.")}catch(_){toast("No se pudo copiar")}t.remove()}
 }
@@ -1560,22 +1566,153 @@ function glucoseCard(){
 }
 
 /* Apuntar pádel a mano (si no viene del reloj) */
-let PL={kind:"Partido"};
-function openPadelLog(){
-  const now=new Date(), d=dayKey(now), hh=String(Math.max(0,now.getHours()-2)).padStart(2,"0")+":00";
+/* ============ SALTO CON CÁMARA LENTA (CMJ): potencia y semáforo de cansancio ============
+   Altura = g·t²/8, con t = tiempo de vuelo (despegue → aterrizaje). Es el método de My Jump, validado en estudios.
+   Un cambio real son ≥2 cm; un salto un 5-10 % por debajo de tu media indica piernas sin recuperar. */
+const JF=[{f:8,n:"Cámara lenta (240)"},{f:4,n:"Cámara lenta (120)"},{f:1,n:"Vídeo normal"}];
+let JV={f:8,url:null,t0:null,t1:null};
+const jumpCm=t=>Math.round(9.81*t*t/8*1000)/10;
+function jumpDays(){
+  const g={};(S.jumps||[]).forEach(j=>{const k=localKey(new Date(j.d));(g[k]=g[k]||[]).push(j.cm)});
+  return Object.keys(g).sort().map(k=>{const v=g[k].slice().sort((a,b)=>b-a);const top=v.slice(0,2);return {k,d:new Date(k+"T12:00:00"),v:Math.round(top.reduce((a,x)=>a+x,0)/top.length*10)/10,n:v.length,best:v[0]}});
+}
+function jumpStatus(){
+  const days=jumpDays(), tk=localKey(new Date()), t=days.find(x=>x.k===tk);
+  const from=localKey(addDays(new Date(),-35)), base=days.filter(x=>x.k!==tk&&x.k>=from);
+  if(!t||base.length<3)return {today:t||null,base:base.length>=3?base:null,lvl:null};
+  const b=base.reduce((a,x)=>a+x.v,0)/base.length, pct=(t.v-b)/b*100;
+  return {today:t,b:Math.round(b*10)/10,pct:Math.round(pct),lvl:pct>=-5?"verde":pct>=-10?"amarillo":"rojo"};
+}
+function jumpTodayHtml(){
+  const t=jumpDays().find(x=>x.k===localKey(new Date()));
+  if(!t)return '<p class="small muted" style="margin:0">Hoy aún no has saltado.</p>';
+  const all=(S.jumps||[]).filter(j=>localKey(new Date(j.d))===t.k).map(j=>fmtNum(j.cm));
+  return `<p class="small" style="margin:0">Hoy: <b>${all.join(" · ")} cm</b>${t.n>1?` → cuenta la media de los 2 mejores: <b>${fmtNum(t.v)} cm</b>`:""}. ${t.n<3?`Haz ${3-t.n} más con 30 s de pausa.`:"Listo por hoy."}</p>`;
+}
+function openJump(){
+  document.querySelector("#jump")?.remove();
+  const el=document.createElement("div");el.className="sheet";el.id="jump";
+  el.innerHTML=`<div class="panel" role="dialog" aria-modal="true" aria-label="Medir el salto">
+   <div style="display:flex;justify-content:space-between;align-items:center"><h2 class="title" style="font-size:28px">📏 Tu salto</h2><button class="iconbtn" data-act="jump-close" aria-label="Cerrar">${ICON.x}</button></div>
+   <details class="small" style="color:var(--text)"><summary style="font-weight:600;cursor:pointer">Cómo grabarlo (léelo la primera vez)</summary>
+    <ol style="margin:8px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:4px">
+     <li>Cámara del iPhone → <b>Cámara lenta</b>. Apoya el móvil en el suelo o en un banco, a 2-3 m, que se vean bien tus pies.</li>
+     <li>Manos en la cintura. Bajas rápido a media sentadilla y saltas lo más alto que puedas.</li>
+     <li>Cae con las piernas estiradas y sin doblar las rodillas en el aire (si no, sale más alto de lo real).</li>
+     <li>3 saltos, uno por vídeo, con 30 s de pausa. La app se queda con la media de los 2 mejores.</li>
+     <li>Siempre igual: después del calentamiento, mismo calzado y mismo suelo.</li></ol></details>
+   <div><div class="small muted" style="font-weight:600;margin-bottom:6px">¿Cómo lo grabaste?</div>
+    <div class="chips">${JF.map(x=>`<button class="chip" data-act="jf" data-f="${x.f}" style="${x.f===JV.f?"background:var(--ball);color:var(--ballInk)":"background:var(--surface2);color:var(--muted)"}">${x.n}</button>`).join("")}</div>
+    <p class="small muted" style="margin:6px 0 0">La cámara lenta del iPhone graba a 240 por defecto (Ajustes → Cámara → Grabar a cámara lenta).</p></div>
+   <label class="ghostbtn" style="text-align:center;cursor:pointer">🎥 Elegir el vídeo del salto<input type="file" id="jump-file" accept="video/*" hidden></label>
+   <div id="jump-ed" style="display:none;flex-direction:column;gap:10px">
+     <video id="jv" playsinline muted preload="auto" style="width:100%;max-height:46dvh;border-radius:16px;background:#000"></video>
+     <input type="range" id="jv-r" min="0" max="1000" value="0" aria-label="Mover el vídeo" style="width:100%">
+     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">${[[-10,"◀◀"],[-1,"◀ 1"],[1,"1 ▶"],[10,"▶▶"]].map(([s,n])=>`<button class="ghostbtn small" data-act="jv-step" data-s="${s}" aria-label="Mover ${s} fotogramas">${n}</button>`).join("")}</div>
+     <p class="small muted" style="margin:0">Busca con la barra y afina con ◀ 1 ▶ fotograma a fotograma.</p>
+     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+       <button class="ghostbtn small" data-act="jv-mark" data-m="t0" id="jv-t0">① Despegue<br><span class="muted">último fotograma con los pies en el suelo</span></button>
+       <button class="ghostbtn small" data-act="jv-mark" data-m="t1" id="jv-t1">② Aterrizaje<br><span class="muted">primer fotograma que toca el suelo</span></button></div>
+     <div id="jv-res" class="small" style="font-weight:600"></div>
+     <button class="ballbtn" data-act="jump-save" id="jv-save" disabled style="opacity:.5">Guardar este salto</button>
+   </div>
+   <div class="field"><label for="jump-man">¿Lo mediste con otra app? Escribe los cm</label><div style="display:flex;gap:8px;align-items:center"><input id="jump-man" inputmode="decimal" placeholder="—"><button class="chip" style="background:var(--court);color:var(--ink)" data-act="jump-man-save">Guardar</button></div></div>
+   <div id="jump-today">${jumpTodayHtml()}</div></div>`;
+  $("#layer").appendChild(el);
+}
+function jumpFps(){return JV.f>1?30:60}
+function jumpLoad(file){
+  if(JV.url)URL.revokeObjectURL(JV.url);
+  JV.url=URL.createObjectURL(file);JV.t0=JV.t1=null;
+  const v=$("#jv");$("#jump-ed").style.display="flex";
+  v.onseeked=jumpPaint;v.src=JV.url;v.load();
+  v.addEventListener("loadedmetadata",()=>{v.currentTime=Math.min(0.05,v.duration/2);jumpPaint()},{once:true});
+}
+function jumpPaint(){
+  const v=$("#jv");if(!v)return;
+  if(isFinite(v.duration)&&v.duration>0)$("#jv-r").value=Math.round(v.currentTime/v.duration*1000);
+  const f=t=>t==null?"—":t.toFixed(2).replace(".",",")+" s";
+  $("#jv-t0").innerHTML=`① Despegue<br><span class="${JV.t0!=null?"":"muted"}">${JV.t0!=null?"marcado en "+f(JV.t0):"último fotograma con los pies en el suelo"}</span>`;
+  $("#jv-t1").innerHTML=`② Aterrizaje<br><span class="${JV.t1!=null?"":"muted"}">${JV.t1!=null?"marcado en "+f(JV.t1):"primer fotograma que toca el suelo"}</span>`;
+  const r=jumpResult(), b=$("#jv-save");
+  $("#jv-res").innerHTML=r?r.html:"";b.disabled=!r||!r.ok;b.style.opacity=r&&r.ok?1:.5;
+}
+function jumpResult(){
+  if(JV.t0==null||JV.t1==null)return null;
+  const dv=JV.t1-JV.t0;if(dv<=0)return {ok:false,html:'<span style="color:var(--heart)">El aterrizaje tiene que ir después del despegue.</span>'};
+  const t=dv/JV.f, cm=jumpCm(t);
+  if(cm>=12&&cm<=85)return {ok:true,cm,html:`Vuelo ${Math.round(t*1000)} ms → <span style="color:var(--ball);font-size:22px">${fmtNum(cm)} cm</span>`};
+  const alt=JF.filter(x=>x.f!==JV.f).map(x=>({...x,cm:jumpCm(dv/x.f)})).find(x=>x.cm>=12&&x.cm<=85);
+  return {ok:false,html:`<span style="color:var(--warn)">Salen ${fmtNum(cm)} cm, que no cuadra.${alt?` Si lo grabaste con «${alt.n}» serían ${fmtNum(alt.cm)} cm: elige esa opción arriba.`:" Revisa los dos fotogramas."}</span>`};
+}
+function jumpSave(cm,src){
+  S.jumps=S.jumps||[];S.jumps.push({d:new Date().toISOString(),cm:Math.round(cm*10)/10,src});save();
+  JV.t0=JV.t1=null;if(JV.url){URL.revokeObjectURL(JV.url);JV.url=null}
+  const ed=$("#jump-ed");if(ed)ed.style.display="none";
+  const td=$("#jump-today");if(td)td.innerHTML=jumpTodayHtml();
+  toast(`Salto guardado: ${fmtNum(cm)} cm`);checkBadges();
+}
+function jumpStatusHtml(){
+  const s=jumpStatus();
+  if(!s.today)return "";
+  if(!s.lvl)return `<div class="small">📏 Salto de hoy: <b>${fmtNum(s.today.v)} cm</b>. Con 3 días medidos empiezo a compararte con tu media.</div>`;
+  const c=s.lvl==="verde"?"var(--ok)":s.lvl==="amarillo"?"var(--warn)":"var(--heart)";
+  const m=s.lvl==="verde"?"tus piernas están frescas.":s.lvl==="amarillo"?"llegas algo cargado: haz la sesión, pero deja una repetición más en reserva (RIR +1) en lo pesado.":"tus piernas no se han recuperado. Hoy versión corta y sin buscar marcas en saltos ni sprints.";
+  return `<div class="small" style="color:${c};font-weight:600">📏 Salto de hoy: ${fmtNum(s.today.v)} cm (${s.pct>0?"+":""}${s.pct} % frente a tu media de ${fmtNum(s.b)}): ${m}</div>`;
+}
+function jumpCard(){
+  const days=jumpDays();
+  if(!days.length)return `<section class="card" style="display:flex;flex-direction:column;gap:8px"><div class="eyebrow">Tu salto</div>
+    <p class="small" style="margin:0">Mide tu potencia de piernas con la cámara lenta del iPhone: 3 saltos antes de las sesiones A y D (30 segundos). Te dice si de verdad ganas potencia y, si un día saltas bastante menos que tu media, que hoy toca bajar el ritmo.</p>
+    <button class="ballbtn" style="font-size:18px;padding:13px" data-act="jump-open">📏 Medir mi salto</button></section>`;
+  const first=days[0], last=days.at(-1), best=days.reduce((a,x)=>x.v>a.v?x:a,days[0]), diff=Math.round((last.v-first.v)*10)/10;
+  return `<section class="card" style="display:flex;flex-direction:column;gap:10px"><div class="eyebrow">Tu salto</div>
+    <div class="best"><b>${fmtNum(last.v)}</b><span class="muted" style="font-weight:600">cm</span><span class="small muted" style="margin-left:auto">${last.d.toLocaleDateString("es-ES",{day:"numeric",month:"short"})}</span></div>
+    <div class="small muted" style="margin-top:-6px">Mejor día: ${fmtNum(best.v)} cm${days.length>1?` · desde el ${first.d.toLocaleDateString("es-ES",{day:"numeric",month:"short"})}: <b style="color:${diff>=2?"var(--ok)":diff<=-2?"var(--heart)":"var(--muted)"}">${diff>0?"+":""}${fmtNum(diff)} cm</b>${Math.abs(diff)<2?" (aún dentro del error de la medida)":diff>=2?" de mejora real":""}`:""}</div>
+    ${days.length>1?lineChart(days.map(x=>({d:x.d,v:x.v})),{tight:true}):""}
+    ${jumpStatusHtml()}
+    <button class="ghostbtn small" data-act="jump-open">📏 Medir el salto</button></section>`;
+}
+
+/* ============ DIARIO DE PARTIDO: lo que pasa en pista manda sobre el gimnasio ============ */
+const FAILS=[
+ {k:"paso",n:"Primer paso / llegar a la red",r:"Lo trabajan la A (salidas laterales y sprint en rampa) y la D (reacción). Si se repite, subo una serie de salidas."},
+ {k:"pared",n:"Frenar y salir de la pared",r:"Frenadas y cambios de dirección: los de la D. Si sigue, meto frenadas excéntricas también en la A."},
+ {k:"lateral",n:"Desplazamiento lateral",r:"Patinador y salidas laterales (A y D). Fíjate en el split-step: el saltito justo cuando golpea el rival."},
+ {k:"aire",n:"Bandeja y remate",r:"Potencia de hombro y core del golpe (B y C): push press, lanzamientos y landmine."},
+ {k:"final",n:"Cansancio al final",r:"Resistencia: el intervalo en bici de la D. Si se repite, añado aeróbico suave el miércoles."},
+ {k:"rodilla",n:"Rodilla",r:"Si molesta dos partidos seguidos, quitamos saltos y frenadas esa semana y que la vea tu fisio."},
+ {k:"brazo",n:"Codo u hombro",r:"El bloque de codo y hombro de la C, cada semana sin falta. Si duele al golpear, que lo vea tu fisio."},
+ {k:"glucosa",n:"Glucosa",r:"Apunta la glucosa antes y después y llévale el informe a tu endocrino: es justo lo que necesita ver."},
+ {k:"cabeza",n:"Concentración",r:"Mira cómo dormiste y tu glucosa ese día: con la glucosa baja o alta también se piensa peor."}];
+let PL={kind:"Partido",res:null,legs:null,move:null,fails:[],edit:null};
+function openPadelLog(editId){
+  document.querySelector("#padellog")?.remove();
+  const w=editId?S.health.workouts.find(x=>x.id===editId):null, now=new Date(), st=w?new Date(w.start):null;
+  PL={kind:w?padelKind(w):"Partido",res:w?.res??null,legs:w?.legs??null,move:w?.move??null,fails:(w?.fails||[]).slice(),edit:w?w.id:null};
+  const d=st?localKey(st):dayKey(now), hh=st?`${String(st.getHours()).padStart(2,"0")}:${String(st.getMinutes()).padStart(2,"0")}`:String(Math.max(0,now.getHours()-2)).padStart(2,"0")+":00";
+  const val=v=>v==null?"":esc(fmtNum(v));
   const el=document.createElement("div");el.className="sheet";el.id="padellog";
   el.innerHTML=`<div class="panel" role="dialog" aria-modal="true" aria-label="Apuntar pádel">
-   <div style="display:flex;justify-content:space-between;align-items:center"><h2 class="title" style="font-size:28px">🎾 Apuntar pádel</h2><button class="iconbtn" data-act="padel-close" aria-label="Cerrar">${ICON.x}</button></div>
+   <div style="display:flex;justify-content:space-between;align-items:center"><h2 class="title" style="font-size:28px">🎾 ${w?"Cómo fue":"Apuntar pádel"}</h2><button class="iconbtn" data-act="padel-close" aria-label="Cerrar">${ICON.x}</button></div>
    <div class="chips">${["Partido","Entreno","Torneo"].map(k=>`<button class="chip" data-act="padel-kind" data-k="${k}" style="${k===PL.kind?"background:var(--ball);color:var(--ballInk)":"background:var(--surface2);color:var(--muted)"}">${k==="Entreno"?"Entreno con entrenador":k==="Torneo"?"Competición":"Partido amistoso"}</button>`).join("")}</div>
-   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+   <div style="display:grid;grid-template-columns:1.5fr 1fr .8fr;gap:8px">
      <div class="field"><label for="pl-d">Día</label><input type="date" id="pl-d" value="${d}"></div>
      <div class="field"><label for="pl-h">Empieza</label><input type="time" id="pl-h" value="${hh}"></div>
-     <div class="field"><label for="pl-m">Minutos</label><input id="pl-m" inputmode="numeric" value="90"></div></div>
+     <div class="field"><label for="pl-m">Minutos</label><input id="pl-m" inputmode="numeric" value="${w?w.minutes:90}"></div></div>
    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-     <div class="field"><label for="pl-r">Esfuerzo 1-10</label><input id="pl-r" inputmode="numeric" placeholder="7"></div>
-     <div class="field"><label for="pl-gb">Glucosa antes</label><input id="pl-gb" inputmode="numeric" placeholder="mg/dL"></div>
-     <div class="field"><label for="pl-ga">Glucosa después</label><input id="pl-ga" inputmode="numeric" placeholder="mg/dL"></div></div>
+     <div class="field"><label for="pl-r">Esfuerzo 1-10</label><input id="pl-r" inputmode="numeric" placeholder="7" value="${val(w?.rpe)}"></div>
+     <div class="field"><label for="pl-gb">Glucosa antes</label><input id="pl-gb" inputmode="numeric" placeholder="mg/dL" value="${val(w?.gBefore)}"></div>
+     <div class="field"><label for="pl-ga">Glucosa después</label><input id="pl-ga" inputmode="numeric" placeholder="mg/dL" value="${val(w?.gAfter)}"></div></div>
    <p class="small muted" style="margin:0">Si importas la glucosa de LibreView, las de antes y después no hacen falta: la app las saca del sensor.</p>
+   <div style="border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:10px">
+     <div style="font-weight:700">Cómo fue <span class="small muted" style="font-weight:500">· 20 segundos, opcional</span></div>
+     <div class="chips">${["Gané","Perdí","Sin resultado"].map(v=>`<button class="chip" data-act="pl-set" data-k="res" data-v="${v}" aria-pressed="${PL.res===v}" style="${plOn("res",v)}">${v}</button>`).join("")}</div>
+     ${plScale("legs","Muy pesadas","Frescas")}
+     ${plScale("move","Nunca","A todas")}
+     <div><div class="small" style="font-weight:600;margin-bottom:6px">¿Qué te falló? <span class="muted" style="font-weight:500">(marca las que quieras)</span></div>
+       <div class="chips" style="flex-wrap:wrap">${FAILS.map(f=>`<button class="chip" data-act="pl-fail" data-k="${f.k}" aria-pressed="${PL.fails.includes(f.k)}" style="background:${PL.fails.includes(f.k)?"var(--court)":"var(--surface2)"};color:${PL.fails.includes(f.k)?"var(--ink)":"var(--muted)"}">${esc(f.n)}</button>`).join("")}</div></div>
+     <div class="field"><label for="pl-note">Nota (opcional)</label><input id="pl-note" style="font:500 15px var(--body)" placeholder="Ej.: me costaba salir de la pared" value="${esc(w?.note||"")}"></div></div>
    <button class="ballbtn" data-act="padel-save">Guardar</button></div>`;
   $("#layer").appendChild(el);
 }
@@ -1584,8 +1721,68 @@ function savePadelLog(){
   if(!d||!(m>0)){toast("Pon el día y los minutos");return}
   const st=new Date(`${d}T${h}:00`); if(isNaN(st)){toast("Fecha no válida");return}
   const n=v=>{v=parseFloat((v||"").replace(",","."));return isFinite(v)?v:null};
-  S.health.workouts.push({id:"m"+st.getTime(),src:"manual",type:"Pádel · "+PL.kind,kind:PL.kind,padel:true,start:st.toISOString(),minutes:m,rpe:n($("#pl-r").value),gBefore:n($("#pl-gb").value),gAfter:n($("#pl-ga").value)});
-  save();$("#padellog")?.remove();toast("Pádel apuntado");render();checkBadges();
+  const rec={type:"Pádel · "+PL.kind,kind:PL.kind,padel:true,start:st.toISOString(),minutes:m,rpe:n($("#pl-r").value),gBefore:n($("#pl-gb").value),gAfter:n($("#pl-ga").value),
+    res:PL.res,legs:PL.legs,move:PL.move,fails:PL.fails.slice(),note:($("#pl-note").value||"").trim()||null};
+  const w=PL.edit&&S.health.workouts.find(x=>x.id===PL.edit);
+  if(w)Object.assign(w,rec);else S.health.workouts.push({id:"m"+st.getTime(),src:"manual",...rec});
+  save();$("#padellog")?.remove();toast(w?"Partido actualizado":"Pádel apuntado");render();checkBadges();
+}
+const isDiary=w=>w.legs!=null||w.res!=null;
+function plScale(k,lo,hi){return `<div><div class="small muted" style="display:flex;justify-content:space-between"><span style="color:var(--text);font-weight:600">${k==="legs"?"Piernas":"¿Llegabas a las bolas?"}</span><span>${lo} → ${hi}</span></div>
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:4px">${[1,2,3,4,5].map(v=>`<button data-act="pl-set" data-k="${k}" data-v="${v}" aria-pressed="${PL[k]===v}" style="padding:9px 0;border-radius:10px;font-weight:700;${plOn(k,v)}">${v}</button>`).join("")}</div></div>`}
+function plCol(k,v){if(PL[k]!==v)return ["var(--surface2)","var(--muted)"];if(k==="res")return ["var(--ball)","var(--ballInk)"];return [v<=2?"var(--heart)":v===3?"var(--warn)":"var(--ok)","var(--ink)"]}
+function plOn(k,v){const [b,c]=plCol(k,v);return `background:${b};color:${c}`}
+function plPaint(){
+  document.querySelectorAll("[data-act=pl-set]").forEach(b=>{const k=b.dataset.k,v=k==="res"?b.dataset.v:+b.dataset.v;b.setAttribute("aria-pressed",PL[k]===v);const [bg,c]=plCol(k,v);b.style.background=bg;b.style.color=c});
+  document.querySelectorAll("[data-act=pl-fail]").forEach(b=>{const on=PL.fails.includes(b.dataset.k);b.setAttribute("aria-pressed",on);b.style.background=on?"var(--court)":"var(--surface2)";b.style.color=on?"var(--ink)":"var(--muted)"});
+}
+function padelInsightsCard(){
+  const now=new Date(), since=addDays(now,-60);
+  const pad=S.health.workouts.filter(w=>w.padel&&!dupPadel(w)&&new Date(w.start)>=since).sort((a,b)=>new Date(b.start)-new Date(a.start));
+  const logs=pad.filter(isDiary), pending=pad.filter(w=>!isDiary(w)&&now-new Date(w.start)<10*864e5).slice(0,3);
+  const pendHtml=pending.length?`<div style="display:flex;flex-direction:column;gap:6px">${pending.map(w=>`<div class="row" style="padding:4px 0"><span class="small">${esc(KIND_LABEL[padelKind(w)]||"Pádel")} · ${new Date(w.start).toLocaleDateString("es-ES",{weekday:"short",day:"numeric",month:"short"})} · ${w.minutes}'</span><button class="chip" style="background:var(--ball);color:var(--ballInk)" data-act="padel-diary" data-id="${esc(w.id)}">Contar cómo fue</button></div>`).join("")}</div>`:"";
+  if(!logs.length)return `<section class="card" style="display:flex;flex-direction:column;gap:8px"><div class="eyebrow">Tu pádel · lo que veo</div>
+    <p class="small" style="margin:0">Al apuntar un partido, cuéntame en 20 segundos cómo fue: resultado, piernas, si llegabas a las bolas y qué te falló. Con 3 partidos empiezo a ver patrones y ajusto el gimnasio a lo que te pasa en pista.</p>${pendHtml}
+    ${pending.length?"":`<button class="ghostbtn small" data-act="padel-log">🎾 Apuntar pádel</button>`}</section>`;
+  const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null, f1=v=>fmtNum(Math.round(v*10)/10);
+  const W=logs.filter(w=>w.res==="Gané").length, L=logs.filter(w=>w.res==="Perdí").length;
+  const legs=avg(logs.filter(w=>w.legs).map(w=>w.legs)), move=avg(logs.filter(w=>w.move).map(w=>w.move));
+  const cnt={};logs.forEach(w=>(w.fails||[]).forEach(k=>cnt[k]=(cnt[k]||0)+1));
+  const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,2).map(([k,c])=>({...FAILS.find(f=>f.k===k),cnt:c})).filter(x=>x.k);
+  /* ¿Pierna en las 30 h anteriores? */
+  const legsBefore=w=>S.sessions.some(s=>s.status!=="en curso"&&LEGS.has(gymIdOf(s))&&new Date(w.start)-new Date(s.start)>0&&new Date(w.start)-new Date(s.start)<30*36e5);
+  const aL=logs.filter(w=>w.legs&&legsBefore(w)), aN=logs.filter(w=>w.legs&&!legsBefore(w));
+  let legsTxt="";
+  if(aL.length>=2&&aN.length>=2){const x=avg(aL.map(w=>w.legs)),y=avg(aN.map(w=>w.legs));
+    legsTxt=x<=y-0.7?`Después de un día de pierna llegas con las piernas peor (${f1(x)} frente a ${f1(y)}). Lo vigilo: si se mantiene, la pierna irá más lejos de tus partidos.`:`Hacer pierna el día antes no te está quitando piernas en pista (${f1(x)} frente a ${f1(y)}). Bien.`}
+  const gl=logs.filter(w=>w.gBefore!=null&&w.gAfter!=null), gd=gl.length>=3?avg(gl.map(w=>w.gAfter-w.gBefore)):null;
+  const tile=(v,l)=>`<div style="background:var(--surface2);border-radius:14px;padding:10px;text-align:center"><div class="num" style="font:700 24px var(--body)">${v}</div><div class="small muted">${l}</div></div>`;
+  return `<section class="card" style="display:flex;flex-direction:column;gap:10px"><div class="eyebrow">Tu pádel · lo que veo</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">${tile(W+L?Math.round(W/(W+L)*100)+" %":"—",`ganados · ${W}-${L}`)}${tile(legs?f1(legs):"—","piernas /5")}${tile(move?f1(move):"—","llegar /5")}</div>
+    ${logs.length<3?`<p class="small muted" style="margin:0">Llevas ${logs.length} ${logs.length===1?"partido":"partidos"} con diario. Con 3 empiezo a sacar conclusiones.</p>`:""}
+    ${top.length?top.map(t=>`<div class="small"><b>${esc(t.n)}</b> <span class="muted">· ${t.cnt===1?"1 partido":t.cnt+" partidos"} de ${logs.length}</span><div style="color:var(--text)">${esc(t.r)}</div></div>`).join(""):logs.length>=3?'<p class="small" style="margin:0;color:var(--ok)">No has marcado fallos físicos: el gimnasio va en la buena dirección.</p>':""}
+    ${legsTxt?`<p class="small" style="margin:0">${legsTxt}</p>`:""}
+    ${gd!=null?`<p class="small" style="margin:0">💧 En los partidos tu glucosa ${gd<0?"baja":"sube"} una media de ${Math.abs(Math.round(gd))} mg/dL de principio a fin.</p>`:""}
+    ${pendHtml}
+    <button class="ghostbtn small" data-act="padel-log">🎾 Apuntar pádel</button></section>`;
+}
+
+/* ============ TU PAUTA DEL ENDOCRINO: la app solo te la recuerda, no la cambia ni la interpreta ============ */
+function endoBox(ctx){
+  const t=S.endo&&S.endo.txt;
+  if(!t)return `<button class="ghostbtn small" data-act="endo-open" style="text-align:left">🩺 Apunta la pauta de tu endocrino para ${ctx==="padel"?"jugar":"entrenar"} y te la recuerdo aquí</button>`;
+  return `<div style="background:var(--surface2);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:4px"><div class="small" style="display:flex;justify-content:space-between;align-items:center"><b>🩺 Tu pauta del endocrino</b><button class="chip" style="background:none;color:var(--court);padding:0" data-act="endo-open">Editar</button></div><div class="small" style="white-space:pre-wrap;color:var(--text)">${esc(t)}</div></div>`;
+}
+function openEndo(){
+  document.querySelector("#endo")?.remove();
+  const el=document.createElement("div");el.className="sheet";el.id="endo";
+  el.innerHTML=`<div class="panel" role="dialog" aria-modal="true" aria-label="Tu pauta del endocrino">
+   <div style="display:flex;justify-content:space-between;align-items:center"><h2 class="title" style="font-size:28px">🩺 Tu pauta</h2><button class="iconbtn" data-act="endo-close" aria-label="Cerrar">${ICON.x}</button></div>
+   <p class="small muted" style="margin:0">Escribe aquí, tal cual, lo que te diga tu endocrino para entrenar y jugar: qué hacer según la glucosa antes de empezar, durante los partidos largos y después. La app solo te lo enseña antes de cada sesión y partido: no lo cambia ni lo interpreta.</p>
+   <div class="field"><label for="endo-t">Pauta</label><textarea id="endo-t" rows="8" style="font:500 15px var(--body);resize:vertical" placeholder="Ej.: lo que me dijo el endocrino el día…">${esc((S.endo&&S.endo.txt)||"")}</textarea></div>
+   ${S.endo&&S.endo.d?`<p class="small muted" style="margin:0">Última actualización: ${new Date(S.endo.d).toLocaleDateString("es-ES",{day:"numeric",month:"long",year:"numeric"})}</p>`:""}
+   <button class="ballbtn" data-act="endo-save">Guardar</button></div>`;
+  $("#layer").appendChild(el);
 }
 
 /* Informe para el endocrino (pantalla imprimible → PDF) */
@@ -1653,8 +1850,11 @@ function openReport(){
 }
 
 /* ============ NOVEDADES Y AJUSTES ============ */
-const APP_VERSION="2026.11.24";
+const APP_VERSION="2026.11.24b";
 const CHANGELOG=[
+ ["📏","Mide tu salto con la cámara lenta del iPhone: ves si ganas potencia y, si un día saltas bastante menos que tu media, la app te baja la sesión (Progreso y antes de la A y la D)."],
+ ["📝","Diario de partido: resultado, piernas, si llegabas a las bolas y qué te falló. Con 3 partidos, la app te dice qué trabajar en el gimnasio (Progreso → Tu pádel)."],
+ ["🩺","Tu pauta del endocrino: la escribes una vez y te la recuerda antes de entrenar y de jugar (Ajustes)."],
  ["🗓️","Cada día de gimnasio, «Hoy» te pregunta si juegas al pádel y te recomienda qué hacer: la sesión que toca, adelantar una de tren superior o solo movilidad."],
  ["🎾","Si apuntas un partido el día que tocaba gimnasio, «Hoy» te dice qué hacer con la sesión y que al día siguiente te reorganiza la semana."],
  ["🏅","Logros con medallas: sesiones, semanas completas, récords, horas de pádel, centímetros de cintura… (Progreso)."],
@@ -1685,6 +1885,7 @@ function openSettings(){
    <div style="display:flex;justify-content:space-between;align-items:center"><h2 class="title" style="font-size:28px">Ajustes</h2><button class="iconbtn" data-act="settings-close" aria-label="Cerrar">${ICON.x}</button></div>
    <button class="ghostbtn" data-act="whatsnew">✨ Novedades de esta versión</button>
    <button class="ghostbtn" data-act="help-rir">❓ Qué son el RIR y el RPE</button>
+   <button class="ghostbtn" data-act="endo-open">🩺 Mi pauta del endocrino</button>
    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="ghostbtn small" data-act="backup">💾 Guardar copia</button><label class="ghostbtn small" style="text-align:center;cursor:pointer">Restaurar copia<input type="file" id="restore" accept="application/json,.json" hidden></label></div>
    <button class="ghostbtn small" data-act="export">Copiar mis registros para tu entrenador</button>
    <div class="small muted">Tus datos viven solo en este iPhone (${used} KB). Nadie más los ve. Versión ${APP_VERSION}.</div>
@@ -1777,6 +1978,19 @@ document.addEventListener("click",e=>{
     case "padel-close":$("#padellog")?.remove();break;
     case "padel-kind":PL.kind=t.dataset.k;document.querySelectorAll("[data-act=padel-kind]").forEach(b=>{const on=b===t;b.style.background=on?"var(--ball)":"var(--surface2)";b.style.color=on?"var(--ballInk)":"var(--muted)"});break;
     case "padel-save":savePadelLog();break;
+    case "padel-diary":openPadelLog(t.dataset.id);break;
+    case "pl-set":{const k=t.dataset.k,v=k==="res"?t.dataset.v:+t.dataset.v;PL[k]=PL[k]===v?null:v;plPaint();break}
+    case "pl-fail":{const k=t.dataset.k;PL.fails=PL.fails.includes(k)?PL.fails.filter(x=>x!==k):[...PL.fails,k];plPaint();break}
+    case "jump-open":if(P&&!P.start)P.gText=$("#g-pre")?.value||P.gText;openJump();break;
+    case "jump-close":{if(JV.url){URL.revokeObjectURL(JV.url);JV.url=null}$("#jump")?.remove();if(P&&!P.start)drawPre();else render();break}
+    case "jf":JV.f=+t.dataset.f;document.querySelectorAll("[data-act=jf]").forEach(b=>{const on=+b.dataset.f===JV.f;b.style.background=on?"var(--ball)":"var(--surface2)";b.style.color=on?"var(--ballInk)":"var(--muted)"});if($("#jv")&&JV.url)jumpPaint();break;
+    case "jv-step":{const v=$("#jv");if(v&&isFinite(v.duration)){v.pause();v.currentTime=Math.max(0,Math.min(v.duration,v.currentTime+(+t.dataset.s)/jumpFps()))}break}
+    case "jv-mark":{const v=$("#jv");if(v){JV[t.dataset.m]=v.currentTime;jumpPaint()}break}
+    case "jump-save":{const r=jumpResult();if(r&&r.ok)jumpSave(r.cm,"video");break}
+    case "jump-man-save":{const v=parseFloat(($("#jump-man").value||"").replace(",","."));if(!(v>=10&&v<=90)){toast("Escribe los cm (entre 10 y 90)");break}$("#jump-man").value="";jumpSave(v,"manual");break}
+    case "endo-open":if(P&&!P.start)P.gText=$("#g-pre")?.value||P.gText;openEndo();break;
+    case "endo-close":$("#endo")?.remove();break;
+    case "endo-save":{const v=($("#endo-t").value||"").trim();S.endo=v?{txt:v,d:new Date().toISOString()}:null;save();$("#endo")?.remove();toast(v?"Pauta guardada":"Pauta borrada");if(P&&!P.start)drawPre();else render();break}
     case "padel-del":S.health.workouts=S.health.workouts.filter(w=>w.id!==t.dataset.id);save();render();break;
     case "gl-report":openReport();break;
     case "rep-days":repDays=+t.dataset.d;openReport();break;
@@ -1793,6 +2007,8 @@ document.addEventListener("input",e=>{
   if(e.target.id==="f-min"&&F){$("#f-load").textContent=F.rpe*(parseInt(e.target.value,10)||0)}
   if(e.target.id==="imp-txt")$("#imp-err").textContent="";
   if(e.target.id==="restore"&&e.target.files[0])restore(e.target.files[0]);
+  if(e.target.id==="jump-file"&&e.target.files[0]){jumpLoad(e.target.files[0]);e.target.value=""}
+  if(e.target.id==="jv-r"){const v=$("#jv");if(v&&isFinite(v.duration)){v.pause();v.currentTime=e.target.value/1000*v.duration}}
   if(e.target.classList&&e.target.classList.contains("ph-input")&&e.target.files[0]){const pose=e.target.dataset.pose,f=e.target.files[0];
     shrink(f).then(blob=>{const date=localKey(new Date());const old=PH.find(p=>p.date===date&&p.pose===pose);return phPut({id:old?old.id:"p"+Date.now()+pose,date,pose,blob})}).then(async()=>{PH=await phAll();phURL.clear();S.lastPhotos=localKey(new Date());save();$("#phnew")?.remove();openPhotoNew();toast("Foto guardada")}).catch(()=>toast("No se pudo guardar la foto"));e.target.value=""}
   if(e.target.id==="ph-a"||e.target.id==="ph-b"){openPhotoCompare($("#ph-a").value,$("#ph-b").value)}
