@@ -209,6 +209,7 @@ nav.tabs button[aria-selected="true"]{color:var(--ball)}
 const PHASES=[{k:"A",n:"Acumulación",g:"Base: fuerza en tus ejercicios ancla, rodilla y aeróbico"},{k:"T",n:"Transformación",g:"Convertir la base en potencia y velocidad"},{k:"R",n:"Realización",g:"Intensidad de partido, menos volumen"}];
 const BLOCK_START=new Date(2026,10,23);
 const WEEK_INFO={1:{t:"Semana 1 · aprendes los pesos",rir:1,sets:0},2:{t:"Semana 2 · carga normal",rir:0,sets:0},3:{t:"Semana 3 · la más exigente",rir:-1,sets:0},4:{t:"Semana 4 · descarga",rir:2,sets:-1}};
+function blockWeekRaw(d=new Date()){return Math.floor(Math.round((monday(d)-monday(BLOCK_START))/86400000)/7)+1}
 function blockWeek(d=new Date()){const days=Math.round((monday(d)-monday(BLOCK_START))/86400000);return Math.min(4,Math.max(1,Math.floor(days/7)+1))}
 const BLOCK={phase:"A",get week(){return blockWeek()},weeks:4};
 
@@ -386,6 +387,12 @@ const TESTS=["400 m","1,5 km","Sentadillas en 1 minuto","Burpees en 1 minuto","D
 const KEY="planpadel.v1";
 const load=()=>{try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return {}}};
 let S=Object.assign({sessions:[],sets:[],health:{glucose:[],workouts:[]}},load());
+/* Estado guardado por versiones antiguas o copias: rellena lo que falte para que nada se rompa */
+function fixState(){["sessions","sets"].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[]});
+  S.health=Object.assign({glucose:[],workouts:[]},S.health&&typeof S.health==="object"?S.health:{});
+  ["glucose","workouts"].forEach(k=>{if(!Array.isArray(S.health[k]))S.health[k]=[]});
+  if(S.body&&!Array.isArray(S.body))S.body=[];if(S.jumps&&!Array.isArray(S.jumps))S.jumps=[]}
+fixState();
 let saveWarned=false;
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));saveWarned=false}catch(e){
   /* Memoria llena: quita la glucosa más antigua y lo reintenta; si aún no cabe, avisa */
@@ -411,6 +418,8 @@ const effCompete=()=>{const o=dayOpts();return o.compete!=null?!!o.compete:!!com
 const today=()=>{const o=dayOpts(),sw=o.swap&&DAYS.find(x=>x.id===o.swap),nat=DAYS[(new Date().getDay()+6)%7];
   let base=sw||(compOn(new Date())&&nat.gym?DAYS[5]:nat); /* el día que compites, nada de gimnasio: calentamiento competitivo */
   if(!sw&&base.id==="A"&&effCompete())base=SESSION_B; /* la víspera de competir, nada de pierna pesada */
+  if(!sw&&base===nat&&GYM_IDS.includes(nat.id)){const st=weekState();if(st.doneIds.has(nat.id)&&st.doneToday!==nat.id){ /* ya la hiciste esta semana (la adelantaste) */
+    const p=planWeek().plan[st.todayWd];base=p&&p!==nat.id?DAYS.find(x=>x.id===p):RECOVERY}}
   return materialize(base,new Date(),{...o,compete:effCompete()})};
 const yt=q=>"https://www.youtube.com/results?search_query="+encodeURIComponent(q);
 /* Vídeos comprobados (se pueden ver dentro de la app). Si eliges otro, se guarda en S.videos. */
@@ -476,7 +485,7 @@ function planWeek(now=new Date()){
     if(isToday&&st.doneToday){plan[wd]=st.doneToday;prevLegs=LEGS.has(st.doneToday);continue}
     const dDay=addDays(st.m,wd-1);
     if(compOn(dDay)){prevLegs=false;continue} /* día de competición: sin gimnasio */
-    const busy=isToday?o.matchSoon===true:DAYS[wd-1].kinds.includes("padel");
+    const busy=isToday?(o.matchSoon===true||playedToday(now)):DAYS[wd-1].kinds.includes("padel");
     const preComp=isToday?effCompete():!!compOn(addDays(dDay,1));
     let pick=null;
     for(const id of queue){
@@ -490,6 +499,7 @@ function planWeek(now=new Date()){
   return {plan,dropped:queue,st};
 }
 const shortTitle=id=>DAYS.find(d=>d.id===id).title;
+const playedToday=(now=new Date())=>workoutsOn(now).some(w=>w.padel&&new Date(w.start)<=now);
 /* Hoy ya jugaste al pádel y la sesión de gimnasio sigue sin hacer: qué pasa con ella */
 function playedTodayCard(){
   const now=new Date(), d=today(), st=weekState(now);
@@ -500,7 +510,7 @@ function playedTodayCard(){
   const tmw=dayName(st.todayWd+1);
   return `<section class="card coach" style="display:flex;flex-direction:column;gap:8px"><div class="eyebrow" style="color:var(--ball)">Hoy ya jugaste</div>
     <p style="margin:0">Apuntaste ${esc((KIND_LABEL[padelKind(w)]||"pádel").toLowerCase())} · ${mins} min. ${legs?`<b>No hagas hoy la ${d.id}</b>: pierna pesada después de jugar es mucha carga y mañana lo notarías en pista.`:`La ${d.id} es de tren superior: si te ves bien, puedes hacerla. Si llegas cansado, déjala.`}</p>
-    <p class="small" style="margin:0">No tienes que hacer nada más: <b>mañana ${tmw}</b>, al abrir la app, te sale la tarjeta «Reorganizar tu semana». Te pregunta si juegas ese día y te coloca la ${d.id} donde mejor encaje.</p>
+    <p class="small" style="margin:0">${st.todayWd===5?`Esta semana ya no da tiempo a recuperar la ${d.id}, y no pasa nada: el lunes empieza otra y seguimos.`:`No tienes que hacer nada más: <b>mañana ${tmw}</b>, al abrir la app, te sale la tarjeta «Reorganizar tu semana». Te pregunta si juegas ese día y te coloca la ${d.id} donde mejor encaje.`}</p>
     ${isDiary(w)?"":`<button class="ghostbtn small" style="border:1px solid var(--ball);color:var(--ball)" data-act="padel-diary" data-id="${esc(w.id)}">Cuéntame cómo fue (20 s)</button>`}
     <button class="ballbtn" style="font-size:18px;padding:13px" data-act="plan-apply" data-id="X">Hoy, solo movilidad (20')</button>
   </section>`;
@@ -518,7 +528,7 @@ function askDayHtml(eyebrow,intro){
 function dailyCard(st){
   if(st.todayWd>5||st.doneToday)return "";
   const now=new Date(), d=today(), gid=gymIdOf({dayId:d.id});
-  if(!GYM_IDS.includes(gid))return "";
+  if(!GYM_IDS.includes(gid)||(st.doneIds.has(gid)&&st.doneToday!==gid))return "";
   if(workoutsOn(now).some(w=>w.padel&&new Date(w.start)<=now))return ""; /* ya jugó: lo cuenta «Hoy ya jugaste» */
   const o=dayOpts(), legs=LEGS.has(gid);
   if(o.matchSoon===undefined)return askDayHtml("Tu día",`Hoy toca <b>${esc(d.title)}</b>. Para recomendarte bien:`);
@@ -530,31 +540,40 @@ function dailyCard(st){
     return card("Hoy juegas pronto",`<p style="margin:0">Juegas en menos de 6 horas: <b>hoy nada de pierna</b>. Llegarías al partido con las piernas cargadas y lo notarías en pista.</p>
       ${alt?`<button class="ballbtn" style="font-size:18px;padding:13px" data-act="plan-apply" data-id="${alt}">Adelantar la ${alt} (tren superior)</button>`:""}
       <button class="${alt?"ghostbtn":"ballbtn"}" style="font-size:${alt?16:18}px;padding:13px" data-act="plan-apply" data-id="X">Hoy, solo movilidad (20')</button>
-      <p class="small muted" style="margin:0">La ${gid} no se pierde: mañana, al abrir la app, te la coloco donde mejor encaje.</p>${endoBox("padel")}`);
+      <p class="small muted" style="margin:0">${st.todayWd===5?`Esta semana ya no da tiempo a recuperar la ${gid}, y no pasa nada: el lunes empieza otra.`:`La ${gid} no se pierde: mañana, al abrir la app, te la coloco donde mejor encaje.`}</p>${endoBox("padel")}`);
   }
   const msg=o.matchSoon===true?`Hoy toca tren superior, así que puedes jugar sin problema. Deja un rato entre el gimnasio y el partido (mejor 2 horas o más) y <b>mide la glucosa antes de jugar</b>.`
     :o.matchLater?(legs?`Perfecto: haz la ${gid} por la mañana y deja 6 horas o más hasta el partido. <b>Mide la glucosa antes de jugar</b>: después de pierna puede bajar.`:`Perfecto: entrena con normalidad y <b>mide la glucosa antes de jugar</b>.`)
     :(legs?`Día ideal para la pierna: sin partido, puedes darlo todo en la ${gid}.`:`Sin partido hoy: entrena tranquilo la ${gid}.`);
   return card("Tu día",`<p style="margin:0">${msg}</p>${o.matchSoon===true||o.matchLater?endoBox("padel"):""}`);
 }
+/* Al contestar, si quedó algo pendiente, la app pone ya la sesión recomendada para hoy */
+function autoPlan(){
+  const st=weekState(), o=dayOpts();
+  if(!st.missed.length||st.doneToday||st.todayWd>5||compOn(new Date())||(o.swap&&!o.autoSwap))return;
+  const pick=planWeek().plan[st.todayWd], nat=DAYS[st.todayWd-1].id;
+  if(pick&&pick!==nat){setDayOpt("swap",pick);setDayOpt("autoSwap",true)}
+  else if(o.autoSwap){delete o.swap;delete o.autoSwap;S.opts[dayKey()]=o;save()}
+}
 function rescheduleCard(){
   const now=new Date(), st=weekState(now);
   if(!st.missed.length)return dailyCard(st);
   const miss=st.missed.map(id=>`<b>${esc(shortTitle(id))}</b> (${dayName(natWd(id))})`).join(" y ");
   if(st.todayWd>5)return `<section class="card coach"><div class="eyebrow" style="color:var(--ball)">Tu semana</div><p style="margin:6px 0 0">Esta semana se quedó sin hacer ${miss}. No la recuperes el fin de semana: el lunes empieza otra y seguimos. No pasa nada.</p></section>`;
-  if(st.doneToday)return "";
-  const o=dayOpts();
-  if(o.matchSoon===undefined)return askDayHtml("Reorganizar tu semana",`Te quedó pendiente ${miss}. Te digo qué hacer hoy, pero antes:`);
-  const {plan,dropped}=planWeek(now), cur=today().id, pick=plan[st.todayWd];
+  if(st.doneToday||compOn(now))return "";
+  const o=dayOpts(), played=playedToday(now), busyT=o.matchSoon===true||played;
+  if(o.matchSoon===undefined&&!played)return askDayHtml("Reorganizar tu semana",`Te quedó pendiente ${miss}. Te digo qué hacer hoy, pero antes:`);
+  const {plan,dropped}=planWeek(now), cur=gymIdOf({dayId:today().id}), pick=plan[st.todayWd];
   const rows=[];for(let wd=st.todayWd;wd<=5;wd++)rows.push(`<div class="row" style="padding:6px 0"><span style="font-weight:600;text-transform:capitalize">${wd===st.todayWd?"Hoy":dayName(wd)}</span><span class="small" style="text-align:right">${plan[wd]?esc(shortTitle(plan[wd])):'<span class="muted">Sin gimnasio · movilidad o descanso</span>'}</span></div>`);
-  const why=pick&&LEGS.has(pick)&&pick!==DAYS[st.todayWd-1].id?"Hoy puedes cargar pierna: la sesión de pierna es la que más velocidad te da.":(!pick||!LEGS.has(pick))&&st.missed.some(id=>LEGS.has(id))?(o.matchSoon?"Como juegas hoy, nada de pierna pesada: la dejamos para cuando llegues fresco.":"Hoy no toca pierna para no cargarla dos días seguidos o antes de tu entrenador."):"";
+  const why=pick&&LEGS.has(pick)&&pick!==DAYS[st.todayWd-1].id?"Hoy puedes cargar pierna: la sesión de pierna es la que más velocidad te da.":(!pick||!LEGS.has(pick))&&st.missed.some(id=>LEGS.has(id))?(busyT?(played?"Como ya has jugado hoy, nada de pierna pesada: la dejamos para cuando llegues fresco.":"Como juegas hoy, nada de pierna pesada: la dejamos para cuando llegues fresco."):"Hoy no toca pierna para no cargarla dos días seguidos o antes de tu entrenador."):"";
   return `<section class="card coach" style="display:flex;flex-direction:column;gap:8px"><div class="eyebrow" style="color:var(--ball)">Reorganizar tu semana</div>
-    <p style="margin:0">Te quedó pendiente ${miss}. Así queda tu semana${o.matchSoon?" (hoy juegas)":""}:</p>
+    <p style="margin:0">Te quedó pendiente ${miss}. Así queda tu semana${played?" (hoy ya jugaste)":o.matchSoon?" (hoy juegas)":""}:</p>
+    ${pick&&pick===cur&&pick!==DAYS[st.todayWd-1].id?`<p class="small" style="margin:0;color:var(--ok);font-weight:600">✓ Ya te he puesto la ${pick} para hoy: dale a «Empezar sesión».</p>`:""}
     <div>${rows.join("")}</div>
     ${dropped.length?`<p class="small muted" style="margin:0">Se queda fuera esta semana: ${dropped.map(id=>esc(shortTitle(id))).join(", ")}. No pasa nada: mejor una sesión menos que dos el mismo día.</p>`:""}
     ${why?`<p class="small" style="margin:0;color:var(--ball)">${why}</p>`:""}
     ${pick&&pick!==cur?`<button class="ballbtn" style="font-size:18px;padding:13px" data-act="plan-apply" data-id="${pick}">Hoy hago la ${pick}</button>`:!pick&&DAYS[st.todayWd-1].gym&&cur!=="X"?`<button class="ballbtn" style="font-size:18px;padding:13px" data-act="plan-apply" data-id="X">Hoy, solo movilidad</button>`:""}
-    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="chip" style="background:var(--surface2);color:var(--muted)" data-act="match-reset">Cambiar mi respuesta</button><button class="chip" style="background:var(--surface2);color:var(--muted)" data-act="skip-missed">No la voy a recuperar</button></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">${played?"":`<button class="chip" style="background:var(--surface2);color:var(--muted)" data-act="match-reset">Cambiar mi respuesta</button>`}<button class="chip" style="background:var(--surface2);color:var(--muted)" data-act="skip-missed">No la voy a recuperar</button></div>
   </section>`;
 }
 
@@ -606,7 +625,8 @@ function coachNotes(){
   const now=new Date(), wd=(now.getDay()+6)%7+1, N=[];
   const tom=new Date(now);tom.setDate(tom.getDate()+1);
   const todayS=sessionsOn(now);
-  if(wd===7){const w=blockWeek(tom);N.push({i:"📅",t:sameDay(tom,BLOCK_START)?`Mañana empieza el bloque 1. Semana 1: aprendes los pesos (te sobrarán repeticiones a propósito).`:`Mañana empieza la ${WEEK_INFO[w].t.toLowerCase()}.${w===4?" Descarga: menos series y más fácil, para llegar fresco al siguiente bloque.":w===3?" Es la semana más exigente: duerme bien y vigila la glucosa.":""}`})}
+  if(blockWeekRaw(now)>=4)N.push({i:"🧭",t:blockWeekRaw(now)>4?"El bloque 1 ha terminado. Pásale tus registros a tu entrenador para montar el bloque 2 (Transformación); mientras, sigue con esta semana suave.":"Última semana del bloque 1. Antes del lunes, pásale tus registros a tu entrenador para preparar el bloque 2."});
+  if(wd===7&&blockWeekRaw(tom)<=4){const w=blockWeek(tom);N.push({i:"📅",t:sameDay(tom,BLOCK_START)?`Mañana empieza el bloque 1. Semana 1: aprendes los pesos (te sobrarán repeticiones a propósito).`:`Mañana empieza la ${WEEK_INFO[w].t.toLowerCase()}.${w===4?" Descarga: menos series y más fácil, para llegar fresco al siguiente bloque.":w===3?" Es la semana más exigente: duerme bien y vigila la glucosa.":""}`})}
   const cToday=compOn(now), cNext=[1,2,3,4,5,6].map(i=>({i,c:compOn(addDays(now,i))})).find(x=>x.c&&!(cToday&&x.c.id===cToday.id));
   if(cToday)N.push({i:"🏆",t:`Hoy compites: ${cToday.name}. Nada de gimnasio: calentamiento competitivo antes de jugar. Mide la glucosa antes y entre partidos; con los nervios suele subir y después puede bajar. Si mañana repites, 10' de agua fría al terminar.`});
   else if(cNext)N.push({i:"🏆",t:`${cNext.i===1?"Mañana":"El "+addDays(now,cNext.i).toLocaleDateString("es-ES",{weekday:"long"})} tienes ${cNext.c.name}. La app ya lo tiene en cuenta: nada de pierna pesada la víspera${addDays(now,cNext.i).getDay()===6?" y el viernes, activación":""}. Duerme bien esos días.`});
@@ -907,7 +927,7 @@ function normalizeBody(){
     ["kg","fat","skm","waist"].forEach(k=>{if(b[k]!=null)b[k]=r2(b[k])});
     const k=localKey(new Date(b.d)),cur=by[k];
     if(!cur){by[k]={...b};return}
-    ["kg","fat","skm"].forEach(f=>{if(cur[f]==null&&b[f]!=null)cur[f]=b[f]}); if(b.waist!=null)cur.waist=b.waist;});
+    ["kg","fat","skm"].forEach(f=>{if(b[f]!=null&&(cur[f]==null||b.src==="manual"))cur[f]=b[f]}); if(b.waist!=null)cur.waist=b.waist; if(b.src==="manual")cur.src="manual";});
   S.body=Object.values(by).sort((a,b)=>new Date(a.d)-new Date(b.d)).slice(-1500);
 }
 function addBody(list){S.body=S.body||[];const before=new Set(S.body.map(b=>localKey(new Date(b.d))));
@@ -949,7 +969,7 @@ async function backup(){
 function restore(file){
   const r=new FileReader();
   r.onload=()=>{try{const d=JSON.parse(r.result);if(d.app!=="plan-padel"||!d.datos||!Array.isArray(d.datos.sessions))throw 0;
-    S=Object.assign({sessions:[],sets:[],health:{glucose:[],workouts:[]}},d.datos);GC=null;save();toast("Copia restaurada");render()}catch(e){toast("Ese archivo no es una copia de Plan Pádel")}};
+    S=Object.assign({sessions:[],sets:[],health:{glucose:[],workouts:[]}},d.datos);fixState();GC=null;save();toast("Copia restaurada");render()}catch(e){toast("Ese archivo no es una copia de Plan Pádel")}};
   r.readAsText(file);
 }
 function lineChart(pts,o={}){
@@ -988,10 +1008,10 @@ function prefill(step){
     const base=v.kg;
     if(prev.length){
       const minR=Math.min(...prev.map(s=>s.RIR)), avgR=prev.reduce((a,s)=>a+s.RIR,0)/prev.length;
-      const step=e.barbell?2.5:(v.kg>=10?2.5:1);
-      if(minR>=target+1&&avgR>=target+1.5){v.kg=snapKg(e,v.kg+step*2);P&&(P.hint={t:"up",txt:`Subo ${fmtNum(Math.round((v.kg-base)*100)/100)} kg: la última vez te sobraban repeticiones (RIR ${fmtNum(Math.round(avgR*10)/10)}).`})}
-      else if(minR>=target+1){v.kg=snapKg(e,v.kg+step);P&&(P.hint={t:"up",txt:`Subo ${fmtNum(Math.round((v.kg-base)*100)/100)} kg: la última vez lo hiciste con RIR ${fmtNum(Math.round(avgR*10)/10)}.`})}
-      else if(minR<target-1){v.kg=Math.max(0,snapKg(e,v.kg-step));P&&(P.hint={t:"down",txt:`Bajo ${fmtNum(Math.round((base-v.kg)*100)/100)} kg: la última vez llegaste muy justo (RIR ${minR}).`})}
+      const up=v.kg+kgStep(e,v.kg,1);
+      if(minR>=target+1&&avgR>=target+1.5){v.kg=snapKg(e,up+kgStep(e,up,1));P&&(P.hint={t:"up",txt:`Subo ${fmtNum(Math.round((v.kg-base)*100)/100)} kg: la última vez te sobraban repeticiones (RIR ${fmtNum(Math.round(avgR*10)/10)}).`})}
+      else if(minR>=target+1){v.kg=snapKg(e,up);P&&(P.hint={t:"up",txt:`Subo ${fmtNum(Math.round((v.kg-base)*100)/100)} kg: la última vez lo hiciste con RIR ${fmtNum(Math.round(avgR*10)/10)}.`})}
+      else if(minR<target-1){v.kg=Math.max(0,snapKg(e,v.kg-kgStep(e,v.kg,-1)));P&&(P.hint=v.kg<base?{t:"down",txt:`Bajo ${fmtNum(Math.round((base-v.kg)*100)/100)} kg: la última vez llegaste muy justo (RIR ${minR}).`}:{t:"same",txt:`La última vez llegaste muy justo (RIR ${minR}): hoy, si hace falta, haz una repetición menos${base===0?" o usa una goma de ayuda":""}.`})}
       else P&&(P.hint={t:"same",txt:`Mismo peso que la última vez: el RIR fue el que tocaba.`});
     }
   }
@@ -1420,13 +1440,13 @@ function importHealth(raw){
   let d; const txt=String(raw||"").trim();
   if(/^PLANPADEL/i.test(txt)||/^[WPGL]\|/m.test(txt))d=parseShortcutLines(txt);
   else{try{d=JSON.parse(txt)}catch(e){return "No parecen datos del atajo. Vuelve a ejecutarlo y pega lo que copia."}}
-  const gl=(d.glucose||[]).map(x=>({t:x.t||x.date,v:+(x.v??x.value)})).filter(x=>x.t&&isFinite(x.v));
+  const gl=(d.glucose||[]).map(x=>({t:x.t||x.date,v:+(x.v??x.value)})).filter(x=>x.t&&isFinite(x.v)&&!isNaN(new Date(x.t)));
   const PADEL=/tenis|tennis|pickleball|p[aá]del|squash|raqueta/i;
   const wo=(d.workouts||[]).map(w=>{const type=String(w.type||w.name||"Entrenamiento");const start=w.start||w.startDate;const end=w.end||w.endDate;
     const minutes=Math.round(+(w.minutes??(end?(new Date(end)-new Date(start))/60000:0)));
-    return {id:start+type,type:PADEL.test(type)?"Pádel":/funcional|functional|fuerza|strength/i.test(type)?"Gimnasio (funcional)":type,padel:PADEL.test(type),start,minutes,kcal:+w.kcal||null,hr:+w.hr||null}}).filter(w=>w.start&&w.minutes>0);
+    return {id:start+type,type:PADEL.test(type)?"Pádel":/funcional|functional|fuerza|strength/i.test(type)?"Gimnasio (funcional)":type,padel:PADEL.test(type),start,minutes,kcal:+w.kcal||null,hr:+w.hr||null}}).filter(w=>w.start&&!isNaN(new Date(w.start))&&w.minutes>0);
   const num=v=>v==null||v===""?null:(isFinite(+String(v).replace(",","."))?+String(v).replace(",","."):null);
-  const bd=(d.body||[]).map(b=>({d:b.t||b.d||b.date,kg:num(b.kg??b.weight),fat:num(b.fat),skm:num(b.skm??b.muscle)})).filter(b=>b.d&&(b.kg!=null||b.fat!=null||b.skm!=null))
+  const bd=(d.body||[]).map(b=>({d:b.t||b.d||b.date,kg:num(b.kg??b.weight),fat:num(b.fat),skm:num(b.skm??b.muscle)})).filter(b=>b.d&&!isNaN(new Date(b.d))&&(b.kg!=null||b.fat!=null||b.skm!=null))
     .map(b=>{if(b.fat!=null&&b.fat<1)b.fat=Math.round(b.fat*1000)/10;return b});
   if(!gl.length&&!wo.length&&!bd.length)return "No hay glucosa, entrenos ni datos de la báscula en esos datos.";
   const nb=bd.length?addBody(bd):0;
@@ -1728,7 +1748,7 @@ function savePadelLog(){
   if(w)Object.assign(w,rec);else S.health.workouts.push({id:"m"+st.getTime(),src:"manual",...rec});
   save();$("#padellog")?.remove();toast(w?"Partido actualizado":"Pádel apuntado");render();checkBadges();
 }
-const isDiary=w=>w.legs!=null||w.res!=null;
+const isDiary=w=>w.legs!=null||w.res!=null||w.move!=null||(w.fails&&w.fails.length>0)||!!w.note;
 function plScale(k,lo,hi){return `<div><div class="small muted" style="display:flex;justify-content:space-between"><span style="color:var(--text);font-weight:600">${k==="legs"?"Piernas":"¿Llegabas a las bolas?"}</span><span>${lo} → ${hi}</span></div>
   <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:4px">${[1,2,3,4,5].map(v=>`<button data-act="pl-set" data-k="${k}" data-v="${v}" aria-pressed="${PL[k]===v}" style="padding:9px 0;border-radius:10px;font-weight:700;${plOn(k,v)}">${v}</button>`).join("")}</div></div>`}
 function plCol(k,v){if(PL[k]!==v)return ["var(--surface2)","var(--muted)"];if(k==="res")return ["var(--ball)","var(--ballInk)"];return [v<=2?"var(--heart)":v===3?"var(--warn)":"var(--ok)","var(--ink)"]}
@@ -1851,8 +1871,9 @@ function openReport(){
 }
 
 /* ============ NOVEDADES Y AJUSTES ============ */
-const APP_VERSION="2026.11.24c";
+const APP_VERSION="2026.11.24d";
 const CHANGELOG=[
+ ["🛠️","Revisión a fondo: si contestas que no juegas, la app ya te pone la sesión recomendada; no te pide pierna si ya jugaste ese día; no repite la sesión que adelantaste; y si corriges el peso el mismo día, se queda el corregido."],
  ["↩️","Nuevo en el calentamiento de la D: retroceso al globo (paso cruzado y bandeja en sombra). En el modo reacción, la flecha hacia atrás es un globo. Y en el diario, nueva opción «Retroceder al globo»."],
  ["📏","Mide tu salto con la cámara lenta del iPhone: ves si ganas potencia y, si un día saltas bastante menos que tu media, la app te baja la sesión (Progreso y antes de la A y la D)."],
  ["📝","Diario de partido: resultado, piernas, si llegabas a las bolas y qué te falló. Con 3 partidos, la app te dice qué trabajar en el gimnasio (Progreso → Tu pádel)."],
@@ -1924,7 +1945,7 @@ document.addEventListener("click",e=>{
     case "imp-go":{const err=importHealth($("#imp-txt").value);if(err){$("#imp-err").textContent=err}else{$("#imp").remove();render()}break}
     case "export":exportData();break;
     case "backup":backup();break;
-    case "body-save":{const r={d:new Date().toISOString()};let ok=false,bad=false;BODYM.forEach(m=>{const v=$("#b-"+m.id).value.trim().replace(",",".");if(v){if(isFinite(+v)&&+v>0){r[m.id]=+v;ok=true}else bad=true}});
+    case "body-save":{const r={d:new Date().toISOString(),src:"manual"};let ok=false,bad=false;BODYM.forEach(m=>{const v=$("#b-"+m.id).value.trim().replace(",",".");if(v){if(isFinite(+v)&&+v>0){r[m.id]=+v;ok=true}else bad=true}});
       if(bad||!ok){toast("Escribe al menos un número");break}if(r.fat!=null&&r.fat>60){toast("La grasa va en %, por ejemplo 23,5");break}addBody([r]);save();toast("Medida guardada");render();checkBadges();break}
     case "react":openReaction(P&&P.steps[P.i]?.e?.defaults?.reps||4);break;
     case "react-close":$("#react")?.remove();break;
@@ -1936,11 +1957,11 @@ document.addEventListener("click",e=>{
     case "week-prev":weekOff--;render();break;
     case "week-next":weekOff++;render();break;
     case "week-now":weekOff=0;render();break;
-    case "match-yes":setDayOpt("matchLater",false);setDayOpt("matchSoon",true);render();break;
-    case "match-no":setDayOpt("matchLater",false);setDayOpt("matchSoon",false);render();break;
-    case "match-later":setDayOpt("matchLater",true);setDayOpt("matchSoon",false);render();break;
-    case "match-reset":{const o=dayOpts();delete o.matchSoon;delete o.matchLater;S.opts[dayKey()]=o;save();render();break}
-    case "plan-apply":{const id=t.dataset.id;setDayOpt("swap",id===DAYS[(new Date().getDay()+6)%7].id?null:id);render();window.scrollTo(0,0);toast(id==="X"?"Hoy, movilidad":"Hoy toca la "+id);break}
+    case "match-yes":setDayOpt("matchLater",false);setDayOpt("matchSoon",true);autoPlan();render();break;
+    case "match-no":setDayOpt("matchLater",false);setDayOpt("matchSoon",false);autoPlan();render();break;
+    case "match-later":setDayOpt("matchLater",true);setDayOpt("matchSoon",false);autoPlan();render();break;
+    case "match-reset":{const o=dayOpts();delete o.matchSoon;delete o.matchLater;if(o.autoSwap){delete o.swap;delete o.autoSwap}S.opts[dayKey()]=o;save();render();break}
+    case "plan-apply":{const id=t.dataset.id;setDayOpt("autoSwap",false);setDayOpt("swap",id===DAYS[(new Date().getDay()+6)%7].id?null:id);render();window.scrollTo(0,0);toast(id==="X"?"Hoy, movilidad":"Hoy toca la "+id);break}
     case "skip-missed":{const st=weekState();S.skip=S.skip||{};const k=dayKey(st.m);S.skip[k]=[...new Set([...(S.skip[k]||[]),...st.missed])];save();render();toast("Vale, seguimos con lo que queda de semana");break}
     case "go-progreso":tab="progreso";render();window.scrollTo(0,0);break;
     case "share-summary":shareSummary();break;
@@ -1966,9 +1987,9 @@ document.addEventListener("click",e=>{
     case "resume":resumeSession(false);break;
     case "resume-finish":resumeSession(true);break;
     case "resume-discard":{const s=openSession();if(s&&confirm("¿Descartar esta sesión y sus series?")){S.sessions=S.sessions.filter(x=>x.id!==s.id);S.sets=S.sets.filter(x=>x.sid!==s.id);save();render();toast("Sesión descartada")}break}
-    case "rd":{P.gText=$("#g-pre")?.value||P.gText;P.rd=P.rd||{};P.rd[t.dataset.k]=+t.dataset.v;drawPre();break}
-    case "pre-extra":{P.gText=$("#g-pre")?.value||P.gText;const rd=P.rd;const base=today();P.day=P.day.extra?base:withExtra(base);P.steps=buildSteps(P.day);P.i=0;P.vals=prefill(P.steps[0]);P.rd=rd;drawPre();if(P.day.extra)toast("Bloque extra añadido al final");break}
-    case "pre-short":{P.gText=$("#g-pre")?.value||P.gText;setDayOpt("short",true);const rd=P.rd,g=P.gText;const d=today();P.day=d;P.steps=buildSteps(d);P.i=0;P.vals=prefill(P.steps[0]);P.rd=rd;P.gText=g;drawPre();toast("Versión corta");break}
+    case "rd":{P.gText=$("#g-pre")?$("#g-pre").value:P.gText;P.rd=P.rd||{};P.rd[t.dataset.k]=+t.dataset.v;drawPre();break}
+    case "pre-extra":{P.gText=$("#g-pre")?$("#g-pre").value:P.gText;const rd=P.rd;const base=today();P.day=P.day.extra?base:withExtra(base);P.steps=buildSteps(P.day);P.i=0;P.vals=prefill(P.steps[0]);P.rd=rd;drawPre();if(P.day.extra)toast("Bloque extra añadido al final");break}
+    case "pre-short":{P.gText=$("#g-pre")?$("#g-pre").value:P.gText;setDayOpt("short",true);const rd=P.rd,g=P.gText;const d=today();P.day=d;P.steps=buildSteps(d);P.i=0;P.vals=prefill(P.steps[0]);P.rd=rd;P.gText=g;drawPre();toast("Versión corta");break}
     case "ex-chart":openExChart(t.dataset.id);break;
     case "exchart-close":$("#exchart")?.remove();break;
     case "padel-set":{const w=S.health.workouts.find(x=>x.id===t.dataset.id);if(w){w.kind=t.dataset.k;save();render()}break}
@@ -1983,14 +2004,14 @@ document.addEventListener("click",e=>{
     case "padel-diary":openPadelLog(t.dataset.id);break;
     case "pl-set":{const k=t.dataset.k,v=k==="res"?t.dataset.v:+t.dataset.v;PL[k]=PL[k]===v?null:v;plPaint();break}
     case "pl-fail":{const k=t.dataset.k;PL.fails=PL.fails.includes(k)?PL.fails.filter(x=>x!==k):[...PL.fails,k];plPaint();break}
-    case "jump-open":if(P&&!P.start)P.gText=$("#g-pre")?.value||P.gText;openJump();break;
+    case "jump-open":if(P&&!P.start)P.gText=$("#g-pre")?$("#g-pre").value:P.gText;openJump();break;
     case "jump-close":{if(JV.url){URL.revokeObjectURL(JV.url);JV.url=null}$("#jump")?.remove();if(P&&!P.start)drawPre();else render();break}
     case "jf":JV.f=+t.dataset.f;document.querySelectorAll("[data-act=jf]").forEach(b=>{const on=+b.dataset.f===JV.f;b.style.background=on?"var(--ball)":"var(--surface2)";b.style.color=on?"var(--ballInk)":"var(--muted)"});if($("#jv")&&JV.url)jumpPaint();break;
     case "jv-step":{const v=$("#jv");if(v&&isFinite(v.duration)){v.pause();v.currentTime=Math.max(0,Math.min(v.duration,v.currentTime+(+t.dataset.s)/jumpFps()))}break}
     case "jv-mark":{const v=$("#jv");if(v){JV[t.dataset.m]=v.currentTime;jumpPaint()}break}
     case "jump-save":{const r=jumpResult();if(r&&r.ok)jumpSave(r.cm,"video");break}
     case "jump-man-save":{const v=parseFloat(($("#jump-man").value||"").replace(",","."));if(!(v>=10&&v<=90)){toast("Escribe los cm (entre 10 y 90)");break}$("#jump-man").value="";jumpSave(v,"manual");break}
-    case "endo-open":if(P&&!P.start)P.gText=$("#g-pre")?.value||P.gText;openEndo();break;
+    case "endo-open":if(P&&!P.start)P.gText=$("#g-pre")?$("#g-pre").value:P.gText;openEndo();break;
     case "endo-close":$("#endo")?.remove();break;
     case "endo-save":{const v=($("#endo-t").value||"").trim();S.endo=v?{txt:v,d:new Date().toISOString()}:null;save();$("#endo")?.remove();toast(v?"Pauta guardada":"Pauta borrada");if(P&&!P.start)drawPre();else render();break}
     case "padel-del":S.health.workouts=S.health.workouts.filter(w=>w.id!==t.dataset.id);save();render();break;
