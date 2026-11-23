@@ -590,7 +590,7 @@ function plannerAdd(){
   save();drawPlanner();toast("Añadido");
 }
 
-/* ============ RECUPERACIÓN EN EL SPA (pileta fría, sauna, jacuzzi, piscina) ============
+/* ============ RECUPERACIÓN EN EL SPA (pileta fría, jacuzzi y baño turco; sin sauna, que le falsea el sensor) ============
    Evidencia: el agua fría justo después de la fuerza puede restar algo de ganancia de músculo y fuerza (metaanálisis
    Piñero 2024; Eur J Sport Sci 2023); entre partidos o antes de competir ayuda a llegar con menos dolor y fatiga
    (5-15 min a 10-15 °C). La sauna tradicional la noche antes puede quitar chispa al día siguiente. Con diabetes tipo 1,
@@ -611,22 +611,21 @@ function recoveryPlan(c){
   const steps=[], tip=[];
   if(cold&&!noCold){
     steps.push({m:10,t:"Pileta fría",d:"En la primera hora después de jugar. 2-3 entradas de 2-3 minutos hasta el pecho (unos 10 minutos en total), con 1 minuto fuera entre medias. Respira despacio."});
-    steps.push({m:5,t:"Ducha templada",d:"Para entrar en calor poco a poco. Nada de sauna justo después del frío."});
-    steps.push({m:10,t:"Caminar en la piscina (opcional)",d:"Donde hagas pie, paso tranquilo. Suelta las piernas sin cargarlas."});
-    tip.push(c.compTom?"Mañana compites: hoy manda llegar fresco. Esta noche, nada de sauna (puede quitarte chispa mañana).":"Mañana vuelves a jugar o a cargar pierna: el frío te ayuda a llegar con menos dolor.");
+    steps.push({m:5,t:"Ducha templada",d:"Para entrar en calor poco a poco. Nada de baño turco justo después del frío."});
+    tip.push(c.compTom?"Mañana compites: hoy manda llegar fresco. Esta noche, nada de baño turco ni jacuzzi largo: el calor fuerte la víspera puede quitarte chispa.":"Mañana vuelves a jugar o a cargar pierna: el frío te ayuda a llegar con menos dolor.");
   }else if(c.gym){
     steps.push({m:0,t:"Sin pileta fría hoy",d:`Acabas de hacer fuerza${c.pad.length?" y después pádel":""}: el agua fría en las horas siguientes puede restar algo de lo que ganas en músculo y fuerza. Hoy, mejor calor suave.`});
-    steps.push({m:12,t:"Jacuzzi o sauna",d:"Una de las dos: jacuzzi 10-15 minutos, o sauna 1-2 rondas de 8-10 minutos con ducha templada entre medias. Sal antes si te mareas."});
-    steps.push({m:10,t:"Caminar en la piscina (opcional)",d:"Donde hagas pie, 10 minutos suaves. Recupera sin cargar."});
+    steps.push({m:12,t:"Jacuzzi",d:"10-15 minutos. Relaja la musculatura sin frenar lo que has ganado."});
+    steps.push({m:8,t:"Baño turco (opcional)",d:"1 ronda de 6-8 minutos y ducha templada al salir. Sal antes si te mareas."});
     if(c.legs)tip.push("Hoy fue pierna: si mañana sigues muy cargado, mañana sí puedes usar la pileta fría (a esas horas ya no frena lo ganado).");
   }else if(c.pad.length){
-    steps.push({m:12,t:"Jacuzzi o sauna (opcional)",d:"Para relajarte: jacuzzi 10-15 minutos o sauna 1-2 rondas de 8-10 minutos."});
-    steps.push({m:10,t:"Caminar en la piscina (opcional)",d:"Donde hagas pie, 10 minutos suaves."});
+    steps.push({m:12,t:"Jacuzzi (opcional)",d:"Para relajarte: 10-15 minutos."});
+    steps.push({m:8,t:"Baño turco (opcional)",d:"1 ronda de 6-8 minutos y ducha templada al salir."});
     tip.push("Si tienes las piernas cargadas o mañana juegas, cambia el calor por la pileta fría (10 minutos).");
   }
   return {steps,tip};
 }
-const RECOV_GLU="🩸 Glucosa: mírala antes de entrar y al salir, y otra vez 1 hora después. El calor (sauna y jacuzzi) acelera la absorción de la insulina y te puede bajar, y el sudor y el mareo del calor se parecen a una hipo. No entres si vas bajo o bajando: sigue tu pauta. Lleva hidratos rápidos y no te quedes solo. Con mucho calor, el sensor puede leer mal un rato: si dudas, pincha el dedo. Bebe medio litro de agua.";
+const RECOV_GLU="🩸 Glucosa: mírala antes de entrar y al salir, y otra vez 1 hora después. El calor (jacuzzi y baño turco) acelera la absorción de la insulina y te puede bajar, y el sudor y el mareo del calor se parecen a una hipo. No entres si vas bajo o bajando: sigue tu pauta. Lleva hidratos rápidos y no te quedes solo. Con calor fuerte el sensor puede marcar una hipo falsa (ya te pasó en la sauna): confírmalo pinchándote el dedo antes de tomar nada. Bebe medio litro de agua.";
 function recoveryCard(){
   const now=new Date(), c=recoveryCtx(now);
   if(!c.end||now-c.end>5*36e5||c.end>+now)return "";
@@ -643,16 +642,16 @@ function recoveryCard(){
 function openSpaGuide(){
   document.querySelector("#spa")?.remove();
   const el=document.createElement("div");el.className="sheet";el.id="spa";
-  const R=[["Después del gimnasio (fuerza)","Sin frío en las horas siguientes. Jacuzzi 10-15' o sauna 1-2 × 8-10'. Caminar en la piscina 10'."],
-    ["Después de un partido o clase","Si al día siguiente juegas o tienes pierna, o si acabas cargado: pileta fría 2-3 × 2-3' (≈10'). Si no, calor suave opcional."],
+  const R=[["Después del gimnasio (fuerza)","Sin frío en las horas siguientes. Jacuzzi 10-15' y, si te apetece, baño turco 6-8'."],
+    ["Después de un partido o clase","Si al día siguiente juegas o tienes pierna, o si acabas cargado: pileta fría 2-3 × 2-3' (≈10'). Si no, jacuzzi o baño turco, opcional."],
     ["Gimnasio por la mañana y partido por la tarde","Prioriza lo ganado en el gimnasio: sin frío, salvo que al día siguiente compitas."],
-    ["Día de competición o torneo de varios días","Entre partidos: nada de sauna ni jacuzzi (deshidratan y bajan la glucosa). Al terminar: pileta fría ≈10'. La noche antes de competir, sin sauna."],
-    ["Día de descanso","Recuperación activa: 15-20' caminando en la piscina donde hagas pie, movilidad, y si te apetece sauna o jacuzzi."]];
+    ["Día de competición o torneo de varios días","Entre partidos: nada de baño turco ni jacuzzi (deshidratan y bajan la glucosa). Al terminar: pileta fría ≈10'. La noche antes de competir, sin calor fuerte."],
+    ["Día de descanso","Movilidad y rodillo; si te apetece, jacuzzi o baño turco."]];
   el.innerHTML=`<div class="panel" role="dialog" aria-modal="true" aria-label="Guía del spa">
    <div style="display:flex;justify-content:space-between;align-items:center"><h2 class="title" style="font-size:28px">🧖 Guía del spa</h2><button class="iconbtn" data-act="spa-close" aria-label="Cerrar">${ICON.x}</button></div>
    ${R.map(([a,b])=>`<div><div style="font-weight:700">${a}</div><div class="small" style="color:var(--text)">${b}</div></div>`).join("")}
    <div style="border-top:1px solid var(--line);padding-top:10px" class="small">${esc(RECOV_GLU)}</div>
-   <div class="small muted">Por qué: el agua fría justo después de la fuerza puede restar algo de ganancia de músculo y fuerza (metaanálisis de 2023 y 2024), y entre partidos reduce el dolor y la sensación de fatiga. La sauna tradicional la noche antes puede quitar chispa al día siguiente. En pádel profesional se usan sobre todo el agua fría y los masajes entre partidos de un torneo. Lo más importante sigue siendo dormir bien, comer proteína e hidratos según tu pauta, y beber.</div>
+   <div class="small muted">Por qué: el agua fría justo después de la fuerza puede restar algo de ganancia de músculo y fuerza (metaanálisis de 2023 y 2024), y entre partidos reduce el dolor y la sensación de fatiga. El calor fuerte (sauna, y por prudencia también el baño turco largo) la noche antes puede quitar chispa al día siguiente. En pádel profesional se usan sobre todo el agua fría y los masajes entre partidos de un torneo. Lo más importante sigue siendo dormir bien, comer proteína e hidratos según tu pauta, y beber.</div>
   </div>`;
   $("#layer").appendChild(el);
 }
@@ -2037,10 +2036,10 @@ function openReport(){
 }
 
 /* ============ NOVEDADES Y AJUSTES ============ */
-const APP_VERSION="2026.11.24e";
+const APP_VERSION="2026.11.24f";
 const CHANGELOG=[
  ["🗓️","Planifica tu semana: en Semana apuntas tus partidos, clases y competiciones con la hora, y la app te coloca el gimnasio alrededor (nada de pierna antes de jugar ni la víspera de competir)."],
- ["🧖","Tu recuperación en el spa: después de entrenar o jugar, Hoy te dice qué hacer (pileta fría, sauna, jacuzzi o piscina), cuánto tiempo y a qué hora, con los cuidados para tu glucosa."],
+ ["🧖","Tu recuperación en el spa: después de entrenar o jugar, Hoy te dice qué hacer (pileta fría, jacuzzi o baño turco), cuánto tiempo y a qué hora, con los cuidados para tu glucosa."],
  ["🛠️","Revisión a fondo: si contestas que no juegas, la app ya te pone la sesión recomendada; no te pide pierna si ya jugaste ese día; no repite la sesión que adelantaste; y si corriges el peso el mismo día, se queda el corregido."],
  ["↩️","Nuevo en el calentamiento de la D: retroceso al globo (paso cruzado y bandeja en sombra). En el modo reacción, la flecha hacia atrás es un globo. Y en el diario, nueva opción «Retroceder al globo»."],
  ["📏","Mide tu salto con la cámara lenta del iPhone: ves si ganas potencia y, si un día saltas bastante menos que tu media, la app te baja la sesión (Progreso y antes de la A y la D)."],
