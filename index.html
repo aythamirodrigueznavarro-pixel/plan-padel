@@ -418,7 +418,7 @@ const effCompete=()=>{const o=dayOpts();return o.compete!=null?!!o.compete:!!com
 const today=()=>{const o=dayOpts(),sw=o.swap&&DAYS.find(x=>x.id===o.swap),nat=DAYS[(new Date().getDay()+6)%7];
   let base=sw||(compOn(new Date())&&nat.gym?DAYS[5]:nat); /* el día que compites, nada de gimnasio: calentamiento competitivo */
   if(!sw&&base===nat&&nat.wd<=5){const st=weekState(), pl=weekPlanned(st.m);
-    if(!st.doneToday&&(pl||(GYM_IDS.includes(nat.id)&&st.doneIds.has(nat.id)))){ /* semana planificada, o la sesión de hoy ya la adelantaste */
+    if(!st.doneToday&&(pl||dayClosed()||(GYM_IDS.includes(nat.id)&&st.doneIds.has(nat.id)))){ /* semana planificada, o la sesión de hoy ya la adelantaste */
       const p=planWeek().plan[st.todayWd];base=p?DAYS.find(x=>x.id===p):nat.id==="X"?nat:restDay(st.todayWd)}}
   if(!sw&&base.id==="A"&&effCompete())base=SESSION_B; /* la víspera de competir, nada de pierna pesada */
   return materialize(base,new Date(),{...o,compete:effCompete()})};
@@ -496,7 +496,7 @@ function planWeek(now=new Date(),optsIn){
   for(let wd=st.todayWd;wd<=5;wd++){
     const isToday=wd===st.todayWd, dDay=addDays(st.m,wd-1);
     if(isToday&&st.doneToday){days.push({wd,fixed:st.doneToday});continue}
-    if(compOn(dDay)){days.push({wd,comp:true});continue}
+    if(compOn(dDay)||(isToday&&dayClosed(now))){days.push({wd,comp:true});continue}
     const pl=padOn(dDay), early=pl.some(p=>hNum(p.h)<GYM_END_H);
     let busy;
     if(isToday){const soon=pl.some(p=>{const t=new Date(localKey(dDay)+"T"+p.h+":00");return t-now>-2*36e5&&t-now<6*36e5});
@@ -661,19 +661,23 @@ function openSpaGuide(){
 
 const shortTitle=id=>DAYS.find(d=>d.id===id).title;
 const playedToday=(now=new Date())=>workoutsOn(now).some(w=>w.padel&&new Date(w.start)<=now);
+const dayClosed=(now=new Date())=>playedToday(now)||now.getHours()>=21; /* después de jugar, o ya de noche: hoy no se coloca gimnasio */
 /* Hoy ya jugaste al pádel y la sesión de gimnasio sigue sin hacer: qué pasa con ella */
 function playedTodayCard(){
-  const now=new Date(), d=today(), st=weekState(now);
-  if(st.todayWd>5||st.doneToday||!GYM_IDS.includes(d.id))return "";
+  const now=new Date(), st=weekState(now);
+  if(st.todayWd>5||st.doneToday||compOn(now))return "";
   const pl=workoutsOn(now).filter(w=>w.padel&&new Date(w.start)<=now);
   if(!pl.length)return "";
-  const w=pl[pl.length-1], mins=pl.reduce((a,x)=>a+x.minutes,0), legs=LEGS.has(d.id);
-  const tmw=dayName(st.todayWd+1);
+  const w=pl[pl.length-1], mins=pl.reduce((a,x)=>a+x.minutes,0);
+  const wp=weekPlanned(st.m), nx=st.todayWd<5&&wp?planWeek(now).plan[st.todayWd+1]:null, tmw=dayName(st.todayWd+1);
+  const tom=st.todayWd===5?"El fin de semana no se recupera nada: el lunes empieza otra semana y seguimos."
+    :!wp?`Mañana ${tmw}, al abrir la app, te pregunto si juegas y te digo qué toca. Si ya sabes qué días juegas esta semana, planifícala en <b>Semana</b> y te lo digo desde ya.`
+    :nx?`<b>Mañana ${tmw} te toca la ${nx}</b>${LEGS.has(nx)?" (si mañana juegas antes de las 16:30, te la cambio por otra)":""}. Al abrir la app te lo confirmo.`
+    :`Mañana ${tmw}, al abrir la app, te digo qué toca.`;
   return `<section class="card coach" style="display:flex;flex-direction:column;gap:8px"><div class="eyebrow" style="color:var(--ball)">Hoy ya jugaste</div>
-    <p style="margin:0">Apuntaste ${esc((KIND_LABEL[padelKind(w)]||"pádel").toLowerCase())} · ${mins} min. ${legs?`<b>No hagas hoy la ${d.id}</b>: pierna pesada después de jugar es mucha carga y mañana lo notarías en pista.`:`La ${d.id} es de tren superior: si te ves bien, puedes hacerla. Si llegas cansado, déjala.`}</p>
-    <p class="small" style="margin:0">${st.todayWd===5?`Esta semana ya no da tiempo a recuperar la ${d.id}, y no pasa nada: el lunes empieza otra y seguimos.`:`No tienes que hacer nada más: <b>mañana ${tmw}</b>, al abrir la app, te sale la tarjeta «Reorganizar tu semana». Te pregunta si juegas ese día y te coloca la ${d.id} donde mejor encaje.`}</p>
+    <p style="margin:0">Apuntaste ${esc((KIND_LABEL[padelKind(w)]||"pádel").toLowerCase())} · ${mins} min. <b>Hoy ya no toca gimnasio</b>: después de jugar, toca recuperar. Mira abajo tu plan de spa.</p>
+    <p class="small" style="margin:0">${tom}</p>
     ${isDiary(w)?"":`<button class="ghostbtn small" style="border:1px solid var(--ball);color:var(--ball)" data-act="padel-diary" data-id="${esc(w.id)}">Cuéntame cómo fue (20 s)</button>`}
-    <button class="ballbtn" style="font-size:18px;padding:13px" data-act="plan-apply" data-id="X">Hoy, solo movilidad (20')</button>
   </section>`;
 }
 /* Pregunta del día: qué pádel tienes hoy, para recomendarte la sesión */
@@ -728,7 +732,7 @@ function rescheduleCard(){
   if(st.todayWd>5)return `<section class="card coach"><div class="eyebrow" style="color:var(--ball)">Tu semana</div><p style="margin:6px 0 0">Esta semana se quedó sin hacer ${miss}. No la recuperes el fin de semana: el lunes empieza otra y seguimos. No pasa nada.</p></section>`;
   if(st.doneToday||compOn(now))return "";
   const o=dayOpts(), played=playedToday(now), busyT=o.matchSoon===true||played;
-  if(o.matchSoon===undefined&&!played)return askDayHtml("Reorganizar tu semana",`Te quedó pendiente ${miss}. Te digo qué hacer hoy, pero antes:`);
+  if(o.matchSoon===undefined&&!played&&!(weekPlanned(st.m)&&!o.ask))return askDayHtml("Reorganizar tu semana",`Te quedó pendiente ${miss}. Te digo qué hacer hoy, pero antes:`);
   const {plan,dropped}=planWeek(now), cur=gymIdOf({dayId:today().id}), pick=plan[st.todayWd];
   const rows=[];for(let wd=st.todayWd;wd<=5;wd++)rows.push(`<div class="row" style="padding:6px 0"><span style="font-weight:600;text-transform:capitalize">${wd===st.todayWd?"Hoy":dayName(wd)}</span><span class="small" style="text-align:right">${plan[wd]?esc(shortTitle(plan[wd])):'<span class="muted">Sin gimnasio · movilidad o descanso</span>'}</span></div>`);
   const why=pick&&LEGS.has(pick)&&pick!==DAYS[st.todayWd-1].id?"Hoy puedes cargar pierna: la sesión de pierna es la que más velocidad te da.":(!pick||!LEGS.has(pick))&&st.missed.some(id=>LEGS.has(id))?(busyT?(played?"Como ya has jugado hoy, nada de pierna pesada: la dejamos para cuando llegues fresco.":"Como juegas hoy, nada de pierna pesada: la dejamos para cuando llegues fresco."):"Hoy no toca pierna para no cargarla dos días seguidos o antes de tu entrenador."):"";
@@ -739,7 +743,7 @@ function rescheduleCard(){
     ${dropped.length?`<p class="small muted" style="margin:0">Se queda fuera esta semana: ${dropped.map(id=>esc(shortTitle(id))).join(", ")}. No pasa nada: mejor una sesión menos que dos el mismo día.</p>`:""}
     ${why?`<p class="small" style="margin:0;color:var(--ball)">${why}</p>`:""}
     ${pick&&pick!==cur?`<button class="ballbtn" style="font-size:18px;padding:13px" data-act="plan-apply" data-id="${pick}">Hoy hago la ${pick}</button>`:!pick&&DAYS[st.todayWd-1].gym&&cur!=="X"?`<button class="ballbtn" style="font-size:18px;padding:13px" data-act="plan-apply" data-id="X">Hoy, solo movilidad</button>`:""}
-    <div style="display:flex;gap:8px;flex-wrap:wrap">${played?"":`<button class="chip" style="background:var(--surface2);color:var(--muted)" data-act="match-reset">Cambiar mi respuesta</button>`}<button class="chip" style="background:var(--surface2);color:var(--muted)" data-act="skip-missed">No la voy a recuperar</button></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">${played?"":o.matchSoon===undefined?`<button class="chip" style="background:var(--surface2);color:var(--muted)" data-act="match-ask">¿Ha cambiado algo? Cuéntamelo</button>`:`<button class="chip" style="background:var(--surface2);color:var(--muted)" data-act="match-reset">Cambiar mi respuesta</button>`}<button class="chip" style="background:var(--surface2);color:var(--muted)" data-act="skip-missed">No la voy a recuperar</button></div>
   </section>`;
 }
 
@@ -2039,8 +2043,9 @@ function openReport(){
 }
 
 /* ============ NOVEDADES Y AJUSTES ============ */
-const APP_VERSION="2026.11.24g";
+const APP_VERSION="2026.11.24h";
 const CHANGELOG=[
+ ["🌙","Si ya has jugado o son más de las 21:00, Hoy ya no te propone gimnasio: te dice qué toca mañana."],
  ["✍️","Planificador: ahora cada partido o competición puede llevar nombre y hora, y si al pulsar «Listo» te queda algo sin añadir, la app te pregunta si lo añade."],
  ["🗓️","Planifica tu semana: en Semana apuntas tus partidos, clases y competiciones con la hora, y la app te coloca el gimnasio alrededor (nada de pierna antes de jugar ni la víspera de competir)."],
  ["🧖","Tu recuperación en el spa: después de entrenar o jugar, Hoy te dice qué hacer (pileta fría, jacuzzi o baño turco), cuánto tiempo y a qué hora, con los cuidados para tu glucosa."],
