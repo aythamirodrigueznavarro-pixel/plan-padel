@@ -395,6 +395,16 @@ const LIFTS=[
  {id:"pressdb",name:"Press banca mancuernas",unit:"kg por mancuerna",pts:[["2026-04-08",22.5,8],["2026-05-06",20,12]]},
  {id:"squat",name:"Sentadilla trasera",unit:"kg totales",pts:[["2026-04-06",60,5]]},
  {id:"rdl",name:"Peso muerto rumano",unit:"kg totales",pts:[["2026-04-11",60,5]]}];
+/* Qué ejercicio de la app corresponde a cada marca de Marcfit. En barra, la app apunta solo los discos (+20 kg de barra). */
+const LIFT_APP={clean:{id:"clean",bar:true},squat:{id:"sentadilla",bar:true},rdl:{id:"rdl",bar:true},farmer:{id:"farmer"},pressdb:{id:"press-db"},dom:{id:"dominada",reps:true}};
+function liftPts(L){
+  const pts=L.pts.map(p=>({d:new Date(p[0]),v:p[1],r:p[2]})), m=LIFT_APP[L.id]; if(!m)return pts;
+  const by={};S.sets.filter(x=>x.ex===m.id).forEach(x=>{(by[x.sid]=by[x.sid]||[]).push(x)});
+  Object.entries(by).forEach(([sid,arr])=>{const ss=S.sessions.find(z=>z.id===sid);if(ss&&ss.status==="en curso")return;const d=new Date(ss?ss.start:arr[0].t);
+    if(m.reps){const v=Math.max(0,...arr.filter(x=>!(x.kg>0)&&x.reps>0).map(x=>x.reps+(x.RIR||0)));if(v>0)pts.push({d,v,app:1});return}
+    const top=arr.filter(x=>x.kg>0).reduce((a,x)=>!a||x.kg>a.kg||(x.kg===a.kg&&(x.reps||0)>(a.reps||0))?x:a,null);
+    if(top)pts.push({d,v:top.kg+(m.bar?20:0),r:top.reps,app:1})});
+  return pts.sort((a,b)=>a.d-b.d)}
 const LAST={"sentadilla":"16 nov · 50 kg de discos × 3 a RPE 8 (70 total) · oct hasta 60 × 4","rdl":"11 abr · 40 kg en discos × 5","bulgara":"Sep · 12,5 kg × 6 (estancada desde mayo) · Oct zancada andando 10 kg × 6","push-press":"17 nov · barra 20 kg de discos × 5 (4 series) · oct con 1 mancuerna 22,5 × 4","press-db":"27 oct · 20 / 20 / 22,5 kg (10-8-6) · 4 semanas sin pasar de 22,5","landmine-press":"Abr · 10-18 kg × 6","dominada":"19 nov · 7 / 6 / 5 / 5 / 5 · mejor marca 27 sep: 8 / 8 / 7 / 4","remo-manc":"Nov · remo a una mano 20 kg · bird dog row 15 kg (13 nov)","farmer":"13 nov · 22,5 kg por mano · a una mano hasta 27,5 (oct)","pinch":"Jul · 15 kg × 20\"","clean":"21 nov · 30 kg de discos × 3 · oct hasta 35 a 1 rep","hipthrust":"Jun · 40 kg en discos × 8"};
 const BTESTS=[{id:"longitud",n:"Salto de longitud",u:"cm",how:"Pies juntos, el mejor de 3 intentos."},{id:"frenada5",n:"Salida y frenada a 5 m",u:"s",how:"Ida y vuelta de 5 m, el mejor de 2. Cronometrado con el móvil."},{id:"dominadas",n:"Dominadas máximas",u:"reps",how:"Agarre prono, sin balanceo."},{id:"km15",n:"1,5 km en cinta",u:"min",how:"A tope, con la cinta al 1% de inclinación. Apunta minutos, por ejemplo 6,45."}];
 const TESTS=["400 m","1,5 km","Sentadillas en 1 minuto","Burpees en 1 minuto","Dominadas máximas","Flexiones máximas"];
@@ -409,7 +419,7 @@ function fixState(){["sessions","sets"].forEach(k=>{if(!Array.isArray(S[k]))S[k]
   ["glucose","workouts"].forEach(k=>{if(!Array.isArray(S.health[k]))S.health[k]=[]});
   if(S.body&&!Array.isArray(S.body))S.body=[];if(S.jumps&&!Array.isArray(S.jumps))S.jumps=[];
   ["pad","comps"].forEach(k=>{if(S[k]!=null&&!Array.isArray(S[k]))S[k]=[]});
-  ["opts","planned","skip","tests"].forEach(k=>{if(S[k]!=null&&(typeof S[k]!=="object"||Array.isArray(S[k])))S[k]={}})}
+  ["opts","planned","skip","tests","prefs"].forEach(k=>{if(S[k]!=null&&(typeof S[k]!=="object"||Array.isArray(S[k])))S[k]={}})}
 fixState();
 let saveWarned=false;
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));saveWarned=false}catch(e){
@@ -972,6 +982,7 @@ function coachNotes(){
   const lastW=B.filter(b=>b.waist!=null).at(-1);
   if(wd===1&&(!lastW||now-new Date(lastW.d)>6*864e5))N.push({i:"📏",t:"Hoy es lunes: mide la cintura a la altura del ombligo, en ayunas, y apúntala en Progreso → Tu cuerpo.",act:"go-progreso"});
   const lastS=S.sessions.filter(s=>s.status!=="en curso").at(-1);
+  if(lastS&&lastS.pain&&now-new Date(lastS.start)<3*864e5)PAINZ.filter(z=>lastS.pain[z.k]>=4).forEach(z=>N.push({i:"🩹",t:`${z.n}: marcó ${lastS.pain[z.k]}/10 en la última sesión. Hoy, ${z.tip}`}));
   if(lastS&&lastS.knee>=4&&now-new Date(lastS.start)<3*864e5)N.push({i:"🦵",t:`La rodilla marcó ${lastS.knee}/10 en la última sesión. Si hoy sigue molestando, nada de saltos ni frenadas; si dura más de una semana, que la vea tu fisio.`});
   if(todayS.some(s=>s.rpe>=8))N.push({i:"🌙",t:"Hoy has entrenado fuerte: vigila la glucosa esta noche y de madrugada, que es cuando suele bajar después de un entreno duro."});
   if(wd>=6)N.push({i:"🎾",t:"Si hoy juegas varios partidos o mañana repites: al terminar, 10 minutos en agua fría (10-15 °C) o ducha fría ayudan a llegar mejor al siguiente. Después de partidos sí; después del gimnasio, no."});
@@ -986,8 +997,13 @@ function coachNotes(){
   const doy=Math.floor((now-new Date(now.getFullYear(),0,0))/864e5);N.push({i:"🥗",t:TIPS[doy%TIPS.length]});
   if(S.sessions.length>=3&&(!S.lastBackup||now-new Date(S.lastBackup)>14*864e5))N.push({i:"💾",t:"Hace tiempo que no guardas una copia de tus registros. Progreso → Copia de seguridad → Guardar copia.",act:"go-progreso"});
   if(!N.length)return "";
+  /* primero lo urgente (competición, glucosa, molestias), y a partir del cuarto aviso, plegados */
+  const pri=n=>["🏆","💧","🦵","🩹","🌙","🧭"].includes(n.i)?0:n.i==="🥗"?2:1;
+  N.sort((a,b)=>pri(a)-pri(b));
+  const row=n=>`<div style="display:flex;gap:10px;align-items:flex-start"><span aria-hidden="true" style="font-size:18px;line-height:1.3">${n.i}</span><div class="small" style="color:var(--text);flex:1">${esc(n.t)}${n.act?` <button class="chip" style="background:var(--surface2);color:var(--court);padding:2px 10px;margin-left:4px" data-act="${n.act}">Ir</button>`:""}</div></div>`;
   return `<section class="card" style="display:flex;flex-direction:column;gap:10px"><div class="eyebrow">Avisos de tu entrenador</div>
-   ${N.map(n=>`<div style="display:flex;gap:10px;align-items:flex-start"><span aria-hidden="true" style="font-size:18px;line-height:1.3">${n.i}</span><div class="small" style="color:var(--text);flex:1">${esc(n.t)}${n.act?` <button class="chip" style="background:var(--surface2);color:var(--court);padding:2px 10px;margin-left:4px" data-act="${n.act}">Ir</button>`:""}</div></div>`).join("")}
+   ${N.slice(0,4).map(row).join("")}
+   ${N.length>4?`<details><summary class="small" style="color:var(--court);cursor:pointer;font-weight:600">Ver ${N.length-4} ${N.length-4===1?"aviso más":"avisos más"}</summary><div style="display:flex;flex-direction:column;gap:10px;margin-top:10px">${N.slice(4).map(row).join("")}</div></details>`:""}
   </section>`;
 }
 
@@ -1004,20 +1020,7 @@ function renderHoy(){
    ${plannedLogCard()}
    ${planReminderCard()}
    ${calStaleCard()}
-   ${lastWeekCard()}
-   ${weekRings()}
-   ${playedTodayCard()}
    ${rescheduleCard()}
-   ${recoveryCard()}
-   ${coachNotes()}
-   <section class="card" aria-label="Cómo llegas hoy">
-     <div class="health">
-       <div class="metric"><b>${g?Math.round(g.v):"—"}</b><small>mg/dL</small><div style="color:var(--ball)">${ICON.drop} ${g&&mins<120?`Hace ${mins} min`:"Glucosa"}</div></div>
-       <div class="metric"><b>${padelMin}</b><small>min</small><div style="color:var(--ball)">${ICON.watch} Pádel semana</div></div>
-       <div class="metric"><b>${weekLoad()}</b><small>UA</small><div style="color:var(--court)">Carga semana</div></div>
-     </div>
-     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px"><button class="ghostbtn small" data-act="padel-log">🎾 Apuntar pádel</button><button class="ghostbtn small" data-act="import">Datos de Salud</button></div>
-   </section>
    <section class="card" style="padding:20px;display:flex;flex-direction:column;gap:14px">
      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${d.kinds.map(k=>chip(k)).join("")}<span style="margin-left:auto" class="num small muted">${d.rpe?(d.rpe[0]===d.rpe[1]?"RPE "+d.rpe[0]:`RPE ${d.rpe[0]}–${d.rpe[1]}`):""}</span></div>
      <h2 class="title">${esc(d.title)}</h2>
@@ -1030,6 +1033,19 @@ function renderHoy(){
      ${d.warn?`<div style="background:color-mix(in srgb,var(--ball) 10%,transparent);color:var(--ball);border-radius:14px;padding:12px;font-size:13px;font-weight:500">${ICON.drop} ${esc(d.warn)}</div>`:""}
      ${done?`<div style="color:var(--ok);font-weight:600">✓ Sesión guardada · RPE ${done.rpe} · carga ${done.rpe*done.minutes} UA</div>`:`${md&&matchDone("cal")?`<div style="color:var(--ok);font-weight:600">✓ Calentamiento hecho</div>`:""}<button class="ballbtn" data-act="start">${md?(matchDone("cal")?"Recuperación (al acabar de jugar)":"Empezar calentamiento"):d.kinds.includes("compite")||d.id==="sab"||d.id==="dom"?"Empezar calentamiento":"Empezar sesión"}</button>`}
    </section>
+   ${playedTodayCard()}
+   ${recoveryCard()}
+   ${coachNotes()}
+   <section class="card" aria-label="Cómo llegas hoy">
+     <div class="health">
+       <div class="metric"><b>${g?Math.round(g.v):"—"}</b><small>mg/dL</small><div style="color:var(--ball)">${ICON.drop} ${g&&mins<120?`Hace ${mins} min`:"Glucosa"}</div></div>
+       <div class="metric"><b>${padelMin}</b><small>min</small><div style="color:var(--ball)">${ICON.watch} Pádel semana</div></div>
+       <div class="metric"><b>${weekLoad()}</b><small>UA</small><div style="color:var(--court)">Carga semana</div></div>
+     </div>
+     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px"><button class="ghostbtn small" data-act="padel-log">🎾 Apuntar pádel</button><button class="ghostbtn small" data-act="import">Datos de Salud</button></div>
+   </section>
+   ${weekRings()}
+   ${lastWeekCard()}
    ${d.blocks.map(blockCard).join("")}
   </div>`;
 }
@@ -1176,7 +1192,7 @@ function dayDone(dt){return {gym:sessionsOn(dt).reduce((a,s)=>a+s.rpe*s.minutes,
 
 let liftSel="clean";
 function renderProgreso(){
-  const L=LIFTS.find(l=>l.id===liftSel), pts=L.pts.map(p=>({d:new Date(p[0]),v:p[1],r:p[2]}));
+  const L=LIFTS.find(l=>l.id===liftSel), pts=liftPts(L), LA=LIFT_APP[L.id];
   const best=pts.reduce((a,p)=>p.v>a.v?p:a,pts[0]);
   const done=S.sessions.filter(s=>s.status!=="en curso").slice().reverse();
   $("#view").innerHTML=`<div class="stack">
@@ -1188,10 +1204,13 @@ function renderProgreso(){
      <div class="best"><b>${fmtNum(best.v)}</b><span class="muted" style="font-weight:600">${L.unit==="repeticiones"?"reps":"kg"}</span>${best.r?`<span class="muted num" style="font-size:20px">× ${best.r}</span>`:""}<span class="small muted" style="margin-left:auto">${best.d.toLocaleDateString("es-ES",{day:"numeric",month:"short"})}</span></div>
      <div class="small muted" style="margin-top:-8px">Mejor marca · ${L.unit}</div>
      ${lineChart(pts)}
+     ${pts.some(p=>p.app)?`<div class="small muted" style="margin-top:-4px">Marcas con Marcfit y tus series en esta app${LA.bar?" (en barra, sumando los 20 kg de la barra)":""}${LA.reps?" (repeticiones hechas + las que te quedaban: tu máximo estimado)":""}.</div>`:""}
    </section>
+   ${readyCard()}
+   ${painCard()}
    ${bodyCard()}
    <section class="card"><div class="eyebrow" style="margin-bottom:6px">Tus sesiones en esta app</div>
-     ${done.length?done.slice(0,15).map(s=>`<div class="row"><div style="min-width:0"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(s.title)}</div><div class="small muted">${new Date(s.start).toLocaleDateString("es-ES",{day:"numeric",month:"short"})}${s.status==="parcial"?` · <span style="color:var(--warn)">Parcial${s.reason?" · "+esc(s.reason):""}</span>`:""}${s.gBefore?` · ${Math.round(s.gBefore)}→${s.gAfter?Math.round(s.gAfter):"—"} mg/dL`:""}</div></div><div class="num" style="text-align:right"><b style="font-size:20px">${s.rpe*s.minutes}</b><div class="small muted">RPE ${s.rpe} · ${s.minutes}'</div></div></div>`).join(""):'<p class="small muted" style="margin:0">Aquí aparecerá cada sesión que guardes, con su RPE, su carga y tu glucosa antes y después.</p>'}
+     ${done.length?done.slice(0,15).map(s=>`<div class="row"><div style="min-width:0"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(s.title)}</div><div class="small muted">${new Date(s.start).toLocaleDateString("es-ES",{day:"numeric",month:"short"})}${s.status==="parcial"?` · <span style="color:var(--warn)">Parcial${s.reason?" · "+esc(s.reason):""}</span>`:""}${s.gBefore?` · ${Math.round(s.gBefore)}→${s.gAfter?Math.round(s.gAfter):"—"} mg/dL`:""}</div>${s.note?`<div class="small" style="color:var(--text);margin-top:2px">📝 ${esc(s.note)}</div>`:""}</div><div class="num" style="text-align:right"><b style="font-size:20px">${s.rpe*s.minutes}</b><div class="small muted">RPE ${s.rpe} · ${s.minutes}'</div></div></div>`).join(""):'<p class="small muted" style="margin:0">Aquí aparecerá cada sesión que guardes, con su RPE, su carga y tu glucosa antes y después.</p>'}
      <button class="ghostbtn small" style="margin-top:12px" data-act="export">Copiar mis registros para el ajuste mensual</button>
    </section>
    ${badgesCard()}
@@ -1199,7 +1218,7 @@ function renderProgreso(){
    ${glucoseCard()}
    ${myLiftsCard()}
    <section class="card"><div class="eyebrow" style="margin-bottom:6px">Copia de seguridad</div>
-     <p class="small muted" style="margin:0 0 10px">Tus registros viven solo en este iPhone. Guarda una copia de vez en cuando (en Archivos o iCloud) por si cambias de móvil.</p>
+     <p class="small muted" style="margin:0 0 10px">Tus registros viven solo en este iPhone. Guarda una copia de vez en cuando (en Archivos o iCloud) por si cambias de móvil.${S.lastBackup?` Última copia: ${new Date(S.lastBackup).toLocaleDateString("es-ES",{day:"numeric",month:"long"})}.`:" Aún no has guardado ninguna."} Las fotos de progreso no van en la copia: si las quieres conservar, guárdalas también en tu carrete.</p>
      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="ghostbtn small" data-act="backup">Guardar copia</button><label class="ghostbtn small" style="text-align:center;cursor:pointer">Restaurar copia<input type="file" id="restore" accept="application/json,.json" hidden></label></div>
    </section>
    <section class="card"><div class="eyebrow" style="margin-bottom:4px">Tests del bloque</div>
@@ -1207,6 +1226,37 @@ function renderProgreso(){
      ${BTESTS.map(t=>{const h=((S.tests||{})[t.id]||[]);const last=h.at(-1),first=h[0];return `<div class="row"><div style="min-width:0"><div style="font-weight:600">${t.n}</div><div class="small muted">${last?`Último: ${esc(last.v)} ${t.u} · ${new Date(last.d).toLocaleDateString("es-ES",{day:"numeric",month:"short"})}${h.length>1?` · empezaste en ${esc(first.v)}`:""}`:esc(t.how)}</div></div><div style="display:flex;gap:6px;align-items:center"><input id="t-${t.id}" inputmode="decimal" placeholder="${t.u}" aria-label="${t.n}" style="width:72px;background:var(--surface2);border:0;border-radius:10px;padding:8px;text-align:center"><button class="chip" style="background:var(--court);color:var(--ink)" data-act="test-save" data-id="${t.id}">Guardar</button></div></div>`}).join("")}
    </section>
   </div>`;
+}
+/* Molestias de las últimas 8 semanas: lo peor de cada semana por zona */
+function painCard(){
+  const ses=S.sessions.filter(s=>s.status!=="en curso"), Z=[{k:"knee",n:"Rodilla dcha."},...PAINZ.map(z=>({k:z.k,n:z.n}))];
+  const val=(s,k)=>k==="knee"?s.knee:s.pain===undefined?null:(s.pain&&s.pain[k])||0; /* sesiones de antes de poder apuntarlo: sin dato */
+  const m0=addDays(monday(),-7*7), W=[0,1,2,3,4,5,6,7].map(i=>addDays(m0,7*i));
+  const rows=Z.filter(z=>ses.some(s=>val(s,z.k)>0));
+  if(!rows.length)return "";
+  const cell=v=>v==null?"var(--surface2)":v>=6?"var(--heart)":v>=4?"var(--warn)":v>=1?"color-mix(in srgb,var(--warn) 35%,var(--surface2))":"color-mix(in srgb,var(--ok) 45%,var(--surface2))";
+  return `<section class="card" style="display:flex;flex-direction:column;gap:8px"><div class="eyebrow">Molestias · últimas 8 semanas</div>
+   ${rows.map(z=>`<div style="display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:center"><span class="small" style="font-weight:600">${z.n}</span><div style="display:grid;grid-template-columns:repeat(8,1fr);gap:4px">${W.map(w=>{const v=ses.filter(s=>{const d=new Date(s.start);return d>=w&&d<addDays(w,7)}).map(s=>val(s,z.k)).filter(x=>x!=null);const mx=v.length?Math.max(...v):null;return `<i title="${mx==null?"sin datos":mx+"/10"}" style="height:18px;border-radius:5px;background:${cell(mx)}"></i>`}).join("")}</div></div>`).join("")}
+   <div class="small muted">Cada cuadro es una semana (la última, a la derecha): verde, sin molestia; ocre, leve (1-3); naranja, 4 o más; rojo, 6 o más. Si una zona sale naranja dos semanas seguidas, coméntalo con tu fisio.</div></section>`;
+}
+/* ¿Cómo llegas y cómo rindes? Cruza la encuesta de antes de empezar con la fuerza de ese día */
+function readyCard(){
+  const ses=S.sessions.filter(s=>s.status!=="en curso"&&s.ready&&s.ready.lvl&&GYM_IDS.includes(gymIdOf(s))), need=6;
+  const head=`<section class="card" style="display:flex;flex-direction:column;gap:8px"><div class="eyebrow">Cómo llegas y cómo rindes</div>`;
+  if(ses.length<need)return ses.length?head+`<p class="small muted" style="margin:0">Llevas ${ses.length} de ${need} sesiones con la encuesta «¿Cómo llegas hoy?». Con ${need} te enseño si dormir mal o llegar con las piernas cargadas te quita fuerza.</p></section>`:"";
+  /* fuerza del día: la mejor serie de cada ejercicio comparada con tu media en ese ejercicio */
+  const top={};S.sets.filter(x=>x.kg>0&&x.reps>0).forEach(x=>{const k=x.ex+"|"+x.sid;top[k]=Math.max(top[k]||0,e1rm(x))});
+  const byEx={};Object.entries(top).forEach(([k,v])=>{const ex=k.split("|")[0];(byEx[ex]=byEx[ex]||[]).push(v)});
+  const mean=Object.fromEntries(Object.entries(byEx).map(([ex,a])=>[ex,a.reduce((p,x)=>p+x,0)/a.length]));
+  const force=s=>{const r=Object.entries(top).filter(([k])=>k.endsWith("|"+s.id)).map(([k,v])=>{const ex=k.split("|")[0];return byEx[ex].length>1?v/mean[ex]:null}).filter(x=>x);return r.length?r.reduce((p,x)=>p+x,0)/r.length:null};
+  const G=[{l:"verde",n:"🟢 Llegabas bien"},{l:"amarillo",n:"🟡 Regular"},{l:"rojo",n:"🔴 Tocado"}].map(g=>{const a=ses.filter(s=>s.ready.lvl===g.l);const f=a.map(force).filter(x=>x!=null);
+    return {...g,c:a.length,f:f.length?f.reduce((p,x)=>p+x,0)/f.length:null,rpe:a.length?a.reduce((p,s)=>p+(s.rpe||0),0)/a.length:null,par:a.filter(s=>s.status==="parcial").length}}).filter(g=>g.c);
+  const pct=f=>f==null?"—":(f>=1?"+":"−")+fmtNum(Math.abs(Math.round((f-1)*100)))+" %";
+  const poor=ses.filter(s=>s.ready.sleep<=2).map(force).filter(x=>x!=null), good=ses.filter(s=>s.ready.sleep>=4).map(force).filter(x=>x!=null);
+  const av=a=>a.reduce((p,x)=>p+x,0)/a.length;
+  const sleep=poor.length>=2&&good.length>=2?`<div class="small" style="color:var(--text)">😴 Los días que dormiste mal (1-2) rendiste ${(r=>Math.abs(r-1)<0.01?"lo mismo":`un ${fmtNum(Math.abs(Math.round((r-1)*100)))} % ${r<1?"menos":"más"}`)(av(poor)/av(good))} que los días que dormiste bien (4-5).</div>`:"";
+  return head+`${G.map(g=>`<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:6px 0;border-bottom:1px solid var(--line)"><div><div class="small" style="font-weight:600">${g.n}</div><div class="small muted">${g.c} ${g.c===1?"sesión":"sesiones"} · RPE ${g.rpe==null?"—":fmtNum(Math.round(g.rpe*10)/10)}${g.par?` · ${g.par} parcial${g.par>1?"es":""}`:""}</div></div><div class="num" style="text-align:right;white-space:nowrap"><b style="font-size:18px;color:${g.f==null?"var(--muted)":g.f>=0.99?"var(--ok)":g.f>=0.95?"var(--warn)":"var(--heart)"}">${pct(g.f)}</b><div class="small muted">fuerza</div></div></div>`).join("")}
+   ${sleep}<div class="small muted">Fuerza: tu mejor serie de cada ejercicio comparada con tu media en ese ejercicio. Con pocas sesiones es orientativo.</div></section>`;
 }
 /* Tu cuerpo: báscula (Renpho → Salud → atajo, o a mano). Lo que cuenta es la tendencia. */
 const BODYM=[{id:"kg",n:"Peso",u:"kg",step:.1},{id:"fat",n:"Grasa",u:"%",step:.1},{id:"skm",n:"Músculo esquelético",short:"Músculo",u:"kg",step:.1},{id:"waist",n:"Cintura",u:"cm",step:.5}];
@@ -1407,7 +1457,13 @@ function resumeSession(finish){
   const s=openSession(); if(!s)return; const d=rebuildDay(s); if(!d){toast("No encuentro esa sesión");return}
   P={day:d,steps:buildSteps(d),i:0,start:+new Date(s.start),vals:null,gText:"",restEnd:0,restTotal:0,timer:null,sid:s.id,prs:[]};
   S.sets.filter(x=>x.sid===s.id).forEach(r=>{const pr=checkPR(r),e=exById(r.ex);if(pr&&e)P.prs.push({name:e.name,txt:pr})}); /* los récords de antes de cerrar la app */
-  const done=S.sets.filter(x=>x.sid===s.id).length; P.i=Math.min(done,P.steps.length-1); P.vals=prefill(P.steps[P.i]);
+  /* las series hechas, en el orden en que las hiciste (por si dejaste algo para luego); después, lo que falta */
+  const recs=S.sets.filter(x=>x.sid===s.id).sort((a,b)=>new Date(a.t)-new Date(b.t)), used=new Set(), doneSt=[];
+  recs.forEach(r=>{let k=P.steps.findIndex((st,j)=>!used.has(j)&&st.e.id===r.ex&&st.set===r.set&&(!r.b||st.b.id===r.b));if(k<0)k=P.steps.findIndex((st,j)=>!used.has(j)&&st.e.id===r.ex);if(k>=0){used.add(k);doneSt.push(P.steps[k])}});
+  let left=P.steps.filter((_,j)=>!used.has(j));
+  if(Array.isArray(s.order)){const pos=st=>s.order.findIndex(o=>o[0]===st.e.id&&o[1]===st.set&&o[2]===st.b.id);left=left.map((st,j)=>({st,j,p:pos(st)})).sort((a,b)=>(a.p<0?-1:a.p)-(b.p<0?-1:b.p)||a.j-b.j).map(x=>x.st)}
+  P.steps=[...doneSt,...left];
+  const done=doneSt.length; P.i=Math.min(done,P.steps.length-1); P.vals=prefill(P.steps[P.i]);
   drawPlayer(); P.timer=setInterval(tick,250); audioUnlock(); keepAwake();
   if(finish||done>=P.steps.length)openFinish(done<P.steps.length);
 }
@@ -1434,6 +1490,30 @@ function startSession(){
   const g=latestGlucose();
   P={day:d,steps:buildSteps(d),i:0,start:null,vals:null,gText:g&&(Date.now()-new Date(g.t))<1800000?String(Math.round(g.v)):"",gAuto:g&&(Date.now()-new Date(g.t))<1800000?String(Math.round(g.v)):"",restEnd:0,restTotal:0,timer:null,sid:null};
   P.vals=prefill(P.steps[0]); drawPre();
+}
+/* Guía general antes de entrenar (consenso internacional de ejercicio y diabetes tipo 1: Riddell 2017 y EASD/ISPAD 2020).
+   Solo recuerda umbrales; nunca dice qué ni cuánto tomar: eso es la pauta del endocrino. */
+const GTR=[{k:"up2",a:"↑",t:"Sube rápido"},{k:"up",a:"↗",t:"Sube"},{k:"flat",a:"→",t:"Estable"},{k:"down",a:"↘",t:"Baja"},{k:"down2",a:"↓",t:"Baja rápido"}];
+function glGuide(v,tr){
+  if(!isFinite(v)||v<20||v>600)return null;
+  const dn=tr==="down"||tr==="down2", lag=" El sensor va unos 10-20 minutos por detrás de la sangre.";
+  if(v<70)return {c:"var(--heart)",t:"Por debajo de 70: no empieces. Trata la bajada como te ha dicho tu endocrino y espera a recuperarte."};
+  if(v<90)return {c:"var(--heart)",t:"Por debajo de 90: las guías aconsejan esperar a que suba antes de empezar. Lo que tomes, según tu pauta."+(dn?lag:"")};
+  if(v<=125)return {c:"var(--warn)",t:dn?"Entre 90 y 125 y bajando: mejor espera a que se estabilice o sigue tu pauta antes de empezar."+lag:"Entre 90 y 125: las guías permiten empezar con fuerza o intervalos, que suelen subirla. Vigílala durante la sesión."};
+  if(v<=180)return {c:"var(--ok)",t:"En la franja que marcan las guías para empezar (126-180)."+(tr==="down2"?" Pero baja rápido: vigílala en los primeros 20 minutos.":"")};
+  if(v<=270)return {c:"var(--warn)",t:"Por encima de 180: puedes entrenar, pero la fuerza y los intervalos pueden subirla más durante un rato. Sigue tu pauta."};
+  return {c:"var(--heart)",t:"Por encima de 270 sin explicación: las guías piden mirar cetonas antes de entrenar, y con cetonas altas no entrenar. Consúltalo con tu endocrino."};
+}
+function glGuideHtml(){
+  const g=glGuide(parseFloat(String(P&&P.gText||"").replace(",",".")),P&&P.gTrend);
+  return `<div id="g-guide">${g?`<div class="small" style="margin-top:10px;padding:10px 12px;border-radius:12px;border-left:4px solid ${g.c};background:var(--surface2);color:var(--text)">${esc(g.t)}<div class="muted" style="margin-top:4px;font-size:11px">Guía general para la diabetes tipo 1. Manda lo que te diga tu endocrino.</div></div>`:""}</div>`;
+}
+/* La nota que escribiste al terminar la última vez que hiciste esta sesión */
+function lastNoteHtml(){
+  if(!P||P.day.part)return "";
+  const id=gymIdOf({dayId:P.day.id}), s=S.sessions.filter(x=>x.status!=="en curso"&&x.note&&gymIdOf(x)===id).at(-1);
+  if(!s)return "";
+  return `<div class="card" style="padding:14px 16px;margin:0 0 14px;display:flex;flex-direction:column;gap:4px"><div class="small muted">📝 Tu nota de la última vez · ${new Date(s.start).toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"short"})}</div><div style="color:var(--text)">«${esc(s.note)}»</div></div>`;
 }
 /* ¿Cómo llegas hoy? Sueño, piernas, energía y ánimo de 1 a 5 → semáforo */
 const RD_Q=[{k:"sleep",n:"Sueño",lo:"Fatal",hi:"Genial"},{k:"legs",n:"Piernas",lo:"Muy cargadas",hi:"Frescas"},{k:"energy",n:"Energía",lo:"Sin nada",hi:"A tope"},{k:"mood",n:"Ánimo",lo:"Bajo",hi:"Muy bien"}];
@@ -1463,9 +1543,13 @@ function drawPre(){
    <div class="card" style="padding:20px;margin:8px 0 18px">
      <div style="color:var(--ball);font-weight:600">${ICON.drop} Glucosa ahora</div>
      <div style="display:flex;align-items:baseline;gap:8px"><input id="g-pre" inputmode="numeric" enterkeyhint="done" placeholder="—" value="${esc(P.gText)}" aria-label="Glucosa en mg/dL" style="background:none;border:0;outline:0;font:700 56px var(--body);width:170px;font-variant-numeric:tabular-nums"><span class="muted" style="font-weight:600">mg/dL</span></div>
-     <p class="small muted" style="margin:4px 0 0">${P.gText&&P.gText===P.gAuto?"Leída de Salud. ":P.gText?"":"Escríbela si no la ha importado el atajo. "}Si estás fuera del rango que te ha marcado tu endocrino, no empieces la parte intensa.</p>
+     <p class="small muted" style="margin:4px 0 0">${P.gText&&P.gText===P.gAuto?"Leída de Salud. ":P.gText?"":"Escríbela si no la ha importado el atajo. "}¿Y la flecha del Libre?</p>
+     <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:8px">${GTR.map(x=>`<button data-act="gtr" data-k="${x.k}" aria-pressed="${P.gTrend===x.k}" aria-label="${x.t}" style="padding:8px 0;border-radius:10px;font:700 20px var(--body);background:${P.gTrend===x.k?"var(--ball)":"var(--surface2)"};color:${P.gTrend===x.k?"var(--ballInk)":"var(--text)"}">${x.a}</button>`).join("")}</div>
+     ${glGuideHtml()}
+     <ul class="small muted" style="margin:10px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:2px"><li>Azúcar rápido a mano y la alarma baja de LibreLink activada.</li><li>Si has tenido una hipoglucemia grave en las últimas 24 h, hoy no entrenes.</li></ul>
    </div>
    <div style="margin:-6px 0 14px">${endoBox("gym")}</div>
+   ${lastNoteHtml()}
    ${readinessBlock()}
    <p class="small muted" style="margin:0 0 6px;text-align:center">La encuesta es opcional: si tienes prisa, dale a Empezar.</p>
    </div>
@@ -1478,7 +1562,7 @@ function go(){
   P.start=Date.now();
   P.sid="s"+P.start;
   const rr=readiness(P.rd||{});
-  S.sessions.push({id:P.sid,dayId:P.day.id,part:P.day.part||null,title:P.day.title,start:new Date(P.start).toISOString(),minutes:0,rpe:0,status:"en curso",short:!!P.day.short,extra:!!P.day.extra,gBefore:isFinite(gv)?gv:null,ready:rr?{...P.rd,sc:Math.round(rr.sc*10)/10,lvl:rr.lvl}:null});
+  S.sessions.push({id:P.sid,dayId:P.day.id,part:P.day.part||null,title:P.day.title,start:new Date(P.start).toISOString(),minutes:0,rpe:0,status:"en curso",short:!!P.day.short,extra:!!P.day.extra,gBefore:isFinite(gv)?gv:null,gTrend:P.gTrend||null,ready:rr?{...P.rd,sc:Math.round(rr.sc*10)/10,lvl:rr.lvl}:null});
   save(); drawPlayer();
   P.timer=setInterval(tick,250);
   audioUnlock(); keepAwake();
@@ -1504,7 +1588,11 @@ document.addEventListener("visibilitychange",()=>{if(document.visibilityState===
 document.addEventListener("pointerdown",e=>{const a=document.activeElement;if(a&&/^(INPUT|TEXTAREA)$/.test(a.tagName)&&!e.target.closest("input,textarea,select,label"))a.blur()},{passive:true});
 /* Aviso sonoro al acabar el descanso (el iPhone no vibra desde una web) */
 let actx=null;
-function audioUnlock(){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state!=="running")actx.resume()}catch(e){}}
+function audioUnlock(){audioMode();try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state!=="running")actx.resume()}catch(e){}}
+/* Con el ajuste «Sonar en silencio», la sesión de audio pasa a «playback»: suena aunque el iPhone esté en silencio
+   (iOS 17 o posterior). Puede pausar la música de otra app, por eso es opcional. */
+function audioIdle(){try{if(actx&&actx.state==="running")actx.suspend();if(navigator.audioSession)navigator.audioSession.type="auto"}catch(e){}}
+function audioMode(){try{if(navigator.audioSession)navigator.audioSession.type=S.prefs&&S.prefs.loud?"playback":"auto"}catch(e){}}
 /* iOS deja el audio «interrumpido» al salir y volver: se reactiva con el siguiente toque */
 ["click","touchend"].forEach(ev=>document.addEventListener(ev,()=>{if(P&&P.start)audioUnlock()},{passive:true}));
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&P&&P.start)audioUnlock()});
@@ -1538,6 +1626,7 @@ function drawPlayer(){
        ${e.metrics.includes("RIR")?`<div class="small muted" style="margin:-2px 0 6px">Al acabar, pon el RIR real: cuántas repeticiones te quedaban. <button data-act="help-rir" style="color:var(--ball);font-weight:700;text-decoration:underline">¿Qué es el RIR?</button></div>`:""}
        ${e.metrics.map(m=>`<div class="stepper"><span class="lab">${m==="seg"?"seg":m==="reps"?"reps":m}${m==="kg"&&e.barbell?"<small>solo discos</small>":m==="RIR"?`<small id="rir-help" style="color:var(--ball)">${rirShort(P.vals.RIR??0)}</small>`:m==="reps"?"<small>repeticiones</small>":""}</span><span></span><button data-step="${m}" data-d="-1" aria-label="Bajar ${m}">−</button><output id="v-${m}" class="num" data-act="edit-val" data-m="${m}" role="button" tabindex="0" aria-label="Escribir ${m}" style="cursor:pointer;text-decoration:underline dotted rgba(255,255,255,.25);text-underline-offset:6px">${fmtNum(P.vals[m]??0)}</output><button data-step="${m}" data-d="1" aria-label="Subir ${m}">+</button></div>`).join("")}
      </div>
+     ${P.i>0||canLater()?`<div style="display:flex;gap:8px;margin-top:12px">${P.i>0?`<button class="ghostbtn small" style="flex:1" data-act="undo-set">↶ Corregir la anterior</button>`:""}${canLater()?`<button class="ghostbtn small" style="flex:1" data-act="later">⏭ Ocupado: luego</button>`:""}</div>`:""}
    </div>
    ${e.metrics.includes("seg")?`<button class="ghostbtn" data-act="hold" style="margin-bottom:8px;border:1px solid var(--ball);color:var(--ball);font-weight:700">⏱ Cronómetro · <span id="hold-sec">${mmss(+P.vals.seg||e.defaults.seg)}</span>${perSide(e)?" por lado":""}</button>`:""}
    <button class="ballbtn" data-act="done">${P.i===P.steps.length-1?"Última serie hecha":"Serie hecha"}</button>
@@ -1588,7 +1677,7 @@ function holdTick(){
 function completeSet(){
   if(!P||!P.start||$("#finish"))return; /* doble toque en la última serie: ni serie repetida ni dos hojas de cierre */
   const st=P.steps[P.i];
-  const rec={ex:st.e.id,set:st.set,sid:P.sid,t:new Date().toISOString()};
+  const rec={ex:st.e.id,set:st.set,b:st.b.id,sid:P.sid,t:new Date().toISOString()};
   if(st.e.defaults.RIR!=null)rec.tRIR=st.e.defaults.RIR;
   st.e.metrics.forEach(m=>rec[m]=P.vals[m]);
   S.sets.push(rec); save(); vibrate(40);
@@ -1596,8 +1685,38 @@ function completeSet(){
   if(P.i>=P.steps.length-1){openFinish(false);return}
   const nx=P.steps[P.i+1]; let rest=st.e.rest;
   if(nx.b!==st.b)rest=Math.max(rest,blockGap(P.day)); /* cambio de bloque: tiempo para preparar el material */
+  else if(nx.e===st.e&&st.b.ex.length>1)rest=Math.max(rest,...st.b.ex.map(x=>x.rest||0)); /* superserie: si repites el mismo ejercicio seguido, el descanso de la vuelta entera */
   P.i++; P.vals=prefill(P.steps[P.i]); drawPlayer();
   if(rest>0)showRest(rest);
+}
+/* Corregir: borra la última serie apuntada y vuelve a ella con sus números, para cambiarlos y apuntarla otra vez */
+function undoSet(){
+  if(!P||!P.start)return;
+  const fin=!!$("#finish"), idx=fin?P.i:P.i-1;
+  const mine=S.sets.filter(x=>x.sid===P.sid); if(idx<0||!mine.length)return;
+  const last=mine.reduce((a,x)=>new Date(x.t)>=new Date(a.t)?x:a,mine[0]);
+  S.sets.splice(S.sets.lastIndexOf(last),1); save();
+  P.hold=null;$("#hold")?.remove();P.restEnd=0;$("#rest")?.remove();$("#finish")?.remove();F=null;
+  /* el paso de esa serie (por si el orden cambió) */
+  let k=idx;if(!(P.steps[k]&&P.steps[k].e.id===last.ex&&P.steps[k].set===last.set)){const j=P.steps.findIndex((s,n)=>n<=idx&&s.e.id===last.ex&&s.set===last.set);if(j>=0){const [m]=P.steps.splice(j,1);P.steps.splice(idx,0,m)}}
+  P.i=idx; const st=P.steps[P.i];
+  P.vals=Object.assign({},st.e.defaults);st.e.metrics.forEach(m=>{if(last[m]!=null)P.vals[m]=last[m]});P.hint=null;
+  P.prs=[];S.sets.filter(x=>x.sid===P.sid).forEach(r=>{const pr=checkPR(r),e=exById(r.ex);if(pr&&e)P.prs.push({name:e.name,txt:pr})});
+  drawPlayer(); toast("Corrige los números y vuelve a darle a «Serie hecha»");
+}
+/* Máquina ocupada: las series que quedan de este ejercicio pasan al final del bloque (o de la sesión) */
+function canLater(){if(!P||!P.steps[P.i])return false;const st=P.steps[P.i];return P.steps.slice(P.i).some(s=>s.e!==st.e)}
+function laterSet(){
+  if(!canLater())return;
+  const st=P.steps[P.i], rest=P.steps.slice(P.i);
+  const mine=rest.filter(s=>s.e===st.e&&s.b===st.b), others=rest.filter(s=>!(s.e===st.e&&s.b===st.b));
+  const sameB=others.filter(s=>s.b===st.b), pos=sameB.length?others.indexOf(sameB.at(-1))+1:others.length;
+  others.splice(pos,0,...mine);
+  P.steps=[...P.steps.slice(0,P.i),...others];
+  const ses=S.sessions.find(x=>x.id===P.sid);if(ses){ses.order=others.map(s=>[s.e.id,s.set,s.b.id]);save()} /* por si la app se cierra: se retoma en este orden */
+  P.hold=null;$("#hold")?.remove();
+  P.vals=prefill(P.steps[P.i]); drawPlayer();
+  toast(`${st.e.name}: lo dejo para ${sameB.length?"el final del bloque":"el final de la sesión"}`);
 }
 function showRest(sec){
   P.restTotal=sec; P.restEnd=Date.now()+sec*1000; P.cd=null;
@@ -1607,7 +1726,8 @@ function showRest(sec){
    <div class="ring"><svg viewBox="0 0 240 240"><circle cx="120" cy="120" r="110" fill="none" stroke="#1a243a" stroke-width="14"/><circle id="rest-ring" cx="120" cy="120" r="110" fill="none" stroke="#3f7df4" stroke-width="14" stroke-linecap="round" stroke-dasharray="691" stroke-dashoffset="0"/></svg><output id="rest-out">${mmss(sec)}</output></div>
    <div style="text-align:center"><div class="small muted">${nx.b!==P.steps[P.i-1]?.b?`Bloque nuevo · ${esc(nx.b.title)}`:"Ahora"}</div><div style="font:800 28px var(--display)">${esc(nx.e.name)}</div><div class="small muted">Serie ${nx.set+1} de ${nx.e.sets}</div></div>
    ${nx.b!==P.steps[P.i-1]?.b&&nx.b.mat?`<div class="small" style="max-width:360px;text-align:center;padding:10px 14px;border-radius:12px;background:var(--surface);color:var(--text)">🧰 Prepara: ${esc(nx.b.mat)}</div>`:""}
-   <div style="display:flex;gap:12px;width:100%;max-width:360px"><button class="ghostbtn" data-act="rest-add">+15"</button><button class="ghostbtn" style="background:var(--court);color:var(--ink)" data-act="rest-skip">Saltar</button></div>`;
+   <div style="display:flex;gap:12px;width:100%;max-width:360px"><button class="ghostbtn" data-act="rest-add">+15"</button><button class="ghostbtn" style="background:var(--court);color:var(--ink)" data-act="rest-skip">Saltar</button></div>
+   <button class="ghostbtn small" style="max-width:360px;width:100%" data-act="undo-set">↶ Corregir la serie que acabas de apuntar</button>`;
   $("#layer").appendChild(el); tick();
 }
 
@@ -1757,6 +1877,7 @@ function showSummary(sm){
       <div class="small" style="color:var(--text)">${sm.week>=4?"Semana de gimnasio completa. Así se mejora en pista.":`Sesión ${Math.min(sm.week,4)} de 4 esta semana`}</div>
     </div>${sm.gym?"":"-->"}
     ${g}
+    ${!S.lastBackup||Date.now()-new Date(S.lastBackup)>7*864e5?`<button class="ghostbtn small" data-act="backup" style="border:1px solid var(--line)">💾 Guardar copia de seguridad${S.lastBackup?` · la última, hace ${Math.floor((Date.now()-new Date(S.lastBackup))/864e5)} días`:""}</button>`:""}
     <button class="ballbtn" data-act="share-summary">Compartir</button>
     <button class="ghostbtn" data-act="summary-close">Cerrar</button>
   </div>`;
@@ -1800,7 +1921,7 @@ function openFinish(partial){
     if(confirm("No has apuntado ninguna serie. ¿Descarto la sesión?")){S.sessions=S.sessions.filter(s=>s.id!==P.sid);save();closePlayer();render();toast("Sesión descartada")}
     return}
   let mins=activeMinutes(P.start,ts);
-  F={rpe:7,partial,reason:null,mins};
+  F={rpe:7,partial,reason:null,mins,pain:{}};
   $("#finish")?.remove();
   const el=document.createElement("div"); el.className="sheet"; el.id="finish";
   el.innerHTML=`<div class="panel" role="dialog" aria-modal="true" aria-label="Cerrar la sesión">
@@ -1814,10 +1935,19 @@ function openFinish(partial){
    <div class="field"><label style="display:flex;justify-content:space-between;align-items:center;font-size:15px;color:var(--text)">No la he terminado <input type="checkbox" id="f-partial" ${partial?"checked":""} style="width:22px;height:22px;accent-color:#3f7df4"></label>
      <div id="reasons" class="chips" style="margin-top:10px;${partial?"":"display:none"}">${["Sin tiempo","Cansado","Me encuentro mal","Sin material","Molestia"].map(r=>`<button class="chip" data-reason="${r}" style="background:var(--surface);color:var(--muted)">${r}</button>`).join("")}</div></div>
    <div class="field"><label for="f-knee">Rodilla derecha: molestia de 0 (nada) a 10</label><div style="display:flex;align-items:center;gap:12px"><input type="range" id="f-knee" min="0" max="10" step="1" value="0" style="flex:1;accent-color:#3f7df4"><b id="f-knee-v" class="num" style="font:700 24px var(--body);min-width:28px;text-align:right">0</b></div></div>
+   <div class="field"><label>¿Otra molestia?</label><div class="chips">${PAINZ.map(z=>`<button class="chip" data-act="pz" data-z="${z.k}" aria-pressed="false" style="background:var(--surface);color:var(--muted)">${z.n}</button>`).join("")}</div><div id="pz-box" style="display:flex;flex-direction:column;gap:8px;margin-top:8px"></div></div>
    <div class="field"><label for="f-note">Notas</label><textarea id="f-note" rows="2" placeholder="Molestias, sensaciones, qué ejercicio te costó…"></textarea></div>
    <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="small muted">Carga de la sesión</span><span><b id="f-load" class="num" style="font:700 34px var(--body)">${7*mins}</b> <span class="small muted">UA</span></span></div>
-   <button class="ballbtn" data-act="save">Guardar sesión</button></div>`;
+   <button class="ballbtn" data-act="save">Guardar sesión</button>
+   ${!partial&&S.sets.some(x=>x.sid===P.sid)?`<button class="ghostbtn small" data-act="undo-set">↶ Corregir la última serie</button>`:""}</div>`;
   $("#layer").appendChild(el);
+}
+/* Molestias por zona (además de la rodilla): en pádel lo más típico es el codo, y después hombro, lumbar y gemelo */
+const PAINZ=[{k:"codo",n:"Codo",tip:"cuida el agarre fuerte y el revés; si dura más de una semana, que lo vea tu fisio."},{k:"hombro",n:"Hombro",tip:"si molesta, nada de press por encima de la cabeza ni remates fuertes; si dura más de una semana, que lo vea tu fisio."},{k:"lumbar",n:"Lumbar",tip:"baja el peso del rumano y la sentadilla, y prioriza la movilidad; si dura más de una semana, que lo vea tu fisio."},{k:"gemelo",n:"Gemelo / Aquiles",tip:"sin saltos ni sprints hasta que no moleste; si dura más de una semana, que lo vea tu fisio."}];
+function pzPaint(){
+  document.querySelectorAll("[data-act=pz]").forEach(b=>{const on=F.pain[b.dataset.z]!=null;b.setAttribute("aria-pressed",on);b.style.background=on?"var(--warn)":"var(--surface)";b.style.color=on?"var(--ink)":"var(--muted)"});
+  const box=$("#pz-box"); if(!box)return;
+  box.innerHTML=PAINZ.filter(z=>F.pain[z.k]!=null).map(z=>`<div><div class="small muted">${z.n}: de 0 a 10</div><div style="display:flex;align-items:center;gap:12px"><input type="range" class="pz-r" data-z="${z.k}" min="0" max="10" step="1" value="${F.pain[z.k]}" aria-label="Molestia en ${z.n}" style="flex:1;accent-color:#3f7df4"><b id="pz-v-${z.k}" class="num" style="font:700 22px var(--body);min-width:28px;text-align:right;${F.pain[z.k]>=4?"color:var(--warn)":""}">${F.pain[z.k]}</b></div></div>`).join("");
 }
 /* RIR y RPE, siempre a mano */
 function rirShort(v){v=Math.round(v);return v<=0?"fallo":v===1?"quedaba 1":`quedaban ${v}`}
@@ -1842,11 +1972,12 @@ function saveSession(){
   const s=S.sessions.find(x=>x.id===P.sid);
   const mins=parseInt($("#f-min").value,10)||F.mins;
   const gl=parseFloat(($("#f-gl").value||"").replace(",","."));
-  Object.assign(s,{minutes:mins,rpe:F.rpe,status:$("#f-partial").checked?"parcial":"completa",reason:$("#f-partial").checked?F.reason:null,gAfter:isFinite(gl)?gl:null,note:$("#f-note").value.trim(),knee:+$("#f-knee").value});
+  Object.assign(s,{minutes:mins,rpe:F.rpe,status:$("#f-partial").checked?"parcial":"completa",reason:$("#f-partial").checked?F.reason:null,gAfter:isFinite(gl)?gl:null,note:$("#f-note").value.trim(),knee:+$("#f-knee").value,pain:Object.keys(F.pain).length?{...F.pain}:null});
   save(); const sm=sessionSummary(s); closePlayer(); render(); showSummary(sm); setTimeout(()=>checkBadges(),4200);
   if(s.knee>=4)toast("Rodilla con molestia: mañana sin saltos y, si sigue, consúltalo con tu fisio.");
+  else{const z=PAINZ.find(z=>s.pain&&s.pain[z.k]>=4);if(z)toast(`${z.n} con molestia: ${z.tip}`)}
 }
-function closePlayer(){if(P&&P.timer)clearInterval(P.timer);P=null;F=null;$("#layer").innerHTML="";try{wakeLock&&wakeLock.release()}catch(e){}wakeLock=null;awakeVideo(false)}
+function closePlayer(){if(P&&P.timer)clearInterval(P.timer);P=null;F=null;audioIdle();$("#layer").innerHTML="";try{wakeLock&&wakeLock.release()}catch(e){}wakeLock=null;awakeVideo(false)}
 
 /* ============ SALUD: importar (atajo) y exportar ============ */
 function openImport(){
@@ -2313,13 +2444,21 @@ function openReport(){
 }
 
 /* ============ NOVEDADES Y AJUSTES ============ */
-const APP_VERSION="2026.11.24s";
+const APP_VERSION="2026.11.24t";
+/* [icono, texto, versión]: al abrir la app nueva solo salen las novedades desde la última versión que viste */
 const CHANGELOG=[
- ["🎾","Días de partido: el calentamiento y la recuperación son dos sesiones. Haces el calentamiento, juegas, y al volver te sale «Recuperación (al acabar de jugar)». El partido ya no cuenta como minutos de gimnasio."],
- ["✅","Si apuntas un partido a otra hora (14:00 en vez de 15:30), cuenta como el que tenías planificado: no sale repetido en Semana ni en el calendario, y el aviso de la glucosa usa la hora real."],
- ["👆","Un doble toque en «Serie hecha» ya no se salta un ejercicio ni repite la última serie."],
- ["⏳","Los minutos de la sesión ya no cuentan las pausas largas, y si tienes otra sesión a medias la app te pregunta antes de abrirla."],
- ["🧾","Semana y los días hechos enseñan los minutos reales; «Última vez» enseña cada serie (4 · 6 · 6); restaurar una copia pide confirmación; y varios textos corregidos."],
+ ["↶","En plena sesión: «Corregir la anterior» si apuntaste mal una serie, y «Ocupado: luego» si la máquina está cogida (ese ejercicio pasa al final del bloque). Si haces el mismo ejercicio seguido en una superserie, descansas la vuelta entera.","2026.11.24t"],
+ ["💧","Antes de empezar: marca la flecha del Libre y la app te recuerda la guía general (esperar por debajo de 90, cetonas por encima de 270…). Sin dosis: manda tu endocrino.","2026.11.24t"],
+ ["📝","La nota que escribes al terminar te sale la próxima vez que hagas esa sesión, y en la lista de Progreso.","2026.11.24t"],
+ ["🩹","Al terminar puedes apuntar molestias de codo, hombro, lumbar o gemelo, además de la rodilla. En Progreso, su evolución semana a semana.","2026.11.24t"],
+ ["📈","El gráfico de Progreso ya suma tus series de la app, no solo las marcas de Marcfit. Y con 6 sesiones con la encuesta, verás cómo rindes según cómo llegas.","2026.11.24t"],
+ ["🔔","Ajustes: el pitido puede sonar aunque el iPhone esté en silencio, con botón para probarlo.","2026.11.24t"],
+ ["🏠","Hoy: la sesión sale más arriba y los avisos, ordenados por importancia (los menos urgentes, plegados). Recordatorio de copia de seguridad al terminar si hace más de una semana.","2026.11.24t"],
+ ["🎾","Días de partido: el calentamiento y la recuperación son dos sesiones. Haces el calentamiento, juegas, y al volver te sale «Recuperación (al acabar de jugar)». El partido ya no cuenta como minutos de gimnasio.","2026.11.24s"],
+ ["✅","Si apuntas un partido a otra hora (14:00 en vez de 15:30), cuenta como el que tenías planificado: no sale repetido en Semana ni en el calendario, y el aviso de la glucosa usa la hora real.","2026.11.24s"],
+ ["👆","Un doble toque en «Serie hecha» ya no se salta un ejercicio ni repite la última serie.","2026.11.24s"],
+ ["⏳","Los minutos de la sesión ya no cuentan las pausas largas, y si tienes otra sesión a medias la app te pregunta antes de abrirla.","2026.11.24s"],
+ ["🧾","Semana y los días hechos enseñan los minutos reales; «Última vez» enseña cada serie (4 · 6 · 6); restaurar una copia pide confirmación; y varios textos corregidos.","2026.11.24s"],
  ["⏱","Cronómetro en los ejercicios por tiempo (planchas, copenhague, bici, intervalos…): 3\" para colocarte, cuenta atrás con pitidos y, si es por lado, aviso para cambiar. La serie se apunta sola al acabar."],
  ["🧰","Cada bloque dice qué material preparar, y al cambiar de bloque tienes 1'30\" para montarlo. Las transiciones dentro de la superserie pasan de 15-20\" a 30-45\", lo que tardas de verdad en cambiar de puesto."],
  ["🏃","A: carrera progresiva antes de los sprints. D: cargada con la barra vacía antes de cargar. Activación pre-competición con bici y skipping antes de saltar."],
@@ -2367,10 +2506,15 @@ const CHANGELOG=[
  ["💧","Glucosa de LibreView e informe para tu endocrino, con curvas por deporte."],
  ["🧠","La semana se reorganiza sola si un día no entrenas o si compites."],
  ["🛡️","Control de carga para no subir de golpe y la gráfica de progreso de cada ejercicio."]];
-function openWhatsNew(){
+/* «2026.12.9a» → «20261209  a»: así «10» va después de «9» y «aa» después de «z» */
+const verKey=v=>String(v||"").replace(/^(\d{4})\.(\d{1,2})\.(\d{1,2})([a-z]*)$/,(m,y,mo,d,l)=>y+mo.padStart(2,"0")+d.padStart(2,"0")+l.padStart(3," "));
+function openWhatsNew(all){
+  $("#whatsnew")?.remove();
+  const seen=S.seenVersion||"", fresh=CHANGELOG.filter(c=>c[2]&&verKey(c[2])>verKey(seen)), list=all||!seen||!fresh.length?CHANGELOG:fresh;
   const el=document.createElement("div");el.className="sheet";el.id="whatsnew";
   el.innerHTML=`<div class="panel" role="dialog" aria-modal="true" aria-label="Novedades"><div class="eyebrow" style="color:var(--ball)">Novedades</div><h2 class="title" style="font-size:30px">Tu app ha mejorado</h2>
-   <div style="display:flex;flex-direction:column;gap:10px">${CHANGELOG.map(([i,t])=>`<div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:22px;line-height:1.2">${i}</span><span style="color:var(--text)">${esc(t)}</span></div>`).join("")}</div>
+   <div style="display:flex;flex-direction:column;gap:10px">${list.map(([i,t])=>`<div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:22px;line-height:1.2">${i}</span><span style="color:var(--text)">${esc(t)}</span></div>`).join("")}</div>
+   ${list.length<CHANGELOG.length?`<button class="ghostbtn small" data-act="whatsnew-all">Ver todas las novedades</button>`:""}
    <button class="ballbtn" data-act="whatsnew-ok">Entendido</button></div>`;
   $("#layer").appendChild(el);
 }
@@ -2382,6 +2526,9 @@ function openSettings(){
    <button class="ghostbtn" data-act="whatsnew">✨ Novedades de esta versión</button>
    <button class="ghostbtn" data-act="help-rir">❓ Qué son el RIR y el RPE</button>
    <button class="ghostbtn" data-act="endo-open">🩺 Mi pauta del endocrino</button>
+   <div style="display:flex;flex-direction:column;gap:4px"><label style="display:flex;justify-content:space-between;align-items:center;gap:12px;font-weight:600">🔔 Que el pitido suene aunque el iPhone esté en silencio <input type="checkbox" id="pref-loud" ${S.prefs&&S.prefs.loud?"checked":""} style="width:24px;height:24px;flex:none;accent-color:#3f7df4"></label>
+     <span class="small muted">Puede pausar la música que tengas puesta mientras dura la sesión. ${"audioSession" in navigator?"":"Este iPhone no lo permite (hace falta iOS 17 o posterior)."}</span>
+     <button class="ghostbtn small" data-act="beep-test">Probar el pitido</button></div>
    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="ghostbtn small" data-act="backup">💾 Guardar copia</button><label class="ghostbtn small" style="text-align:center;cursor:pointer">Restaurar copia<input type="file" id="restore" accept="application/json,.json" hidden></label></div>
    <button class="ghostbtn small" data-act="export">Copiar mis registros para tu entrenador</button>
    <div class="small muted">Tus datos viven solo en este iPhone (${used} KB). Nadie más los ve. Versión ${APP_VERSION}.</div>
@@ -2406,9 +2553,13 @@ document.addEventListener("click",e=>{
     case "go":go();break;
     case "done":{const t0=performance.now();if(P&&P.lastTap&&t0-P.lastTap<700)break; /* un doble toque no se salta un ejercicio */
       if(P)P.lastTap=t0;completeSet();break}
+    case "pz":{const z=t.dataset.z;if(!F)break;if(F.pain[z]!=null)delete F.pain[z];else F.pain[z]=3;pzPaint();break}
     case "rest-add":P.restEnd+=15000;P.restTotal+=15;P.cd=null;tick();break;
     case "hold":if(!P.hold&&!P.restEnd)startHold();break;
     case "hold-stop":P.hold=null;$("#hold")?.remove();break;
+    case "undo-set":case "later":{const t0=performance.now();if(P&&P.lastTap&&t0-P.lastTap<700)break; /* un doble toque no borra dos series */
+      if(t.dataset.act==="later")laterSet();else undoSet();if(P)P.lastTap=performance.now();break}
+    case "beep-test":audioUnlock();setTimeout(beep,150);setTimeout(()=>{if(!(P&&P.start))audioIdle()},3000);break;
     case "rest-skip":P.restEnd=0;$("#rest")?.remove();break;
     case "exit":openExit();break;
     case "exit-partial":$("#exit")?.remove();openFinish(true);break;
@@ -2459,11 +2610,13 @@ document.addEventListener("click",e=>{
     case "settings":openSettings();break;
     case "settings-close":$("#settings")?.remove();break;
     case "whatsnew":$("#settings")?.remove();openWhatsNew();break;
+    case "whatsnew-all":openWhatsNew(true);break;
     case "whatsnew-ok":S.seenVersion=APP_VERSION;save();$("#whatsnew")?.remove();break;
     case "wipe":if(confirm("¿Borrar TODOS tus registros de este iPhone? Guarda antes una copia: no se puede deshacer.")&&confirm("¿Seguro? Se borrarán sesiones, series, pesajes, glucosa y pádel.")){S={sessions:[],sets:[],health:{glucose:[],workouts:[]},seenVersion:APP_VERSION};GC=null;save();$("#settings")?.remove();render();toast("Datos borrados")}break;
     case "resume":resumeSession(false);break;
     case "resume-finish":resumeSession(true);break;
     case "resume-discard":{const s=openSession();if(s&&confirm("¿Descartar esta sesión y sus series?")){S.sessions=S.sessions.filter(x=>x.id!==s.id);S.sets=S.sets.filter(x=>x.sid!==s.id);save();render();toast("Sesión descartada")}break}
+    case "gtr":{P.gText=$("#g-pre")?$("#g-pre").value:P.gText;P.gTrend=P.gTrend===t.dataset.k?null:t.dataset.k;drawPre();break}
     case "rd":{P.gText=$("#g-pre")?$("#g-pre").value:P.gText;P.rd=P.rd||{};P.rd[t.dataset.k]=+t.dataset.v;drawPre();break}
     case "pre-extra":{P.gText=$("#g-pre")?$("#g-pre").value:P.gText;const rd=P.rd;const base=today();P.day=P.day.extra?base:withExtra(base);P.steps=buildSteps(P.day);P.i=0;P.vals=prefill(P.steps[0]);P.rd=rd;drawPre();if(P.day.extra)toast("Bloque extra añadido al final");break}
     case "pre-short":{P.gText=$("#g-pre")?$("#g-pre").value:P.gText;setDayOpt("short",true);const rd=P.rd,g=P.gText;const d=today();P.day=d;P.steps=buildSteps(d);P.i=0;P.vals=prefill(P.steps[0]);P.rd=rd;P.gText=g;drawPre();toast("Versión corta");break}
@@ -2533,6 +2686,9 @@ document.addEventListener("input",e=>{
   if(e.target.id==="ph-a"||e.target.id==="ph-b"){openPhotoCompare($("#ph-a").value,$("#ph-b").value)}
   if(e.target.id==="libreview"&&e.target.files[0]){const f=e.target.files[0];const r=new FileReader();r.onload=()=>{toast(importLibreView(String(r.result)));render()};r.readAsText(f);e.target.value=""}
   if(e.target.id==="renpho"&&e.target.files[0]){const f=e.target.files[0];const r=new FileReader();r.onload=()=>{const m=importRenpho(String(r.result));toast(m);render()};r.readAsText(f);e.target.value=""}
+  if(e.target.id==="pref-loud"){S.prefs=S.prefs||{};S.prefs.loud=e.target.checked;save();toast(e.target.checked?"Sonará también en silencio":"En silencio no sonará")}
+  if(e.target.id==="g-pre"&&P&&!P.start){P.gText=e.target.value;const gg=$("#g-guide");if(gg)gg.outerHTML=glGuideHtml()}
+  if(e.target.classList&&e.target.classList.contains("pz-r")&&F){F.pain[e.target.dataset.z]=+e.target.value;const o=$("#pz-v-"+e.target.dataset.z);if(o){o.textContent=e.target.value;o.style.color=+e.target.value>=4?"var(--warn)":""}}
   if(e.target.id==="f-knee"){$("#f-knee-v").textContent=e.target.value;$("#f-knee-v").style.color=+e.target.value>=4?"var(--warn)":""}
 });
 function openExit(){
@@ -2549,6 +2705,8 @@ function openExit(){
 /* Sin conexión (solo cuando está publicada como web) */
 if("serviceWorker" in navigator&&location.protocol==="https:"&&!location.hostname.endsWith("claude.ai")){navigator.serviceWorker.register("sw.js").catch(()=>{})}
 try{if(S.body&&S.body.length){const n=S.body.length;normalizeBody();if(S.body.length!==n)save()}}catch(e){}
+/* Pide al iPhone que no borre los datos de la app si se queda sin espacio */
+try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persisted().then(p=>{if(!p)navigator.storage.persist()}).catch(()=>{})}catch(e){}
 render();
 setTimeout(()=>checkBadges(S.seenVersion!==APP_VERSION),1500);
 if(S.seenVersion!==APP_VERSION)setTimeout(()=>{if(!$("#layer").children.length)openWhatsNew()},600);
