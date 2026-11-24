@@ -100,6 +100,7 @@ nav.tabs button[aria-selected="true"]{color:var(--ball)}
 
 /* Pantallas superpuestas */
 .overlay{position:fixed;inset:0;z-index:40;background:var(--ink);display:flex;flex-direction:column;padding:calc(10px + env(safe-area-inset-top,0px)) max(20px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px));animation:up .3s ease}
+.overlay.still{animation:none}
 .overlay .inner{max-width:520px;width:100%;margin:0 auto;display:flex;flex-direction:column;height:100%;min-height:0}
 @keyframes up{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
 .iconbtn{width:40px;height:40px;border-radius:50%;background:var(--surface);display:grid;place-items:center}
@@ -247,10 +248,13 @@ const SESSION_A={id:"A",wd:1,title:"A · Pierna: primer paso, fuerza y rodilla",
   ex("plancha-abd","Plancha lateral con abducción","{S} × 20\" por lado","Cadera alta; sube y baja la pierna de arriba despacio.","side plank hip abduction",2,["seg"],{seg:20},45)]}]};
 
 const SESSION_B={id:"B",wd:2,title:"B · Empuje, lanzamientos y core",sub:"Tren superior: empuje, lanzamientos y core. Las piernas descansan.",kinds:["gym"],gym:50,padel:0,rpe:[7,8],warn:null,blocks:[
- {id:"b0",title:"Calentamiento",note:"1 vuelta · 7 min",ex:[
+ {id:"b0",title:"Calentamiento",note:"1 vuelta · 8 min",ex:[
+  ex("b-bici","Bici o remo","3 min, subiendo el ritmo","Empieza suave y acaba sudando un poco: el hombro calienta mejor con el cuerpo caliente.","rowing machine warm up",1,["seg"],{seg:180},0),
+  ex("b-torax","Rotación torácica en cuadrupedia (libro abierto)","8 por lado","Mano en la nuca y abre el codo hacia el techo siguiendo con la mirada. Prepara el giro de los lanzamientos.","quadruped thoracic rotation",1,["reps"],{reps:8},0),
   ex("b-w","W con goma","15 repeticiones","Codos pegados, aprieta las escápulas.","band w pull apart",1,["reps"],{reps:15},0),
   ex("b-rot","Rotación externa 90/90 con goma","12 por brazo","Codo a la altura del hombro, gira despacio.","90 90 external rotation band",1,["reps"],{reps:12},0),
-  ex("b-escap","Plancha escapular","10 repeticiones","Brazos rectos: junta y separa las escápulas.","scapular push up plank",1,["reps"],{reps:10},0)]},
+  ex("b-escap","Plancha escapular","10 repeticiones","Brazos rectos: junta y separa las escápulas.","scapular push up plank",1,["reps"],{reps:10},0),
+  ex("b-aprox","Push press con la barra vacía","1 × 6 · serie de aproximación","Solo la barra, rápido y limpio. Si quieres, otra de 3 con la mitad de los discos de hoy.","push press technique",1,["reps"],{reps:6},0)]},
  {id:"b1",title:"Potencia de empuje",note:"Superserie · 4 rondas",ex:[
   ex("push-press","Push press con barra","{S} × 4 · RIR {R}","Flexión corta de rodillas y empuja con las piernas. Apunta solo los discos.","push press technique",4,["kg","reps","RIR"],{kg:20,reps:4,RIR:3},20,true),
   ex("lanz-rot","Lanzamiento rotacional de balón a la pared","{S} × 4 por lado · explosivo","El giro sale de la cadera, como una derecha. Con el balón de 5 kg; si te frena el giro, usa uno más ligero: aquí manda la velocidad.","rotational medicine ball throw wall",4,["kg","reps"],{kg:5,reps:4},120)]},
@@ -275,9 +279,12 @@ const RECOVERY={id:"X",wd:3,title:"Movilidad y rodillo",sub:"Opcional, 20 minuto
   ex("x-eliptica","Elíptica suave (opcional)","10 min en zona 2","Puedes hablar sin cortarte. Ideal para recuperar.","elliptical zone 2",1,["seg"],{seg:600},0)]}]};
 
 const SESSION_C={id:"C",wd:4,title:"C · Tracción, agarre y hombro",sub:"Tracción, agarre, codo y hombro. Las piernas descansan.",kinds:["gym"],gym:45,padel:0,rpe:[7,7],warn:null,blocks:[
- {id:"c0",title:"Calentamiento",note:"1 vuelta · 6 min",ex:[
+ {id:"c0",title:"Calentamiento",note:"1 vuelta · 7 min",ex:[
+  ex("c-bici","Bici o remo","3 min, subiendo el ritmo","Empieza suave y acaba sudando un poco.","rowing machine warm up",1,["seg"],{seg:180},0),
+  ex("c-torax","Rotación torácica en cuadrupedia (libro abierto)","8 por lado","Mano en la nuca y abre el codo hacia el techo siguiendo con la mirada.","quadruped thoracic rotation",1,["reps"],{reps:8},0),
   ex("c-colgado","Colgado activo en barra","30\"","Hombros lejos de las orejas.","active dead hang",1,["seg"],{seg:30},0),
-  ex("c-w","W con goma","15 repeticiones","Aprieta las escápulas.","band w pull apart",1,["reps"],{reps:15},0)]},
+  ex("c-w","W con goma","15 repeticiones","Aprieta las escápulas.","band w pull apart",1,["reps"],{reps:15},0),
+  ex("c-rot","Rotación externa 90/90 con goma","12 por brazo","Codo a la altura del hombro, gira despacio.","90 90 external rotation band",1,["reps"],{reps:12},0)]},
  {id:"c1",title:"Tracción",note:"Superserie · 4 rondas",ex:[
   ex("dominada","Dominada prona","{S} × 5 · RIR {R}","Baja hasta estirar los brazos; pecho hacia la barra. Sin balanceo.","pull up technique",4,["kg","reps","RIR"],{kg:0,reps:5,RIR:2},20,false,{rirMin:1}),
   ex("facepull","Face pull en polea","{S} × 12","Tira hacia la frente abriendo los codos.","face pull cable",4,["kg","reps"],{kg:10,reps:12},90)]},
@@ -1017,8 +1024,8 @@ function phaseBar(){
   <p class="small" style="margin:8px 0 0"><b>Bloque 1 · ${WEEK_INFO[BLOCK.week].t}</b> <span class="muted">· ${ph.g}</span></p></section>`;
 }
 /* «Última vez»: lo último que apuntaste en esta app; si aún no hay nada, lo de tu plan anterior */
-function lastTxt(id){
-  const mine=S.sets.filter(x=>x.ex===id);if(!mine.length)return LAST[id]||"";
+function lastTxt(id,skip){
+  const mine=S.sets.filter(x=>x.ex===id&&(!skip||x.sid!==skip));if(!mine.length)return LAST[id]||"";
   const sid=mine.at(-1).sid, arr=mine.filter(x=>x.sid===sid), ss=S.sessions.find(z=>z.id===sid);
   const d=new Date(ss?ss.start:arr[0].t), top=arr.reduce((a,x)=>(x.kg||0)>(a.kg||0)?x:a,arr[0]);
   const what=top.kg>0?`${fmtNum(top.kg)} kg × ${top.reps??"—"}`:top.reps!=null?`${top.reps} repeticiones`:top.seg!=null?`${top.seg} s`:"hecho";
@@ -1400,21 +1407,24 @@ function readinessBlock(){
    ${r&&r.lvl==="verde"&&!jTired&&!short&&EXTRA[P.day.id]&&P.day.week!==4?(P.day.extra?`<div class="small" style="color:var(--ok);font-weight:600">✓ Añadido: ${esc(EXTRA[P.day.id].title)} (≈10' al final)</div><button class="ghostbtn small" data-act="pre-extra">Quitar el bloque extra</button>`:`<button class="ghostbtn small" style="border:1px solid var(--ball);color:var(--ball)" data-act="pre-extra">➕ Vas sobrado: añadir ${esc(EXTRA[P.day.id].title.toLowerCase())} (≈10')</button>`):""}</div>`;
 }
 function drawPre(){
-  $("#layer").innerHTML=`<div class="overlay" role="dialog" aria-modal="true" aria-label="Antes de empezar"><div class="inner">
+  const old=$("#layer .overlay"), sc=old&&old.querySelector(".scroll"), top=sc?sc.scrollTop:0;
+  $("#layer").innerHTML=`<div class="overlay${old?" still":""}" role="dialog" aria-modal="true" aria-label="Antes de empezar"><div class="inner">
    <div class="topbar"><button class="iconbtn" data-act="close" aria-label="Cerrar">${ICON.x}</button></div>
-   <div style="flex:1"></div>
+   <div class="scroll" style="padding-top:6px">
    <div class="eyebrow">Antes de empezar</div>
    <h2 class="exname">${esc(P.day.title)}</h2>
    <div class="card" style="padding:20px;margin:8px 0 18px">
      <div style="color:var(--ball);font-weight:600">${ICON.drop} Glucosa ahora</div>
-     <div style="display:flex;align-items:baseline;gap:8px"><input id="g-pre" inputmode="numeric" placeholder="—" value="${esc(P.gText)}" aria-label="Glucosa en mg/dL" style="background:none;border:0;outline:0;font:700 56px var(--body);width:170px;font-variant-numeric:tabular-nums"><span class="muted" style="font-weight:600">mg/dL</span></div>
+     <div style="display:flex;align-items:baseline;gap:8px"><input id="g-pre" inputmode="numeric" enterkeyhint="done" placeholder="—" value="${esc(P.gText)}" aria-label="Glucosa en mg/dL" style="background:none;border:0;outline:0;font:700 56px var(--body);width:170px;font-variant-numeric:tabular-nums"><span class="muted" style="font-weight:600">mg/dL</span></div>
      <p class="small muted" style="margin:4px 0 0">${P.gText&&P.gText===P.gAuto?"Leída de Salud. ":P.gText?"":"Escríbela si no la ha importado el atajo. "}Si estás fuera del rango que te ha marcado tu endocrino, no empieces la parte intensa.</p>
    </div>
    <div style="margin:-6px 0 14px">${endoBox("gym")}</div>
    ${readinessBlock()}
-   <div style="flex:1"></div>
-   <button class="ballbtn" data-act="go">Empezar</button>
+   <p class="small muted" style="margin:0 0 6px;text-align:center">La encuesta es opcional: si tienes prisa, dale a Empezar.</p>
+   </div>
+   <button class="ballbtn" data-act="go" style="margin-top:8px">Empezar</button>
   </div></div>`;
+  const ns=$("#layer .overlay .scroll"); if(ns&&top)ns.scrollTop=top;
 }
 function go(){
   const gv=parseFloat(($("#g-pre").value||"").replace(",","."));
@@ -1443,6 +1453,8 @@ async function keepAwake(){
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&P&&P.start)keepAwake()});
 /* Cada toque durante la sesión reactiva el respaldo (por si un vídeo de YouTube lo pausó) */
 ["click","touchend"].forEach(ev=>document.addEventListener(ev,()=>{if(P&&P.start&&(!awakeVid||awakeVid.paused))keepAwake()},{passive:true}));
+/* El teclado numérico del iPhone no tiene botón para cerrarse: se cierra al tocar fuera del recuadro */
+document.addEventListener("pointerdown",e=>{const a=document.activeElement;if(a&&/^(INPUT|TEXTAREA)$/.test(a.tagName)&&!e.target.closest("input,textarea,select,label"))a.blur()},{passive:true});
 /* Aviso sonoro al acabar el descanso (el iPhone no vibra desde una web) */
 let actx=null;
 function audioUnlock(){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state!=="running")actx.resume()}catch(e){}}
@@ -1453,10 +1465,16 @@ document.addEventListener("visibilitychange",()=>{if(document.visibilityState===
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState!=="visible"||(P&&P.start))return;
   if(document.querySelector("#layer .sheet,#layer .overlay"))return; /* no cierres nada que tengas abierto */
   try{render()}catch(e){}});
-function beep(){try{if(!actx)return;[0,0.22,0.44].forEach((t,i)=>{const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=i===2?1175:880;o.connect(g);g.connect(actx.destination);const s=actx.currentTime+t;g.gain.setValueAtTime(0.0001,s);g.gain.exponentialRampToValueAtTime(0.35,s+0.02);g.gain.exponentialRampToValueAtTime(0.0001,s+0.18);o.start(s);o.stop(s+0.2)})}catch(e){}}
+/* Pitido fuerte: onda cuadrada a 2-2,6 kHz (donde el altavoz del iPhone y el oído rinden más), con compresor
+   para subir el volumen sin distorsionar. Al acabar: 2 tandas de 3 pitidos largos. Cuenta atrás: un pitido corto. */
+let bus=null;
+function beepBus(){if(bus&&bus.ctx===actx)return bus.node;const c=actx.createDynamicsCompressor();c.threshold.value=-30;c.knee.value=6;c.ratio.value=12;c.attack.value=0.002;c.release.value=0.1;const g=actx.createGain();g.gain.value=2.2;c.connect(g);g.connect(actx.destination);bus={ctx:actx,node:c};return c}
+function tone(at,f,dur,vol=1){const o=actx.createOscillator(),g=actx.createGain();o.type="square";o.frequency.value=f;o.connect(g);g.connect(beepBus());g.gain.setValueAtTime(0.0001,at);g.gain.exponentialRampToValueAtTime(vol,at+0.01);g.gain.setValueAtTime(vol,at+dur-0.03);g.gain.exponentialRampToValueAtTime(0.0001,at+dur);o.start(at);o.stop(at+dur+0.02)}
+function beep(){try{if(!actx)return;if(actx.state!=="running")actx.resume();const t0=actx.currentTime+0.02;[0,0.32,0.64,1.2,1.52,1.84].forEach((t,i)=>tone(t0+t,i%3===2?2600:2000,0.24))}catch(e){}}
+function beepShort(){try{if(!actx)return;if(actx.state!=="running")actx.resume();tone(actx.currentTime+0.02,1600,0.12,0.8)}catch(e){}}
 function drawPlayer(){
-  const st=P.steps[P.i], e=st.e;
-  $("#layer").innerHTML=`<div class="overlay" role="dialog" aria-modal="true" aria-label="Sesión en curso"><div class="inner">
+  const st=P.steps[P.i], e=st.e, old=$("#layer .overlay");
+  $("#layer").innerHTML=`<div class="overlay${old?" still":""}" role="dialog" aria-modal="true" aria-label="Sesión en curso"><div class="inner">
    <div class="topbar"><button class="iconbtn" data-act="exit" aria-label="Terminar sesión">${ICON.x}</button><span class="num muted" id="elapsed" style="font-weight:600">0:00</span><span class="num muted" style="width:56px;text-align:right;font-weight:600">${P.i+1}/${P.steps.length}</span></div>
    <div class="prog" aria-hidden="true">${P.steps.map((_,k)=>`<i class="${k<P.i?"done":k===P.i?"now":""}"></i>`).join("")}</div>
    <div class="scroll">
@@ -1464,7 +1482,7 @@ function drawPlayer(){
      <h2 class="exname">${esc(e.name)}</h2>
      <div style="font-weight:500;opacity:.88">${esc(e.presc)}</div>
      <p class="small muted" style="margin:6px 0 14px">${esc(e.cue)}</p>
-     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button class="vid" data-video="${e.id}">${ICON.play} Ver vídeo</button>${e.id==="reactiva"?`<button class="vid" data-act="react" style="background:var(--ball);color:var(--ballInk)">⚡ Modo reacción</button>`:""}${LAST[e.id]?`<span class="small muted">Última vez: ${esc(LAST[e.id])}</span>`:""}</div>
+     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button class="vid" data-video="${e.id}">${ICON.play} Ver vídeo</button>${e.id==="reactiva"?`<button class="vid" data-act="react" style="background:var(--ball);color:var(--ballInk)">⚡ Modo reacción</button>`:""}${lastTxt(e.id,P.sid)?`<span class="small muted">Última vez: ${esc(lastTxt(e.id,P.sid))}</span>`:""}</div>
      <div class="card" style="margin-top:18px;padding:18px">
        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px"><span style="font:800 22px var(--display)">Serie ${st.set+1} de ${e.sets}</span>${e.rest?`<span class="small muted">⏱ ${restText(e.rest)}</span>`:""}</div>
        ${P.hint&&st.set===0?`<div class="small" style="margin:2px 0 8px;padding:8px 10px;border-radius:10px;background:${P.hint.t==="up"?"color-mix(in srgb,var(--ok) 14%,transparent)":P.hint.t==="down"?"color-mix(in srgb,var(--warn) 14%,transparent)":"var(--surface2)"};color:${P.hint.t==="up"?"var(--ok)":P.hint.t==="down"?"var(--warn)":"var(--muted)"}">${P.hint.t==="up"?"▲ ":P.hint.t==="down"?"▼ ":"= "}${esc(P.hint.txt)}</div>`:""}
@@ -1485,6 +1503,7 @@ function tick(){
     const left=(P.restEnd-Date.now())/1000;
     const o=$("#rest-out"), c=$("#rest-ring");
     if(o)o.textContent=mmss(left);
+    const cs=Math.ceil(left); if(cs>=1&&cs<=3&&P.cd!==cs&&P.restTotal>5){P.cd=cs;beepShort()}
     if(c)c.style.strokeDashoffset=String(691*(1-Math.max(0,left)/P.restTotal));
     if(left<=0){P.restEnd=0;vibrate([200,100,200]);beep();const r=$("#rest");if(r)r.remove()}
   }
@@ -1501,7 +1520,7 @@ function completeSet(){
   if(rest>0)showRest(rest);
 }
 function showRest(sec){
-  P.restTotal=sec; P.restEnd=Date.now()+sec*1000;
+  P.restTotal=sec; P.restEnd=Date.now()+sec*1000; P.cd=null;
   const nx=P.steps[P.i];
   const el=document.createElement("div"); el.className="rest"; el.id="rest"; el.setAttribute("role","timer");
   el.innerHTML=`<span class="eyebrow" style="color:var(--court)">Descanso</span>
@@ -2211,8 +2230,12 @@ function openReport(){
 }
 
 /* ============ NOVEDADES Y AJUSTES ============ */
-const APP_VERSION="2026.11.24p";
+const APP_VERSION="2026.11.24q";
 const CHANGELOG=[
+ ["🔓","«Antes de empezar» ya no se atasca: la pantalla se desliza, el botón Empezar está siempre abajo a la vista y los botones de la encuesta responden sin saltos. La encuesta es opcional."],
+ ["🔊","Pitido del descanso mucho más fuerte, y cuenta atrás con 3 pitidos cortos antes del final. Si el iPhone está en silencio no suena: quítale el silencio en el gimnasio."],
+ ["🔥","Calentamiento de la B y la C más completo (7-8 min): bici o remo, rotación torácica y, en la B, una serie con la barra vacía antes del push press."],
+ ["🕘","«Última vez» dentro de la sesión enseña tu sesión anterior, no la serie que acabas de hacer."],
  ["📅","Semana: los días que ya pasaron enseñan lo que hiciste de verdad (el lunes, tu amistoso; no la A que tocaba). Y hoy tiene su barra con lo que te queda."],
  ["🧭","Hoy, Semana y el calendario siempre dicen lo mismo: ninguna sesión repetida ni perdida, y si ya hiciste la de hoy, sale como hecha."],
  ["⏱️","«¿Juegas hoy?» ahora te pregunta con la hora exacta: «antes de las 15:30» o «a las 15:30 o más tarde» (6 horas desde el gimnasio)."],
@@ -2290,7 +2313,7 @@ document.addEventListener("click",e=>{
     case "close":closePlayer();break;
     case "go":go();break;
     case "done":completeSet();break;
-    case "rest-add":P.restEnd+=15000;P.restTotal+=15;tick();break;
+    case "rest-add":P.restEnd+=15000;P.restTotal+=15;P.cd=null;tick();break;
     case "rest-skip":P.restEnd=0;$("#rest")?.remove();break;
     case "exit":openExit();break;
     case "exit-partial":$("#exit")?.remove();openFinish(true);break;
