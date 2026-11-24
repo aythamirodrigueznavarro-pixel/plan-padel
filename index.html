@@ -438,7 +438,7 @@ const effCompete=()=>{const o=dayOpts();return o.compete!=null?!!o.compete:!!com
 const todayBase=()=>{const now=new Date(),o=dayOpts(),st=weekState(now),wd=st.todayWd,nat=DAYS[wd-1],pl=weekPlanned(st.m);
   if(st.doneToday){const s0=sessionsOn(now).find(x=>gymIdOf(x)===st.doneToday);return s0&&s0.dayId==="D-act"?{...ACTIVATION,wd}:placed(st.doneToday,wd,pl)}
   if(compOn(now))return compDayObj(now); /* el día que compites, nada de gimnasio: calentamiento competitivo */
-  const sw=o.swap&&!o.autoSwap&&!dayClosed(now)&&DAYS.find(x=>x.id===o.swap); /* «Hacer esta sesión hoy» */
+  const sw=o.swap&&!o.autoSwap&&!dayClosed(now)&&[...DAYS,ACTIVATION].find(x=>x.id===o.swap); /* «Hacer esta sesión hoy» */
   if(sw)return sw.wd===wd?sw:{...sw,wd};
   if(wd>5)return pl?weekendObj(now):nat;
   const p=planWeek(now).plan[wd];
@@ -480,6 +480,11 @@ const realWorkouts=()=>S.health.workouts.filter(w=>!dupGym(w)&&!dupPadel(w));
 /* Carga de un entreno registrado: pádel con tu esfuerzo (RPE) si lo apuntaste, si no 6; caminar 2; otros 4 */
 const wLoad=w=>w.minutes*(w.padel?(+w.rpe||6):w.type==="Caminar"?2:4);
 const workoutsOn=date=>realWorkouts().filter(w=>sameDay(new Date(w.start),date));
+/* ¿Ya se jugó ese partido planificado? Sí si lo apuntaste desde «¿Lo jugaste?» o si apuntaste un pádel
+   ese día a menos de 3 h de la hora prevista (por ejemplo, desde «Apuntar pádel» o si cambió la hora). */
+function padPlayed(p,dt){const k=localKey(dt), id=p.logged&&p.logged[k];
+  if(id){const w=S.health.workouts.find(x=>x.id===id);if(w)return w}
+  const st=new Date(k+"T"+p.h+":00");return workoutsOn(dt).find(w=>w.padel&&Math.abs(new Date(w.start)-st)<3*36e5)||null}
 const latestGlucose=()=>S.health.glucose.slice().sort((a,b)=>new Date(b.t)-new Date(a.t))[0];
 const vibrate=p=>{try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}};
 function toast(t){const el=document.createElement("div");el.className="toast";el.setAttribute("role","status");el.textContent=t;document.body.appendChild(el);setTimeout(()=>el.remove(),2400)}
@@ -612,7 +617,7 @@ function calLines(){
   const padel=dt=>{
     const k=localKey(dt);
     padOn(dt).forEach(p=>{if(p.skip&&p.skip[k])return; /* «No lo jugué»: fuera del calendario */
-      const w=p.logged&&p.logged[k]&&S.health.workouts.find(x=>x.id===p.logged[k]);
+      const w=padPlayed(p,dt);
       if(w){const st0=new Date(w.start);push(dt,hh(st0),w.minutes,`✅ 🎾 ${p.name||KIND_LABEL[padelKind(w)]||"Pádel"}`,`${w.minutes} min${w.res?" · "+w.res:""}.`);return}
       push(dt,p.h,+p.min||90,`🎾 ${p.name||PADK[p.kind]}`,`${PADK[p.kind]||"Pádel"}. Al terminar, apúntalo en Plan Pádel («¿Lo jugaste?»): cuenta para tu carga, tu glucosa y tu recuperación.`)});
     const c=compOn(dt);if(c)push(dt,c.h||"10:00",240,`🏆 ${c.name}`,"Competición. Calentamiento competitivo antes de jugar y tu pauta de hidratos a mano. Apunta cada partido en Plan Pádel.")};
@@ -660,8 +665,8 @@ function planWeekCard(m0){
   const pads=(S.pad||[]).filter(p=>ks.includes(p.d)), comps=(S.comps||[]).filter(c=>ks.some(k=>k>=c.from&&k<=(c.to||c.from)));
   const n=pads.length+comps.length;
   return `<section class="card coach" style="display:flex;flex-direction:column;gap:8px"><div class="eyebrow" style="color:var(--ball)">Tu semana de pádel</div>
-    <p class="small" style="margin:0">${wp?`Planificada: ${n?`${pads.length} ${pads.length===1?"partido o clase":"partidos o clases"}${comps.length?` y ${comps.length} ${comps.length===1?"competición":"competiciones"}`:""}`:"sin pádel"}. Las sesiones de abajo ya están colocadas para que no hagas pierna antes de jugar ni la víspera de competir.`:`¿Ya sabes qué días juegas${off===1?" la semana que viene":" esta semana"}? Apúntalos con la hora y te recoloco las sesiones del gimnasio alrededor.`}</p>
-    ${wp?(()=>{const dr=(off===0?planWeek(new Date()):planWeek(m0,{})).dropped;return dr.length?`<p class="small muted" style="margin:0">${off===1?"La semana que viene":"Esta semana"} no cabe ${dr.map(id=>`la ${id}`).join(" ni ")}: con tus partidos, clases y competiciones no queda hueco sin romper las reglas (nada de pierna antes de jugar, el día de clase ni la víspera de competir, ni dos días seguidos). Mejor una sesión menos que llegar sin piernas.</p>`:""})():""}
+    <p class="small" style="margin:0">${wp?`Planificada: ${n?[pads.length?`${pads.length} ${pads.length===1?"partido o clase":"partidos o clases"}`:"",comps.length?`${comps.length} ${comps.length===1?"competición":"competiciones"}`:""].filter(Boolean).join(" y "):"sin pádel"}. Las sesiones de abajo ya están colocadas para que no hagas pierna antes de jugar ni la víspera de competir.`:`¿Ya sabes qué días juegas${off===1?" la semana que viene":" esta semana"}? Apúntalos con la hora y te recoloco las sesiones del gimnasio alrededor.`}</p>
+    ${wp?(()=>{const dr=(off===0?planWeek(new Date()):planWeek(m0,{})).dropped;return dr.length?`<p class="small muted" style="margin:0">${off===1?"La semana que viene":"Esta semana"} ${dr.length>1?"no caben":"no cabe"} ${dr.map(id=>`la ${id}`).join(" ni ")}: con tus partidos, clases y competiciones no queda hueco sin romper las reglas (nada de pierna antes de jugar, el día de clase ni la víspera de competir, ni dos días seguidos). Mejor una sesión menos que llegar sin piernas.</p>`:""})():""}
     <button class="${wp?"ghostbtn small":"ballbtn"}" ${wp?"":'style="font-size:18px;padding:13px"'} data-act="pln-open" data-off="${off}">🗓️ ${wp?"Cambiar mi semana":"Planificar mi semana"}</button>
     ${wp?calButton():""}</section>`;
 }
@@ -780,7 +785,7 @@ const dayClosed=(now=new Date())=>playedToday(now)||now.getHours()>=21||(weekPla
 function plannedPending(now=new Date()){
   const out=[];[addDays(now,-1),now].forEach(dt=>{const k=localKey(dt), wos=workoutsOn(dt).filter(w=>w.padel);
     padOn(dt).forEach(p=>{const st=new Date(k+"T"+p.h+":00"), end=+st+(+p.min||90)*6e4;
-      if(end>+now||(p.logged&&p.logged[k])||(p.skip&&p.skip[k]))return;
+      if(end>+now||padPlayed(p,dt)||(p.skip&&p.skip[k]))return;
       if(wos.some(w=>Math.abs(new Date(w.start)-st)<3*36e5))return;
       out.push({ref:p.id,d:k,h:p.h,min:p.min,kind:p.kind,name:p.name,txt:`${p.name||PADK[p.kind]} · ${p.h} · ${p.min}'`})});
     const c=compOn(dt);if(c){const st=new Date(k+"T"+(c.h||"10:00")+":00");
@@ -898,7 +903,7 @@ function rescheduleCard(){
     <p style="margin:0">${wpl?"Con lo que planificaste, tu semana queda así":`${st.missed.length>1?"Te quedaron pendientes":"Te quedó pendiente"} ${miss}. Así queda tu semana`}${played?" (hoy ya jugaste)":o.matchSoon?" (hoy juegas)":""}:</p>
     ${pick&&pick===cur&&pick!==DAYS[st.todayWd-1].id?`<p class="small" style="margin:0;color:var(--ok);font-weight:600">✓ Ya te he puesto la ${pick} para hoy: dale a «Empezar sesión».</p>`:""}
     <div>${rows.join("")}</div>
-    ${dropped.length?`<p class="small muted" style="margin:0">Se queda fuera esta semana: ${dropped.map(id=>esc(shortTitle(id))).join(", ")}. No pasa nada: mejor una sesión menos que dos el mismo día.</p>`:""}
+    ${dropped.length?`<p class="small muted" style="margin:0">${dropped.length>1?"Se quedan":"Se queda"} fuera esta semana: ${dropped.map(id=>esc(shortTitle(id))).join(", ")}. No pasa nada: mejor una sesión menos que dos el mismo día.</p>`:""}
     ${why?`<p class="small" style="margin:0;color:var(--ball)">${why}</p>`:""}
     ${pick&&pick!==cur?`<button class="ballbtn" style="font-size:18px;padding:13px" data-act="plan-apply" data-id="${pick}">Hoy hago la ${pick}</button>`:!pick&&DAYS[st.todayWd-1].gym&&cur!=="X"?`<button class="ballbtn" style="font-size:18px;padding:13px" data-act="plan-apply" data-id="X">Hoy, solo movilidad</button>`:""}
     <div style="display:flex;gap:8px;flex-wrap:wrap">${played?"":o.matchSoon===undefined?`<button class="chip" style="background:var(--surface2);color:var(--muted)" data-act="match-ask">¿Ha cambiado algo? Cuéntamelo</button>`:`<button class="chip" style="background:var(--surface2);color:var(--muted)" data-act="match-reset">Cambiar mi respuesta</button>`}${wpl?"":`<button class="chip" style="background:var(--surface2);color:var(--muted)" data-act="skip-missed">${st.missed.length>1?"No las voy a recuperar":"No la voy a recuperar"}</button>`}</div>
@@ -959,7 +964,7 @@ function coachNotes(){
   if(wd===7&&blockWeekRaw(tom)<=4){const w=blockWeek(tom);N.push({i:"📅",t:sameDay(tom,BLOCK_START)?`Mañana empieza el bloque 1. Semana 1: aprendes los pesos (te sobrarán repeticiones a propósito).`:`Mañana empieza la ${WEEK_INFO[w].t.toLowerCase()}.${w===4?" Descarga: menos series y más fácil, para llegar fresco al siguiente bloque.":w===3?" Es la semana más exigente: duerme bien y vigila la glucosa.":""}`})}
   const cToday=compOn(now), cNext=[1,2,3,4,5,6].map(i=>({i,c:compOn(addDays(now,i))})).find(x=>x.c&&!(cToday&&x.c.id===cToday.id));
   if(cToday)N.push({i:"🏆",t:`Hoy compites: ${cToday.name}. Nada de gimnasio: calentamiento competitivo antes de jugar. Mide la glucosa antes y entre partidos; con los nervios suele subir y después puede bajar. Si mañana repites, 10' de agua fría al terminar.`});
-  else if(cNext)N.push({i:"🏆",t:`${cNext.i===1?"Mañana":"El "+addDays(now,cNext.i).toLocaleDateString("es-ES",{weekday:"long"})} tienes ${cNext.c.name}. La app ya lo tiene en cuenta: nada de pierna pesada la víspera${addDays(now,cNext.i).getDay()===6?" y el viernes, activación":""}. Duerme bien esos días.`});
+  else if(cNext)N.push({i:"🏆",t:`${cNext.i===1?"Mañana":"El "+addDays(now,cNext.i).toLocaleDateString("es-ES",{weekday:"long"})} tienes ${cNext.c.name}. La app ya lo tiene en cuenta: nada de pierna pesada la víspera${addDays(now,cNext.i).getDay()===6&&cNext.i>1&&!sessionsOn(addDays(now,cNext.i-1)).length?" y el viernes, activación":""}. Duerme bien esos días.`});
   const tests=Object.values(S.tests||{}).flat().filter(x=>new Date(x.d)>=BLOCK_START);
   if(now>=BLOCK_START&&blockWeek(now)===1&&!tests.length&&!compOn(now))N.push({i:"⏱️",t:"Esta semana toca hacer los tests del bloque (salto, frenada, dominadas y 1,5 km) en un día suave. Están en Progreso.",act:"go-progreso"});
   const B=(S.body||[]).slice().sort((a,b)=>new Date(a.d)-new Date(b.d)), lastB=B.at(-1);
@@ -973,8 +978,9 @@ function coachNotes(){
   if(!S.lastPhotos||now-new Date(S.lastPhotos+"T12:00:00")>28*864e5)N.push({i:"📸",t:"Toca hacer tus fotos de progreso (una vez al mes): Progreso → Fotos de progreso.",act:"go-progreso"});
   /* Glucosa después del deporte: tu patrón es pico y bajada 2-3 h después */
   const endsToday=[...todayS.map(s=>+new Date(s.start)+(s.minutes||0)*6e4),...realWorkouts().filter(w=>w.padel&&sameDay(new Date(w.start),now)).map(w=>+new Date(w.start)+w.minutes*6e4),
-    ...(weekPlanned(monday(now))?padOn(now).filter(p=>!(p.skip&&p.skip[localKey(now)])&&!(p.logged&&p.logged[localKey(now)])).map(p=>+new Date(localKey(now)+"T"+p.h+":00")+(+p.min||90)*6e4):[])].filter(x=>x<=+now+36e5);
-  if(endsToday.length){const t=new Date(Math.max(...endsToday)+150*6e4);N.push({i:"💧",t:`Mira tu glucosa sobre las ${t.toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})} (2-3 h después del deporte) y otra vez al acostarte: es cuando te suele bajar.`})}
+    ...(weekPlanned(monday(now))?padOn(now).filter(p=>!(p.skip&&p.skip[localKey(now)])&&!padPlayed(p,now)).map(p=>+new Date(localKey(now)+"T"+p.h+":00")+(+p.min||90)*6e4):[])].filter(x=>x<=+now+36e5);
+  if(endsToday.length){const t=new Date(Math.max(...endsToday)+150*6e4), late=+t<=+now;
+    N.push({i:"💧",t:late?`Ahora toca mirar la glucosa: han pasado 2-3 h desde el deporte. Y otra vez al acostarte: es cuando te suele bajar.`:`Mira tu glucosa sobre las ${t.toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})} (2-3 h después del deporte) y otra vez al acostarte: es cuando te suele bajar.`})}
   /* Un consejo de alimentación distinto cada día */
   const TIPS=["Proteína: apunta a 130-160 g al día. Un yogur alto en proteína o skyr de 200-250 g en el desayuno suma mucho.","Frutos secos: un puñado (25-30 g) y no más. Son sanos, pero muy calóricos.","Agua con gas: prueba esta semana mitad con gas y mitad sin gas, y sin gas antes de jugar o entrenar. Mira que el sodio sea menor de 50 mg/L.","Antes de entrenar, hidratos lentos como la manzana: te suben menos la glucosa y después te bajan menos.","Después de entrenar o jugar, algo de proteína (yogur proteico o batido) para recuperar el músculo.","Pregunta pendiente para tu endocrino: tu pauta para días de pádel largo o competición (antes, durante, después y la cena).","Duerme 7-9 horas: es lo que más recupera, y con poco sueño se acumula grasa en la barriga.","La cintura de los lunes manda: 0,5-1 cm menos al mes es el ritmo bueno."];
   const doy=Math.floor((now-new Date(now.getFullYear(),0,0))/864e5);N.push({i:"🥗",t:TIPS[doy%TIPS.length]});
@@ -986,7 +992,7 @@ function coachNotes(){
 }
 
 function renderHoy(){
-  const d=today(), now=new Date(), done=sessionsOn(now).find(s=>s.dayId===d.id);
+  const d=today(), now=new Date(), md=isMatchDay(d), done=sessionsOn(now).find(s=>s.dayId===d.id&&(!md||s.part==="post"));
   const g=latestGlucose(), mins=g?Math.round((Date.now()-new Date(g.t))/60000):null;
   const wk=realWorkouts().filter(w=>new Date(w.start)>=monday());
   const padelMin=wk.filter(w=>w.padel).reduce((a,w)=>a+w.minutes,0);
@@ -1016,13 +1022,13 @@ function renderHoy(){
      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${d.kinds.map(k=>chip(k)).join("")}<span style="margin-left:auto" class="num small muted">${d.rpe?(d.rpe[0]===d.rpe[1]?"RPE "+d.rpe[0]:`RPE ${d.rpe[0]}–${d.rpe[1]}`):""}</span></div>
      <h2 class="title">${esc(d.title)}</h2>
      <p class="muted" style="margin:0">${esc(d.sub)}</p>
-     <div style="display:flex;gap:22px">${d.gym?stat("≈"+estimateMinutes(d),"min de gym"):""}${d.padel?stat(d.padel,"min de pádel"):""}${stat(nEx,"ejercicios")}</div>
-     ${d.gym?`<div class="chips">
-       ${(DAYS[(now.getDay()+6)%7].id==="D")?`<button class="chip" data-act="toggle-compete" style="${effCompete()?"background:var(--warn);color:var(--ink)":"background:var(--surface2);color:var(--muted)"}">${effCompete()?"✓ ":""}Compito mañana</button>`:""}
+     <div style="display:flex;gap:22px">${d.gym?stat(done?done.minutes:"≈"+estimateMinutes(d),"min de gym"):""}${d.padel?stat(d.padel,"min de pádel"):""}${stat(nEx,"ejercicios")}</div>
+     ${d.gym&&!done?`<div class="chips">
+       ${(d.id==="D"||d.id==="D-act")?`<button class="chip" data-act="toggle-compete" style="${effCompete()?"background:var(--warn);color:var(--ink)":"background:var(--surface2);color:var(--muted)"}">${effCompete()?"✓ ":""}Compito mañana</button>`:""}
        <button class="chip" data-act="toggle-short" style="${dayOpts().short?"background:var(--court);color:var(--ink)":"background:var(--surface2);color:var(--muted)"}">${dayOpts().short?"✓ ":""}Versión corta (poco tiempo o día malo)</button>
      </div>`:""}
      ${d.warn?`<div style="background:color-mix(in srgb,var(--ball) 10%,transparent);color:var(--ball);border-radius:14px;padding:12px;font-size:13px;font-weight:500">${ICON.drop} ${esc(d.warn)}</div>`:""}
-     ${done?`<div style="color:var(--ok);font-weight:600">✓ Sesión guardada · RPE ${done.rpe} · carga ${done.rpe*done.minutes} UA</div>`:`<button class="ballbtn" data-act="start">${d.kinds.includes("compite")||d.id==="sab"||d.id==="dom"?"Empezar calentamiento":"Empezar sesión"}</button>`}
+     ${done?`<div style="color:var(--ok);font-weight:600">✓ Sesión guardada · RPE ${done.rpe} · carga ${done.rpe*done.minutes} UA</div>`:`${md&&matchDone("cal")?`<div style="color:var(--ok);font-weight:600">✓ Calentamiento hecho</div>`:""}<button class="ballbtn" data-act="start">${md?(matchDone("cal")?"Recuperación (al acabar de jugar)":"Empezar calentamiento"):d.kinds.includes("compite")||d.id==="sab"||d.id==="dom"?"Empezar calentamiento":"Empezar sesión"}</button>`}
    </section>
    ${d.blocks.map(blockCard).join("")}
   </div>`;
@@ -1039,7 +1045,9 @@ function lastTxt(id,skip){
   const mine=S.sets.filter(x=>x.ex===id&&(!skip||x.sid!==skip));if(!mine.length)return LAST[id]||"";
   const sid=mine.at(-1).sid, arr=mine.filter(x=>x.sid===sid), ss=S.sessions.find(z=>z.id===sid);
   const d=new Date(ss?ss.start:arr[0].t), top=arr.reduce((a,x)=>(x.kg||0)>(a.kg||0)?x:a,arr[0]);
-  const what=top.kg>0?`${fmtNum(top.kg)} kg × ${top.reps??"—"}`:top.reps!=null?`${top.reps} repeticiones`:top.seg!=null?`${top.seg} s`:"hecho";
+  /* sin peso: las repeticiones (o segundos) de cada serie, p. ej. «4 · 6 · 6 repeticiones» */
+  const seq=k=>{const v=arr.map(x=>x[k]).filter(x=>x!=null);return v.every(x=>x===v[0])?`${v[0]}`:v.map(fmtNum).join(" · ")};
+  const what=top.kg>0?`${fmtNum(top.kg)} kg × ${top.reps??"—"}`:top.reps!=null?`${seq("reps")} repeticiones`:top.seg!=null?`${seq("seg")} s`:"hecho";
   return `${d.toLocaleDateString("es-ES",{day:"numeric",month:"short"})} · ${what}${arr.length>1?` (${arr.length} series)`:""}`;
 }
 function blockCard(b){
@@ -1140,8 +1148,8 @@ function renderSemana(){
    ${weekOff===0||weekOff===1?planWeekCard(m0):""}
    <section class="card" style="padding:6px">${DAYS.map(d0=>{const d=A[d0.wd],dt=dW(d0.wd),isT=sameDay(dt,new Date()),ok=sessionsOn(dt).length>0,pad=workoutsOn(dt).filter(w=>w.padel);
      return `<div class="day ${isT?"today":""}" data-day="${d.wd}" data-off="${weekOff}" role="button" tabindex="0" aria-label="Ver la sesión del ${dt.toLocaleDateString("es-ES",{weekday:"long"})}" style="cursor:pointer"><div class="d"><small>${dt.toLocaleDateString("es-ES",{weekday:"short"}).replace(".","")}</small><b style="${isT?"color:var(--ball)":""}">${dt.getDate()}</b></div>
-       <div>${compOn(dt)?`<div class="small" style="color:var(--heart);font-weight:700;margin-bottom:2px">🏆 ${esc(compOn(dt).name)} · sin gimnasio</div>`:""}<div style="font-weight:600">${esc(d.title)}</div><div class="small muted" style="margin:2px 0 6px">${esc(d.sub)}</div><div class="chips">${(wp?d.kinds.filter(k=>k!=="padel"):d.kinds).map(k=>chip(k,false)).join("")}${(d.done?[]:padOn(dt).filter(p=>{const k=localKey(dt);return !(p.logged&&p.logged[k])&&!(p.skip&&p.skip[k])})).map(p=>`<span class="chip" style="background:color-mix(in srgb,var(--ball) 22%,transparent);color:var(--ball)">🎾 ${esc(PADS[p.kind]||"Pádel")} ${esc(p.h)}</span>`).join("")}${pad.length?`<span class="chip" style="background:color-mix(in srgb,var(--ball) 14%,transparent);color:var(--ball)">${ICON.watch} Pádel ${pad.reduce((a,w)=>a+w.minutes,0)}'</span>`:""}</div></div>
-       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">${ok?'<span style="color:var(--ok);font-size:22px" aria-label="Hecha">✓</span>':""}${d.gym?`<span class="small muted num">≈${estimateMinutes(materialize(d,dt))}'</span>`:""}<span class="muted" aria-hidden="true" style="font-size:20px">›</span></div></div>`}).join("")}</section>
+       <div>${compOn(dt)?`<div class="small" style="color:var(--heart);font-weight:700;margin-bottom:2px">🏆 ${esc(compOn(dt).name)} · sin gimnasio</div>`:""}<div style="font-weight:600">${esc(d.title)}</div><div class="small muted" style="margin:2px 0 6px">${esc(d.sub)}</div><div class="chips">${(wp?d.kinds.filter(k=>k!=="padel"):d.kinds).map(k=>chip(k,false)).join("")}${(d.done?[]:padOn(dt).filter(p=>{const k=localKey(dt);return !padPlayed(p,dt)&&!(p.skip&&p.skip[k])})).map(p=>`<span class="chip" style="background:color-mix(in srgb,var(--ball) 22%,transparent);color:var(--ball)">🎾 ${esc(PADS[p.kind]||"Pádel")} ${esc(p.h)}</span>`).join("")}${pad.length?`<span class="chip" style="background:color-mix(in srgb,var(--ball) 14%,transparent);color:var(--ball)">${ICON.watch} Pádel ${pad.reduce((a,w)=>a+w.minutes,0)}'</span>`:""}</div></div>
+       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">${ok?'<span style="color:var(--ok);font-size:22px" aria-label="Hecha">✓</span>':""}${ok?`<span class="small muted num">${sessionsOn(dt).reduce((a,x)=>a+(+x.minutes||0),0)}'</span>`:d.gym&&!d.done?`<span class="small muted num">≈${estimateMinutes(materialize(d,dt))}'</span>`:""}<span class="muted" aria-hidden="true" style="font-size:20px">›</span></div></div>`}).join("")}</section>
    <p class="small muted" style="margin:-6px 4px 0">Toca un día para ver sus ejercicios.</p>
    ${weekOff===0||weekOff===1?acwrCard():""}
    ${padelWeekCard(m0,m1)}
@@ -1158,7 +1166,7 @@ function openDay(wd,off=0){
   el.innerHTML=`<div class="panel" role="dialog" aria-modal="true" aria-label="${esc(d.title)}">
    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px"><div><div class="eyebrow">${dt.toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"})}</div><h2 class="title" style="font-size:28px">${esc(d.title)}</h2></div><button class="iconbtn" data-act="day-close" aria-label="Cerrar">${ICON.x}</button></div>
    <p class="muted" style="margin:0">${esc(d.sub)}</p>
-   <div style="display:flex;gap:22px">${d.gym?stat("≈"+estimateMinutes(d),"min de gym"):""}${d.padel?stat(d.padel,"min de pádel"):""}${d.blocks.length?stat(d.blocks.reduce((a,b)=>a+b.ex.length,0),"ejercicios"):""}</div>
+   <div style="display:flex;gap:22px">${d.gym?(()=>{const m=sessionsOn(dt).reduce((a,x)=>a+(+x.minutes||0),0);return m?stat(m,"min de gym"):stat("≈"+estimateMinutes(d),"min de gym")})():""}${d.padel?stat(d.padel,"min de pádel"):""}${d.blocks.length?stat(d.blocks.reduce((a,b)=>a+b.ex.length,0),"ejercicios"):""}</div>
    ${d.gym&&!isToday&&!base.done?(swapped?`<button class="ghostbtn" data-act="day-unswap">Quitar el cambio: hoy, la sesión que tocaba</button>`:`<button class="ghostbtn" data-act="day-swap" data-id="${base.id}">Hacer esta sesión hoy</button>`):""}
    ${d.blocks.map(blockCard).join("")}
   </div>`;
@@ -1320,6 +1328,8 @@ async function backup(){
 function restore(file){
   const r=new FileReader();
   r.onload=()=>{try{const d=JSON.parse(r.result);if(d.app!=="plan-padel"||!d.datos||!Array.isArray(d.datos.sessions))throw 0;
+    const f=d.fecha||d.exportado||d.date, fd=f?new Date(f).toLocaleDateString("es-ES",{day:"numeric",month:"long",year:"numeric"}):"sin fecha";
+    if(!confirm(`Esta copia es del ${fd} y tiene ${d.datos.sessions.length} sesiones. Ahora tienes ${S.sessions.length}.\n\nSi la restauras, se sustituye todo lo que hay en la app. ¿Seguir?`))return;
     S=Object.assign({sessions:[],sets:[],health:{glucose:[],workouts:[]}},d.datos);fixState();delete S.calSig;delete S.calOn;GC=null;save(); /* el calendario se vuelve a pasar desde este iPhone */toast("Copia restaurada");render()}catch(e){toast("Ese archivo no es una copia de Plan Pádel")}};
   r.readAsText(file);
 }
@@ -1375,10 +1385,28 @@ function kgStep(e,kg,dir){if(e.barbell)return 2.5;return dir>0?(kg<10?1:2.5):(kg
 /* ============ RETOMAR UNA SESIÓN A MEDIAS ============
    Cada serie se guarda al momento; si la app se cierra, al volver se retoma donde ibas. */
 const openSession=()=>S.sessions.filter(s=>s.status==="en curso").sort((a,b)=>new Date(b.start)-new Date(a.start))[0];
-function rebuildDay(s){const base=s.dayId==="D-act"?ACTIVATION:[...DAYS,ACTIVATION].find(d=>d.id===s.dayId);if(!base)return null;const d=materialize(base,new Date(s.start),{short:!!s.short});return s.extra?withExtra(d):d}
+/* Días de partido: el calentamiento (antes de jugar) y la recuperación (al terminar) son dos sesiones
+   distintas. Si fueran una, el partido entero contaría como minutos de gimnasio. */
+const isMatchDay=d=>!!d&&d.blocks.length===2&&d.blocks[0].id==="cal"&&d.blocks[1].id==="post";
+function matchPart(d,part){return {...d,blocks:d.blocks.filter(b=>b.id===part),part,title:part==="cal"?"Calentamiento competitivo":"Recuperación después de jugar"}}
+const matchDone=(part,now=new Date())=>sessionsOn(now).some(s=>s.part===part);
+const nextMatchPart=()=>matchDone("cal")?"post":"cal";
+function rebuildDay(s){const base=s.dayId==="D-act"?ACTIVATION:[...DAYS,ACTIVATION].find(d=>d.id===s.dayId);if(!base)return null;let d=materialize(base,new Date(s.start),{short:!!s.short});if(s.part&&isMatchDay(d))d=matchPart(d,s.part);return s.extra?withExtra(d):d}
+/* Minutos de verdad: suma los ratos entre series, cada uno como mucho 15'. Así no cuentan ni las pausas largas
+   en mitad de la sesión ni las horas después si cerraste la app. */
+function activeMinutes(start,ts,now=Date.now()){
+  if(!ts.length)return 0;const pts=[start,...ts.slice().sort((a,b)=>a-b)];let sum=0;
+  for(let i=1;i<pts.length;i++)sum+=Math.min(Math.max(0,pts[i]-pts[i-1]),15*6e4);
+  const tail=now-pts.at(-1);sum+=tail<=20*6e4?Math.max(0,tail):2*6e4;
+  return Math.max(1,Math.round(sum/6e4))}
+/* Cierra como parcial una sesión a medias (o la borra si no tiene ninguna serie) */
+function closeAsPartial(o){const ts=S.sets.filter(x=>x.sid===o.id).map(x=>+new Date(x.t));
+  if(!ts.length){S.sessions=S.sessions.filter(x=>x.id!==o.id);save();return}
+  o.status="parcial";o.minutes=activeMinutes(+new Date(o.start),ts,Math.max(...ts));o.rpe=o.rpe||6;save()}
 function resumeSession(finish){
   const s=openSession(); if(!s)return; const d=rebuildDay(s); if(!d){toast("No encuentro esa sesión");return}
   P={day:d,steps:buildSteps(d),i:0,start:+new Date(s.start),vals:null,gText:"",restEnd:0,restTotal:0,timer:null,sid:s.id,prs:[]};
+  S.sets.filter(x=>x.sid===s.id).forEach(r=>{const pr=checkPR(r),e=exById(r.ex);if(pr&&e)P.prs.push({name:e.name,txt:pr})}); /* los récords de antes de cerrar la app */
   const done=S.sets.filter(x=>x.sid===s.id).length; P.i=Math.min(done,P.steps.length-1); P.vals=prefill(P.steps[P.i]);
   drawPlayer(); P.timer=setInterval(tick,250); audioUnlock(); keepAwake();
   if(finish||done>=P.steps.length)openFinish(done<P.steps.length);
@@ -1395,8 +1423,15 @@ function resumeCard(){
    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="ghostbtn small" data-act="resume-finish">Terminar y guardar</button><button class="ghostbtn small" data-act="resume-discard">Descartar</button></div></section>`;
 }
 function startSession(){
-  if(openSession()&&sameDay(new Date(openSession().start),new Date())){resumeSession(false);return}
-  const d=today(); const g=latestGlucose();
+  let d=today(); if(isMatchDay(d))d=matchPart(d,nextMatchPart());
+  const o=openSession();
+  if(o){
+    /* solo se retoma sola si es la misma sesión (mismo día, misma versión) */
+    if(sameDay(new Date(o.start),new Date())&&o.dayId===d.id&&!!o.short===!!d.short&&(o.part||null)===(d.part||null)){resumeSession(false);return}
+    if(confirm(`Tienes a medias «${o.title}».\n\nAceptar: seguir con esa.\nCancelar: la guardo como parcial y empiezas «${d.title}».`)){resumeSession(false);return}
+    closeAsPartial(o);
+  }
+  const g=latestGlucose();
   P={day:d,steps:buildSteps(d),i:0,start:null,vals:null,gText:g&&(Date.now()-new Date(g.t))<1800000?String(Math.round(g.v)):"",gAuto:g&&(Date.now()-new Date(g.t))<1800000?String(Math.round(g.v)):"",restEnd:0,restTotal:0,timer:null,sid:null};
   P.vals=prefill(P.steps[0]); drawPre();
 }
@@ -1415,8 +1450,8 @@ function readinessBlock(){
    ${padelY>=60&&legsDay?`<div class="small" style="color:var(--warn)">Ayer jugaste ${padelY}' de pádel: ten en cuenta las piernas.</div>`:""}
    ${msg?`<div class="small" style="color:var(--text);font-weight:600">${msg}</div>`:""}
    ${legsDay?`<div style="display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:10px">${jumpStatusHtml()}<button class="ghostbtn small" data-act="jump-open">📏 ${js.today?"Añadir otro salto":"Medir el salto (30 s, opcional)"}</button></div>`:""}
-   ${(r&&r.lvl!=="verde"||jTired)&&!short?`<button class="ghostbtn small" data-act="pre-short">Cambiar a la versión corta</button>`:""}
-   ${r&&r.lvl==="verde"&&!jTired&&!short&&EXTRA[P.day.id]&&P.day.week!==4?(P.day.extra?`<div class="small" style="color:var(--ok);font-weight:600">✓ Añadido: ${esc(EXTRA[P.day.id].title)} (≈10' al final)</div><button class="ghostbtn small" data-act="pre-extra">Quitar el bloque extra</button>`:`<button class="ghostbtn small" style="border:1px solid var(--ball);color:var(--ball)" data-act="pre-extra">➕ Vas sobrado: añadir ${esc(EXTRA[P.day.id].title.toLowerCase())} (≈10')</button>`):""}</div>`;
+   ${(r&&r.lvl!=="verde"||jTired)&&!short&&!P.day.part?`<button class="ghostbtn small" data-act="pre-short">Cambiar a la versión corta</button>`:""}
+   ${P.day.extra||r&&r.lvl==="verde"&&!jTired&&!short&&EXTRA[P.day.id]&&P.day.week!==4?(P.day.extra?`<div class="small" style="color:var(--ok);font-weight:600">✓ Añadido: ${esc(EXTRA[P.day.id].title)} (≈10' al final)</div><button class="ghostbtn small" data-act="pre-extra">Quitar el bloque extra</button>`:`<button class="ghostbtn small" style="border:1px solid var(--ball);color:var(--ball)" data-act="pre-extra">➕ Vas sobrado: añadir ${esc(EXTRA[P.day.id].title.toLowerCase())} (≈10')</button>`):""}</div>`;
 }
 function drawPre(){
   const old=$("#layer .overlay"), sc=old&&old.querySelector(".scroll"), top=sc?sc.scrollTop:0;
@@ -1443,7 +1478,7 @@ function go(){
   P.start=Date.now();
   P.sid="s"+P.start;
   const rr=readiness(P.rd||{});
-  S.sessions.push({id:P.sid,dayId:P.day.id,title:P.day.title,start:new Date(P.start).toISOString(),minutes:0,rpe:0,status:"en curso",short:!!P.day.short,extra:!!P.day.extra,gBefore:isFinite(gv)?gv:null,ready:rr?{...P.rd,sc:Math.round(rr.sc*10)/10,lvl:rr.lvl}:null});
+  S.sessions.push({id:P.sid,dayId:P.day.id,part:P.day.part||null,title:P.day.title,start:new Date(P.start).toISOString(),minutes:0,rpe:0,status:"en curso",short:!!P.day.short,extra:!!P.day.extra,gBefore:isFinite(gv)?gv:null,ready:rr?{...P.rd,sc:Math.round(rr.sc*10)/10,lvl:rr.lvl}:null});
   save(); drawPlayer();
   P.timer=setInterval(tick,250);
   audioUnlock(); keepAwake();
@@ -1551,6 +1586,7 @@ function holdTick(){
   if(h.auto)completeSet(); else toast("Tiempo. Apunta y pulsa «Serie hecha»");
 }
 function completeSet(){
+  if(!P||!P.start||$("#finish"))return; /* doble toque en la última serie: ni serie repetida ni dos hojas de cierre */
   const st=P.steps[P.i];
   const rec={ex:st.e.id,set:st.set,sid:P.sid,t:new Date().toISOString()};
   if(st.e.defaults.RIR!=null)rec.tRIR=st.e.defaults.RIR;
@@ -1661,7 +1697,7 @@ function checkPR(rec){
   if(!(rec.kg>0))return null;
   const prev=S.sets.filter(x=>x.ex===rec.ex&&x.sid!==rec.sid&&x.kg>0);
   if(!prev.length)return null; /* la primera vez no cuenta: no hay con qué comparar */
-  const same=S.sets.filter(x=>x.ex===rec.ex&&x.sid===rec.sid&&x!==rec&&x.kg>0), all=[...prev,...same];
+  const same=S.sets.filter(x=>x.ex===rec.ex&&x.sid===rec.sid&&x!==rec&&x.kg>0&&x.t<=rec.t), all=[...prev,...same];
   const bestKg=Math.max(...all.map(x=>x.kg)), bestE=Math.max(...all.map(e1rm));
   if(rec.kg>bestKg)return `${fmtNum(rec.kg)} kg: el mayor peso que has movido aquí`;
   if(rec.reps&&e1rm(rec)>bestE+0.01)return `${fmtNum(rec.kg)} kg × ${rec.reps}: tu mejor serie`;
@@ -1681,7 +1717,7 @@ function sessionSummary(s){
   const kgMoved=Math.round(sets.reduce((a,x)=>{const e=exById(x.ex);if(!x.reps)return a;return a+((x.kg||0)+(e&&e.barbell?20:0))*x.reps},0));
   const m=monday(), wk=S.sessions.filter(x=>x.status!=="en curso"&&new Date(x.start)>=m&&GYM_IDS.includes(gymIdOf(x))).length;
   return {title:s.title,date:new Date(s.start),minutes:s.minutes,rpe:s.rpe,load:s.rpe*s.minutes,sets:sets.length,
-    exercises:new Set(sets.map(x=>x.ex)).size,kgMoved,prs:Object.values(Object.fromEntries(((P&&P.prs)||[]).map(p=>[p.name,p]))),partial:s.status==="parcial",gBefore:s.gBefore,gAfter:s.gAfter,week:wk};
+    exercises:new Set(sets.map(x=>x.ex)).size,kgMoved,prs:Object.values(Object.fromEntries(((P&&P.prs)||[]).map(p=>[p.name,p]))),partial:s.status==="parcial",gBefore:s.gBefore,gAfter:s.gAfter,week:wk,gym:GYM_IDS.includes(gymIdOf(s))};
 }
 let lastSummary=null;
 function countUp(el,to,ms=1100){const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;if(reduce||!to){el.textContent=to.toLocaleString("es-ES");return}
@@ -1711,15 +1747,15 @@ function showSummary(sm){
     </div>
     <div class="sgrid">
       <div><b data-count="${sm.minutes}">0</b><span>minutos</span></div>
-      <div style="animation-delay:.08s"><b data-count="${sm.sets}">0</b><span>series · ${sm.exercises} ejercicios</span></div>
+      <div style="animation-delay:.08s"><b data-count="${sm.sets}">0</b><span>series · ${sm.exercises} ${sm.exercises===1?"ejercicio":"ejercicios"}</span></div>
       <div style="animation-delay:.16s"><b data-count="${sm.kgMoved}">0</b><span>kg movidos</span></div>
       <div style="animation-delay:.24s"><b data-count="${sm.load}">0</b><span>carga (RPE ${sm.rpe})</span></div>
     </div>
     ${sm.prs.length?`<div class="prlist"><div class="eyebrow" style="color:#f7d95c">Récords personales</div>${sm.prs.map(p=>`<div class="small" style="color:var(--text)"><b>${esc(p.name)}</b> · ${esc(p.txt)}</div>`).join("")}</div>`:""}
-    <div style="background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:18px;padding:14px;display:flex;align-items:center;gap:12px">
+    ${sm.gym?"":"<!--"}<div style="background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:18px;padding:14px;display:flex;align-items:center;gap:12px">
       <div style="display:flex;gap:6px">${[1,2,3,4].map(k=>`<i style="width:22px;height:8px;border-radius:4px;background:${k<=sm.week?"var(--ball)":"rgba(255,255,255,.12)"}"></i>`).join("")}</div>
       <div class="small" style="color:var(--text)">${sm.week>=4?"Semana de gimnasio completa. Así se mejora en pista.":`Sesión ${Math.min(sm.week,4)} de 4 esta semana`}</div>
-    </div>
+    </div>${sm.gym?"":"-->"}
     ${g}
     <button class="ballbtn" data-act="share-summary">Compartir</button>
     <button class="ghostbtn" data-act="summary-close">Cerrar</button>
@@ -1744,7 +1780,7 @@ async function shareSummary(){
   const D='"Barlow Condensed","Arial Narrow",sans-serif',B='"Inter",system-ui,sans-serif';
   x.fillStyle="#d9ea4c";x.font=`700 34px ${B}`;x.fillText("PLAN PÁDEL",80,130);
   x.fillStyle="#92a0bb";x.font=`600 34px ${B}`;x.fillText(sm.date.toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"}),80,182);
-  x.fillStyle="#ecf0f7";x.font=`800 132px ${D}`;x.fillText((sm.prs.length?"DÍA DE RÉCORDS":"SESIÓN HECHA"),80,340);
+  x.fillStyle="#ecf0f7";x.font=`800 132px ${D}`;x.fillText((sm.partial?"ALGO ES ALGO":sm.prs.length?"DÍA DE RÉCORDS":"SESIÓN HECHA"),80,340);
   x.fillStyle="#92a0bb";x.font=`600 38px ${B}`;const t=sm.title.length>44?sm.title.slice(0,43)+"…":sm.title;x.fillText(t,80,400);
   const stats=[[sm.minutes,"MINUTOS"],[sm.sets,"SERIES"],[sm.kgMoved.toLocaleString("es-ES"),"KG MOVIDOS"]];
   stats.forEach((st,i)=>{const X=80+i*320;x.fillStyle="rgba(255,255,255,.06)";x.beginPath();x.roundRect?x.roundRect(X,450,290,190,28):x.rect(X,450,290,190);x.fill();
@@ -1752,18 +1788,20 @@ async function shareSummary(){
   let y=720;
   if(sm.prs.length){x.fillStyle="#f7d95c";x.font=`800 52px ${D}`;x.fillText("🏆 RÉCORDS PERSONALES",80,y);y+=58;x.font=`600 34px ${B}`;x.fillStyle="#ecf0f7";
     sm.prs.slice(0,3).forEach(p=>{const l=`${p.name} · ${p.txt.split(":")[0]}`;x.fillText(l.length>48?l.slice(0,47)+"…":l,80,y);y+=48})}
-  x.fillStyle="#d9ea4c";x.font=`800 44px ${D}`;x.fillText(sm.week>=4?"SEMANA COMPLETA 4/4":`SESIÓN ${Math.min(sm.week,4)} DE 4 ESTA SEMANA`,80,H-90);
+  x.fillStyle="#d9ea4c";x.font=`800 44px ${D}`;if(sm.gym)x.fillText(sm.week>=4?"SEMANA COMPLETA 4/4":`SESIÓN ${Math.min(sm.week,4)} DE 4 ESTA SEMANA`,80,H-90);
   const blob=await new Promise(r=>c.toBlob(r,"image/png"));const name=`plan-padel-${dayKey(sm.date)}.png`;
   try{const f=new File([blob],name,{type:"image/png"});if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:"Plan Pádel"});return}}catch(e){if(e&&e.name==="AbortError")return}
   try{const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();toast("Imagen guardada")}catch(e){toast("No se pudo compartir")}
 }
 
 function openFinish(partial){
-  let mins=Math.max(1,Math.round((Date.now()-P.start)/60000));
-  const ts=S.sets.filter(x=>x.sid===P.sid).map(x=>+new Date(x.t)), lastT=ts.length?Math.max(...ts):0;
-  if(lastT&&Date.now()-lastT>20*6e4)mins=Math.max(1,Math.round((lastT-P.start)/6e4)+2); /* si cerraste la app, no cuentan las horas de después */
-  if(!lastT&&mins>180)mins=estimateMinutes(P.day);
+  const ts=S.sets.filter(x=>x.sid===P.sid).map(x=>+new Date(x.t));
+  if(!ts.length){ /* sin ninguna serie apuntada no hay sesión que guardar */
+    if(confirm("No has apuntado ninguna serie. ¿Descarto la sesión?")){S.sessions=S.sessions.filter(s=>s.id!==P.sid);save();closePlayer();render();toast("Sesión descartada")}
+    return}
+  let mins=activeMinutes(P.start,ts);
   F={rpe:7,partial,reason:null,mins};
+  $("#finish")?.remove();
   const el=document.createElement("div"); el.className="sheet"; el.id="finish";
   el.innerHTML=`<div class="panel" role="dialog" aria-modal="true" aria-label="Cerrar la sesión">
    <h2 class="title" id="fin-title">${partial?"Sesión parcial":"Sesión terminada"}</h2>
@@ -2275,8 +2313,13 @@ function openReport(){
 }
 
 /* ============ NOVEDADES Y AJUSTES ============ */
-const APP_VERSION="2026.11.24r";
+const APP_VERSION="2026.11.24s";
 const CHANGELOG=[
+ ["🎾","Días de partido: el calentamiento y la recuperación son dos sesiones. Haces el calentamiento, juegas, y al volver te sale «Recuperación (al acabar de jugar)». El partido ya no cuenta como minutos de gimnasio."],
+ ["✅","Si apuntas un partido a otra hora (14:00 en vez de 15:30), cuenta como el que tenías planificado: no sale repetido en Semana ni en el calendario, y el aviso de la glucosa usa la hora real."],
+ ["👆","Un doble toque en «Serie hecha» ya no se salta un ejercicio ni repite la última serie."],
+ ["⏳","Los minutos de la sesión ya no cuentan las pausas largas, y si tienes otra sesión a medias la app te pregunta antes de abrirla."],
+ ["🧾","Semana y los días hechos enseñan los minutos reales; «Última vez» enseña cada serie (4 · 6 · 6); restaurar una copia pide confirmación; y varios textos corregidos."],
  ["⏱","Cronómetro en los ejercicios por tiempo (planchas, copenhague, bici, intervalos…): 3\" para colocarte, cuenta atrás con pitidos y, si es por lado, aviso para cambiar. La serie se apunta sola al acabar."],
  ["🧰","Cada bloque dice qué material preparar, y al cambiar de bloque tienes 1'30\" para montarlo. Las transiciones dentro de la superserie pasan de 15-20\" a 30-45\", lo que tardas de verdad en cambiar de puesto."],
  ["🏃","A: carrera progresiva antes de los sprints. D: cargada con la barra vacía antes de cargar. Activación pre-competición con bici y skipping antes de saltar."],
@@ -2361,7 +2404,8 @@ document.addEventListener("click",e=>{
     case "start":startSession();break;
     case "close":closePlayer();break;
     case "go":go();break;
-    case "done":completeSet();break;
+    case "done":{const t0=performance.now();if(P&&P.lastTap&&t0-P.lastTap<700)break; /* un doble toque no se salta un ejercicio */
+      if(P)P.lastTap=t0;completeSet();break}
     case "rest-add":P.restEnd+=15000;P.restTotal+=15;P.cd=null;tick();break;
     case "hold":if(!P.hold&&!P.restEnd)startHold();break;
     case "hold-stop":P.hold=null;$("#hold")?.remove();break;
