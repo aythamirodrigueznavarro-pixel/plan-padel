@@ -130,6 +130,10 @@ nav.tabs button[aria-selected="true"]{color:var(--ball)}
 .rpe{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
 .rpe button{padding:12px 0;border-radius:12px;background:var(--surface2);font:700 22px var(--body)}
 .rpe button[aria-pressed="true"]{background:var(--court);color:var(--ink)}
+.rpe-sc{display:flex;flex-direction:column;gap:2px;margin-top:10px}
+.rpe-r{display:flex;gap:10px;align-items:baseline;padding:5px 8px;border-radius:8px;font-size:13px;line-height:1.3;color:var(--muted)}
+.rpe-r>b{min-width:34px;flex:none;font:700 14px var(--body)}
+.rpe-r.on{background:var(--surface2);color:var(--text)}
 .field{background:var(--surface2);border-radius:16px;padding:12px 14px;min-width:0}
 .field input[type=date],.field input[type=time]{font-size:16px;min-width:0;-webkit-appearance:none;appearance:none}
 .field label{display:block;font-size:12px;font-weight:600;color:var(--muted)}
@@ -1928,7 +1932,7 @@ function openFinish(partial){
    <h2 class="title" id="fin-title">${partial?"Sesión parcial":"Sesión terminada"}</h2>
    <div><div style="font-weight:600;margin-bottom:8px">¿Qué tan dura ha sido? (RPE) <button data-act="help-rir" style="color:var(--ball);font-weight:700;text-decoration:underline;font-size:13px">¿Qué es?</button></div>
      <div class="rpe">${Array.from({length:10},(_,k)=>`<button data-rpe="${k+1}" aria-pressed="${k+1===7}">${k+1}</button>`).join("")}</div>
-     <div class="small muted" id="rpe-txt" style="margin-top:8px">${rpeText(7)}</div></div>
+     <div id="rpe-txt">${rpeScale(7)}</div></div>
    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
      <div class="field"><label for="f-min">Minutos</label><input id="f-min" inputmode="numeric" value="${mins}"></div>
      <div class="field"><label for="f-gl">Glucosa después</label><input id="f-gl" inputmode="numeric" placeholder="mg/dL"></div></div>
@@ -1967,6 +1971,9 @@ function openRirHelp(){
    <button class="ballbtn" data-act="rirhelp-close">Entendido</button></div>`;
   document.body.appendChild(el);
 }
+/* Escala de esfuerzo siempre visible (gimnasio y pádel), con la fila elegida resaltada */
+const RPE_SC=[[1,3,"Muy suave","podrías seguir mucho más rato","podrías seguir mucho más rato","var(--court)"],[4,5,"Moderada","trabajas, pero cómodo","trabajas, pero puedes hablar","var(--court)"],[6,6,"Algo dura","ya cuesta","ya cuesta","var(--ok)"],[7,7,"Dura","te quedaban unas 3 repeticiones","intenso, cuesta hablar entre puntos","var(--warn)"],[8,8,"Muy dura","te quedaban unas 2","muy intenso, acabas cansado","var(--warn)"],[9,9,"Casi al máximo","1 más como mucho","casi no podías más","var(--heart)"],[10,10,"Al máximo","no podías más","no podías más","var(--heart)"]];
+function rpeScale(sel,pad){return `<div class="rpe-sc">${RPE_SC.map(r=>`<div class="rpe-r${sel>=r[0]&&sel<=r[1]?" on":""}"><b style="color:${r[5]}">${r[0]===r[1]?r[0]:r[0]+"–"+r[1]}</b><span><b>${r[2]}</b>: ${pad?r[4]:r[3]}</span></div>`).join("")}</div><div class="small muted" style="margin-top:6px">Piensa en ${pad?"el partido entero":"la sesión entera"}, no solo en el final.</div>`}
 function rpeText(n){return n<=3?"Muy suave":n<=5?"Moderada":n===6?"Algo dura":n===7?"Dura: te quedaban unas 3 repeticiones":n===8?"Muy dura: te quedaban unas 2":n===9?"Casi al máximo":"Al máximo"}
 function saveSession(){
   const s=S.sessions.find(x=>x.id===P.sid);
@@ -2296,6 +2303,7 @@ function openPadelLog(editId,pre){
      <div class="field"><label for="pl-r">Esfuerzo 1-10</label><input id="pl-r" inputmode="numeric" placeholder="7" value="${val(w?.rpe)}"></div>
      <div class="field"><label for="pl-gb">Glucosa antes</label><input id="pl-gb" inputmode="numeric" placeholder="mg/dL" value="${val(w?.gBefore)}"></div>
      <div class="field"><label for="pl-ga">Glucosa después</label><input id="pl-ga" inputmode="numeric" placeholder="mg/dL" value="${val(w?.gAfter)}"></div></div>
+   <div id="pl-rs">${rpeScale(+(w&&w.rpe)||0,1)}</div>
    <p class="small muted" style="margin:0">Si importas la glucosa de LibreView, las de antes y después no hacen falta: la app las saca del sensor.</p>
    <div style="border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:10px">
      <div style="font-weight:700">Cómo fue <span class="small muted" style="font-weight:500">· 20 segundos, opcional</span></div>
@@ -2444,9 +2452,10 @@ function openReport(){
 }
 
 /* ============ NOVEDADES Y AJUSTES ============ */
-const APP_VERSION="2026.11.24t";
+const APP_VERSION="2026.11.24u";
 /* [icono, texto, versión]: al abrir la app nueva solo salen las novedades desde la última versión que viste */
 const CHANGELOG=[
+ ["📊","Al guardar una sesión o un partido ves la escala de esfuerzo completa (1-3 muy suave… 10 al máximo), con tu número resaltado. Así puntúas siempre con el mismo criterio.","2026.11.24u"],
  ["↶","En plena sesión: «Corregir la anterior» si apuntaste mal una serie, y «Ocupado: luego» si la máquina está cogida (ese ejercicio pasa al final del bloque). Si haces el mismo ejercicio seguido en una superserie, descansas la vuelta entera.","2026.11.24t"],
  ["💧","Antes de empezar: marca la flecha del Libre y la app te recuerda la guía general (esperar por debajo de 90, cetonas por encima de 270…). Sin dosis: manda tu endocrino.","2026.11.24t"],
  ["📝","La nota que escribes al terminar te sale la próxima vez que hagas esa sesión, y en la lista de Progreso.","2026.11.24t"],
@@ -2545,7 +2554,7 @@ document.addEventListener("click",e=>{
   if(t.dataset.tab){if(t.dataset.tab==="semana"&&tab!=="semana")weekOff=new Date().getDay()===0?1:0;tab=t.dataset.tab;render();window.scrollTo(0,0);return}
   if(t.dataset.lift){liftSel=t.dataset.lift;render();return}
   if(t.dataset.step){const m=t.dataset.step,dir=+t.dataset.d,cur=P.vals[m]||0,e=P.steps[P.i].e;const inc=m==="kg"?kgStep(e,cur,dir):STEP[m];P.vals[m]=Math.max(0,Math.round((cur+inc*dir)*10)/10);$("#v-"+m).textContent=fmtNum(P.vals[m]);if(m==="RIR"&&$("#rir-help"))$("#rir-help").textContent=rirShort(P.vals.RIR);if(m==="seg"&&$("#hold-sec"))$("#hold-sec").textContent=mmss(P.vals.seg);vibrate(8);return}
-  if(t.dataset.rpe){F.rpe=+t.dataset.rpe;document.querySelectorAll("[data-rpe]").forEach(b=>b.setAttribute("aria-pressed",b===t));$("#rpe-txt").textContent=rpeText(F.rpe);$("#f-load").textContent=F.rpe*(parseInt($("#f-min").value,10)||0);return}
+  if(t.dataset.rpe){F.rpe=+t.dataset.rpe;document.querySelectorAll("[data-rpe]").forEach(b=>b.setAttribute("aria-pressed",b===t));$("#rpe-txt").innerHTML=rpeScale(F.rpe);$("#f-load").textContent=F.rpe*(parseInt($("#f-min").value,10)||0);return}
   if(t.dataset.reason){F.reason=t.dataset.reason;document.querySelectorAll("[data-reason]").forEach(b=>{const on=b===t;b.style.background=on?"var(--ball)":"var(--surface)";b.style.color=on?"var(--ballInk)":"var(--muted)"});return}
   switch(t.dataset.act){
     case "start":startSession();break;
@@ -2675,6 +2684,7 @@ document.addEventListener("click",e=>{
 });
 document.addEventListener("input",e=>{
   if(e.target.id==="f-partial"){$("#reasons").style.display=e.target.checked?"":"none";$("#fin-title").textContent=e.target.checked?"Sesión parcial":"Sesión terminada"}
+  if(e.target.id==="pl-r"){const b=$("#pl-rs");if(b)b.innerHTML=rpeScale(parseInt(e.target.value,10)||0,1)}
   if(e.target.id==="f-min"&&F){$("#f-load").textContent=F.rpe*(parseInt(e.target.value,10)||0)}
   if(e.target.id==="imp-txt")$("#imp-err").textContent="";
   if(e.target.id==="restore"&&e.target.files[0])restore(e.target.files[0]);
