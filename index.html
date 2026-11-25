@@ -491,8 +491,9 @@ const playsOn=d=>!!compOn(d)||workoutsOn(d).some(w=>w.padel)||padOn(d).some(p=>!
 function b2Blocks(day,date,w,opts){
   const heavy=heavyWeek(date), notes=[];
   const satComp=day.id==="A"&&!!compOn(addDays(monday(date),5));
-  const sunLite=day.id==="D"&&!!compOn(addDays(date,2))&&!compOn(addDays(date,1));
-  const playing=day.id==="B"&&playsOn(date), rsa=day.id==="B"&&!playing&&!heavy;
+  const sunLite=day.id==="D"&&addDays(date,2).getDay()===0&&!!compOn(addDays(date,2))&&!compOn(addDays(date,1));
+  const isT=sameDay(date,new Date()), compTom=isT&&opts&&opts.compete!=null?!!opts.compete:!!compOn(addDays(date,1));
+  const playing=day.id==="B"&&(playsOn(date)||(isT&&opts&&(opts.matchSoon===true||opts.matchLater===true))), rsa=day.id==="B"&&!playing&&!heavy&&!compTom; /* sin sprints si juegas hoy o compites mañana */
   const bl=day.blocks.filter(b=>!(b.weeks&&!b.weeks.includes(w))&&(b.when==="satComp"?satComp:b.when==="rsa"?rsa:b.when==="norsa"?!rsa:true))
     .map(b=>{const o=b.wk&&b.wk[w];return o?{...b,...o}:b})
     .map(b=>({...b,ex:b.ex.map(e=>{let x=e.wk&&e.wk[w]?{...e,...e.wk[w]}:e;if(sunLite&&x.lite)x={...x,...x.lite};return x}).filter(e=>!(heavy&&day.id==="A"&&e.plyo))}))
@@ -605,7 +606,7 @@ const setDayOpt=(k,v)=>{S.opts=S.opts||{};const o=S.opts[dayKey()]||{};o[k]=v;S.
 /* Competiciones (torneos y liga) que apuntas en Semana */
 const localKey=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
-const compOn=d=>{const k=localKey(d);return (S.comps||[]).find(c=>k>=c.from&&k<=(c.to||c.from))};
+const compOn=d=>{const k=localKey(d);return (S.comps||[]).find(c=>k>=c.from&&k<=(c.to||c.from)&&!(c.skip&&c.skip[k]))}; /* «No lo jugué» libera ese día */
 const effCompete=()=>{const o=dayOpts();return o.compete!=null?!!o.compete:!!compOn(addDays(new Date(),1))};
 /* Lo que toca hoy. Orden: lo ya hecho hoy manda → día de competición → la sesión que elegiste tú a mano
    → fin de semana → entre semana, el reparto de planWeek (el mismo que ven Semana y el calendario). */
@@ -662,7 +663,9 @@ const workoutsOn=date=>realWorkouts().filter(w=>sameDay(new Date(w.start),date))
    ese día a menos de 3 h de la hora prevista (por ejemplo, desde «Apuntar pádel» o si cambió la hora). */
 function padPlayed(p,dt){const k=localKey(dt), id=p.logged&&p.logged[k];
   if(id){const w=S.health.workouts.find(x=>x.id===id);if(w)return w}
-  const st=new Date(k+"T"+p.h+":00");return workoutsOn(dt).find(w=>w.padel&&Math.abs(new Date(w.start)-st)<3*36e5)||null}
+  const pl=padOn(dt), at=q=>+new Date(k+"T"+q.h+":00"), st=at(p), claimed=new Set(pl.filter(q=>q!==p).map(q=>q.logged&&q.logged[k]).filter(Boolean));
+  return workoutsOn(dt).find(w=>{if(!w.padel||claimed.has(w.id))return false;const t=+new Date(w.start), dd=Math.abs(t-st);
+    return dd<3*36e5&&pl.every(q=>q===p||(q.logged&&q.logged[k])||Math.abs(t-at(q))>dd)})||null} /* un pádel apuntado cuenta para el plan más cercano en hora */
 const latestGlucose=()=>S.health.glucose.slice().sort((a,b)=>new Date(b.t)-new Date(a.t))[0];
 const vibrate=p=>{try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}};
 function toast(t){const el=document.createElement("div");el.className="toast";el.setAttribute("role","status");el.textContent=t;document.body.appendChild(el);setTimeout(()=>el.remove(),2400)}
@@ -687,7 +690,7 @@ function weekState(now=new Date()){
   const missed=m<monday(BLOCK_START)?[]:GYM_IDS.filter(id=>natWd(id)<todayWd&&!doneIds.has(id)&&!skipped.has(id));
   const doneToday=wkS.filter(s=>sameDay(new Date(s.start),now)).map(gymIdOf).find(id=>GYM_IDS.includes(id));
   const y=new Date(now);y.setDate(y.getDate()-1);
-  const legsYesterday=wkS.some(s=>sameDay(new Date(s.start),y)&&LEGS.has(gymIdOf(s)));
+  const legsYesterday=S.sessions.some(s=>s.status!=="en curso"&&s.dayId!=="D-act"&&sameDay(new Date(s.start),y)&&LEGS.has(gymIdOf(s)));
   return {m,todayWd,doneIds,skipped,missed,doneToday,legsYesterday};
 }
 /* ============ TU SEMANA DE PÁDEL (planificador) ============
@@ -707,20 +710,24 @@ function planWeek(now=new Date(),optsIn){
   for(let wd=st.todayWd;wd<=5;wd++){
     const isToday=wd===st.todayWd, dDay=addDays(st.m,wd-1);
     if(isToday&&st.doneToday){days.push({wd,fixed:st.doneToday});continue}
+    if(isToday&&o.swap&&!o.autoSwap&&GYM_IDS.includes(o.swap)&&!dayClosed(now)&&!compOn(dDay)){days.push({wd,fixed:o.swap});continue} /* la que elegiste a mano para hoy */
     if(compOn(dDay)||(isToday&&dayClosed(now))){days.push({wd,comp:true});continue}
     const pl=padOn(dDay), early=pl.some(p=>hNum(p.h)<GYM_END_H);
     let busy;
-    if(isToday){const soon=pl.some(p=>{const t=new Date(localKey(dDay)+"T"+p.h+":00");return t-now>-2*36e5&&t-now<6*36e5});
-      busy=o.matchSoon===true||playedToday(now)||(o.matchSoon===undefined&&(planned?soon||(now.getHours()<GYM_END_H-6&&early):false))}
+    if(isToday){const gEnd=Math.max(+now,+new Date(localKey(dDay)+"T09:30:00"))+75*6e4; /* las 6 h se cuentan desde que acabarías el gimnasio */
+      const soon=pl.some(p=>{const k=localKey(dDay), t=new Date(k+"T"+p.h+":00");return !(p.skip&&p.skip[k])&&t-now>-2*36e5&&t-gEnd<6*36e5});
+      busy=o.matchSoon===true||playedToday(now)||(o.matchSoon===undefined&&planned&&soon)}
     else busy=planned?early:false;
     const cls=planned&&pl.some(p=>p.kind==="Entreno"); /* el día de clase con tu entrenador, nada de pierna */
     const clsTom=planned&&padOn(addDays(dDay,1)).some(p=>p.kind==="Entreno"); /* y mejor no la víspera */
     const preComp=isToday?(o.compete!=null?!!o.compete:!!compOn(addDays(dDay,1))):!!compOn(addDays(dDay,1));
-    days.push({wd,busy,preComp,cls,clsTom});
+    const postComp=!!compOn(addDays(dDay,-1)); /* el día después de competir, nada de pierna pesada */
+    days.push({wd,busy,preComp,cls,clsTom,postComp});
   }
   const ok=(id,d,prevLegs)=>{
     if(!planned&&!st.missed.includes(id)&&natWd(id)>d.wd)return false;
     if(LEGS.has(id)&&(d.cls||d.busy||prevLegs||(d.preComp&&(id==="A"||d.wd!==5))))return false;
+    if(id==="A"&&d.postComp)return false;
     return true};
   let best={sc:-1e9,a:{}};
   const go=(i,left,prevLegs,sc,a)=>{
@@ -743,7 +750,7 @@ function compDayObj(dt){const c=compOn(dt);return {...DAYS[5],wd:(dt.getDay()+6)
 function weekendObj(dt){const wd=(dt.getDay()+6)%7+1, pl=padOn(dt);
   if(pl.length)return {...DAYS[5],wd,title:pl.map(p=>p.name||PADK[p.kind]).join(" + "),sub:`${pl.map(p=>p.h).join(" y ")} · calentamiento antes de jugar y recuperación al terminar.`,kinds:[],padel:pl.reduce((a,p)=>a+(+p.min||0),0)};
   return {...RECOVERY,wd,title:"Descanso",sub:"Sin pádel apuntado: paseo, movilidad o spa, si te apetece.",kinds:["descanso"],gym:0}}
-function restDay(wd){const isT=wd===(new Date().getDay()+6)%7+1;return {...RECOVERY,wd,gym:0,title:"Sin gimnasio · movilidad o descanso",sub:`${isT?"Hoy":"Ese día"} no toca gimnasio. Si te apetece, 20 minutos de movilidad y rodillo.`,kinds:["suave"]}}
+function restDay(wd,dt){const isT=dt?sameDay(dt,new Date()):wd===(new Date().getDay()+6)%7+1;return {...RECOVERY,wd,gym:0,title:"Sin gimnasio · movilidad o descanso",sub:`${isT?"Hoy":"Ese día"} no toca gimnasio. Si te apetece, 20 minutos de movilidad y rodillo.`,kinds:["suave"]}}
 /* Un día que ya pasó muestra lo que hiciste de verdad, no lo que tocaba */
 function pastDayObj(dt){
   const wd=(dt.getDay()+6)%7+1, ses=sessionsOn(dt), pad=workoutsOn(dt).filter(w=>w.padel);
@@ -773,7 +780,7 @@ function weekAssign(off){
     const id=p[wd];
     if(id==="D"&&compOn(addDays(dt,1)))res[wd]={...ACTIVATION,wd};
     else if(id)res[wd]=placed(id,wd,wp);
-    else if(GYM_IDS.includes(DAYS[wd-1].id))res[wd]=restDay(wd);
+    else if(GYM_IDS.includes(DAYS[wd-1].id))res[wd]=restDay(wd,dt);
   }
   return res;
 }
@@ -819,7 +826,8 @@ function calLines(){
 }
 const calSig=()=>calLines().join("\n");
 /* «No está al día» solo si cambia algo de mañana en adelante (hacer la sesión de hoy no cuenta como cambio) */
-const calFut=t=>{const tk=localKey(new Date());return String(t||"").split("\n").filter(l=>l.slice(0,10)>tk).join("\n")};
+const calFut=t=>{const n=new Date(), tk=localKey(n), hm=String(n.getHours()).padStart(2,"0")+":"+String(n.getMinutes()).padStart(2,"0");
+  return String(t||"").split("\n").filter(l=>l.slice(0,10)>tk||(l.slice(0,10)===tk&&l.slice(11,16)>hm)).join("\n")}; /* lo que queda de hoy también cuenta */
 const calStale=()=>!!S.calOn&&calFut(S.calSig)!==calFut(calSig());
 async function syncCal(){
   const L=calLines();
@@ -896,27 +904,34 @@ function plannerAdd(){
    Piñero 2024; Eur J Sport Sci 2023); entre partidos o antes de competir ayuda a llegar con menos dolor y fatiga
    (5-15 min a 10-15 °C). La sauna tradicional la noche antes puede quitar chispa al día siguiente. Con diabetes tipo 1,
    el calor acelera la absorción de la insulina y puede bajar la glucosa, y el sudor tapa los síntomas de una hipo. */
-function recoveryCtx(now=new Date()){
-  const S0=sessionsOn(now).filter(s=>s.status!=="en curso"), gymS=S0.find(s=>GYM_IDS.includes(gymIdOf(s))||s.dayId==="D-act");
-  const pad=workoutsOn(now).filter(w=>w.padel&&new Date(w.start)<=now);
+function recoveryCtx(real=new Date()){
+  const now=real.getHours()<6?new Date(+real-6*36e5):real; /* de madrugada, lo de anoche sigue siendo «hoy» */
+  const S0=sessionsOn(now).filter(s=>s.status!=="en curso"), gymS=S0.find(s=>GYM_IDS.includes(s.dayId)); /* la activación no es fuerza ni pierna */
+  const pad=workoutsOn(now).filter(w=>w.padel&&new Date(w.start)<=real);
   const ends=[...S0.map(s=>+new Date(s.start)+(s.minutes||0)*6e4),...pad.map(w=>+new Date(w.start)+w.minutes*6e4)];
-  const tom=addDays(now,1), compToday=!!compOn(now), compTom=!!compOn(tom);
+  const tom=addDays(now,1), compToday=!!compOn(now), oD=((S.opts||{})[localKey(now)])||{}, compTom=!!compOn(tom)||oD.compete===true;
   const padTom=padOn(tom).length>0;
-  const st=weekState(now), tWd=(tom.getDay()+6)%7+1, gymTom=tWd<=5&&tWd>st.todayWd?planWeek(now).plan[tWd]:null;
+  const st=weekState(now), tWd=(tom.getDay()+6)%7+1, gymTom=tWd<=5&&tWd>st.todayWd?planWeek(now).plan[tWd]:st.todayWd===7?planWeek(addDays(monday(now),7),{}).plan[1]:null;
   const legsLow=pad.some(w=>w.legs!=null&&w.legs<=2), k=localKey(now);
   /* Pádel o competición de hoy que aún no has jugado (o no has apuntado): la recuperación va después del último esfuerzo */
-  const cT=compOn(now), later=[...padOn(now).filter(p=>!(p.skip&&p.skip[k])&&!padPlayed(p,now)).map(p=>({h:p.h,n:p.name||PADK[p.kind]||"Pádel",st:+new Date(k+"T"+p.h+":00")})),
-    ...(cT&&cT.h&&!(cT.logged&&cT.logged[k])&&!(cT.skip&&cT.skip[k])&&!pad.some(w=>new Date(w.start)>=new Date(k+"T"+cT.h+":00")-36e5)?[{h:cT.h,n:cT.name||"Competición",st:+new Date(k+"T"+cT.h+":00")}]:[])].sort((a,b)=>a.st-b.st)[0]||null;
-  return {later,gym:gymS?gymIdOf(gymS):null,legs:gymS&&LEGS.has(gymIdOf(gymS)),pad,padMin:pad.reduce((a,w)=>a+w.minutes,0),end:ends.length?Math.max(...ends):null,compToday,compTom,padTom,gymTom,legsLow};
+  const cT=compOn(now), later=[...(oD.matchSoon===false&&!oD.matchLater?[]:padOn(now)).filter(p=>!(p.skip&&p.skip[k])&&!padPlayed(p,now)&&!pad.some(w=>+new Date(w.start)>=+new Date(k+"T"+p.h+":00"))).map(p=>({h:p.h,n:p.name||PADK[p.kind]||"Pádel",st:+new Date(k+"T"+p.h+":00")})),
+    ...(cT&&cT.h&&!(cT.logged&&cT.logged[k])&&!(cT.skip&&cT.skip[k])&&!pad.some(w=>new Date(w.start)>=new Date(k+"T"+cT.h+":00")-36e5)?[{h:cT.h,n:cT.name||"Competición",st:+new Date(k+"T"+cT.h+":00")}]:[])].sort((a,b)=>a.st-b.st)[0]||
+    ((oD.matchSoon===true||oD.matchLater===true)&&!pad.length?{h:"",n:"pádel",st:Infinity}:null); /* dijiste «hoy juego» sin apuntar la hora */
+  return {later,act:S0.some(s=>s.dayId==="D-act"),gym:gymS?gymIdOf(gymS):null,legs:gymS&&LEGS.has(gymIdOf(gymS)),pad,padMin:pad.reduce((a,w)=>a+w.minutes,0),end:ends.length?Math.max(...ends):null,compToday,compTom,padTom,gymTom,legsLow};
 }
 function recoveryPlan(c){
+  if(!c.gym&&!c.pad.length)return {steps:[],tip:[]}; /* solo activación: nada de spa */
   const cold=c.compToday||c.compTom||(c.pad.length&&(!c.gym||c.compTom)&&(c.padTom||c.legsLow||c.padMin>=100||LEGS.has(c.gymTom||"")));
   const noCold=c.gym&&!c.compTom&&!c.compToday;
   const steps=[], tip=[];
   if(cold&&!noCold){
     steps.push({m:10,t:"Pileta fría",d:`En la primera hora después de ${c.pad.length?"jugar":"entrenar"}. 2-3 entradas de 2-3 minutos hasta el pecho (unos 10 minutos en total), con 1 minuto fuera entre medias. Respira despacio.`});
     steps.push({m:5,t:"Ducha templada",d:"Para entrar en calor poco a poco. Nada de baño turco justo después del frío."});
-    tip.push(c.compTom?"Mañana compites: hoy manda llegar fresco. Esta noche, nada de baño turco ni jacuzzi largo: el calor fuerte la víspera puede quitarte chispa.":"Mañana vuelves a jugar o a cargar pierna: el frío te ayuda a llegar con menos dolor.");
+    tip.push(c.compTom?"Mañana compites: hoy manda llegar fresco. Esta noche, nada de baño turco ni jacuzzi largo: el calor fuerte la víspera puede quitarte chispa."
+      :c.compToday?"Hoy has competido: el frío te ayuda a bajar el dolor y la fatiga de los partidos."
+      :c.padTom||LEGS.has(c.gymTom||"")?"Mañana vuelves a jugar o a cargar pierna: el frío te ayuda a llegar con menos dolor."
+      :c.legsLow?"Acabaste con las piernas cargadas: el frío te ayuda a recuperarlas."
+      :"Has jugado mucho rato: el frío te ayuda a recuperar las piernas.");
   }else if(c.gym){
     steps.push({m:0,t:"Sin pileta fría hoy",d:`Acabas de hacer fuerza${c.pad.length?" y después pádel":""}: el agua fría en las horas siguientes puede restar algo de lo que ganas en músculo y fuerza. Hoy, mejor calor suave.`});
     steps.push({m:12,t:"Jacuzzi",d:"10-15 minutos. Relaja la musculatura sin frenar lo que has ganado."});
@@ -929,15 +944,15 @@ function recoveryPlan(c){
   }
   return {steps,tip};
 }
-const RECOV_GLU="🩸 Glucosa: mírala antes de entrar y al salir, y otra vez 1 hora después. El calor (jacuzzi y baño turco) acelera la absorción de la insulina y te puede bajar, y el sudor y el mareo del calor se parecen a una hipo. No entres si vas bajo o bajando: sigue tu pauta. Lleva hidratos rápidos y no te quedes solo. Con calor fuerte el sensor puede marcar una hipo falsa (ya te pasó en la sauna): confírmalo pinchándote el dedo antes de tomar nada. Bebe medio litro de agua.";
+const RECOV_GLU="🩸 Glucosa: mírala antes de entrar y al salir, y otra vez 1 hora después. El calor (jacuzzi y baño turco) acelera la absorción de la insulina y te puede bajar, y el sudor y el mareo del calor se parecen a una hipo. No entres si vas bajo o bajando: sigue tu pauta. Lleva hidratos rápidos y no te quedes solo. Si tienes síntomas de hipo, sal y trátala ya según tu pauta. Si no tienes síntomas y el sensor marca bajo con el calor (ya te pasó en la sauna: puede ser una lectura falsa), confírmalo pinchándote el dedo. Bebe medio litro de agua.";
 function recoveryCard(){
   const now=new Date(), c=recoveryCtx(now);
   if(!c.end||now-c.end>5*36e5||c.end>+now)return "";
   if(c.later){const started=c.later.st<=+now;
     return `<section class="card" style="display:flex;flex-direction:column;gap:8px"><div class="eyebrow" style="color:var(--court)">Tu recuperación en el spa</div>
-    <p style="margin:0"><b>${started?`Primero apunta ${esc(c.later.n)}`:`Ahora, nada de spa: a las ${esc(c.later.h)} tienes ${esc(c.later.n)}`}</b>.</p>
-    <p class="small" style="margin:0">${started?"Cuando lo apuntes en «¿Lo jugaste?», aquí te digo qué hacer en el spa según cómo acabaste y lo que tienes mañana.":"Ni frío ni calor hasta entonces. El jacuzzi y el baño turco te pueden bajar la glucosa, te deshidratan y te quitan energía para la pista. El frío toca al terminar el último esfuerzo del día, no entre medias. Hasta entonces: come según tu pauta, bebe agua y descansa."}</p>
-    ${started?"":`<p class="small" style="margin:0">🩸 Mira la glucosa antes de entrar en la pista. Al terminar, apúntalo en «¿Lo jugaste?» y te digo aquí tu recuperación.</p>`}</section>`}
+    <p style="margin:0"><b>${started?`Primero termina ${esc(c.later.n)} y apúntalo`:`Ahora, nada de spa: ${c.later.h?`a las ${esc(c.later.h)} tienes ${esc(c.later.n)}`:"hoy todavía juegas"}`}</b>.</p>
+    <p class="small" style="margin:0">${started?"Cuando lo apuntes (en «¿Lo jugaste?» o en «Apuntar pádel»), aquí te digo qué hacer en el spa según cómo acabaste y lo que tienes mañana.":"Ni frío ni calor hasta entonces. El jacuzzi y el baño turco te pueden bajar la glucosa, te deshidratan y te quitan energía para la pista. El frío toca al terminar el último esfuerzo del día, no entre medias. Hasta entonces: come según tu pauta, bebe agua y descansa."}</p>
+    ${started?"":`<p class="small" style="margin:0">🩸 Mira la glucosa antes de entrar en la pista. Al terminar, apúntalo y te digo aquí tu recuperación.</p>`}</section>`}
   const r=recoveryPlan(c);if(!r.steps.length)return "";
   let t=new Date(Math.max(c.end+10*6e4,+now));
   const hh=d=>d.toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"});
@@ -974,7 +989,6 @@ function plannedPending(now=new Date()){
   const out=[];[addDays(now,-1),now].forEach(dt=>{const k=localKey(dt), wos=workoutsOn(dt).filter(w=>w.padel);
     padOn(dt).forEach(p=>{const st=new Date(k+"T"+p.h+":00"), end=+st+(+p.min||90)*6e4;
       if(end>+now||padPlayed(p,dt)||(p.skip&&p.skip[k]))return;
-      if(wos.some(w=>Math.abs(new Date(w.start)-st)<3*36e5))return;
       out.push({ref:p.id,d:k,h:p.h,min:p.min,kind:p.kind,name:p.name,txt:`${p.name||PADK[p.kind]} · ${p.h} · ${p.min}'`})});
     const c=compOn(dt);if(c){const st=new Date(k+"T"+(c.h||"10:00")+":00");
       if(+st+90*6e4<=+now&&!(c.logged&&c.logged[k])&&!(c.skip&&c.skip[k])&&!wos.some(w=>padelKind(w)==="Torneo"||Math.abs(new Date(w.start)-st)<5*36e5))
@@ -1011,7 +1025,7 @@ function playedTodayCard(){
     :nx?`<b>Mañana ${tmw} te toca la ${nx}</b>${LEGS.has(nx)?" (si mañana juegas antes de las 16:30, te la cambio por otra)":""}. Al abrir la app te lo confirmo.`
     :`Mañana ${tmw}, al abrir la app, te digo qué toca.`;
   return `<section class="card coach" style="display:flex;flex-direction:column;gap:8px"><div class="eyebrow" style="color:var(--ball)">Hoy ya jugaste</div>
-    <p style="margin:0">Apuntaste ${esc((KIND_LABEL[padelKind(w)]||"pádel").toLowerCase())} · ${mins} min. <b>Hoy ya no toca gimnasio</b>: después de jugar, toca recuperar. Mira abajo tu plan de spa.</p>
+    <p style="margin:0">Apuntaste ${esc((KIND_LABEL[padelKind(w)]||"pádel").toLowerCase())} · ${mins} min. <b>Hoy ya no toca gimnasio</b>: después de jugar, toca recuperar.${recoveryCard()?" Mira abajo tu plan de spa.":""}</p>
     <p class="small" style="margin:0">${tom}</p>
     ${isDiary(w)?"":`<button class="ghostbtn small" style="border:1px solid var(--ball);color:var(--ball)" data-act="padel-diary" data-id="${esc(w.id)}">Cuéntame cómo fue (20 s)</button>`}
   </section>`;
@@ -1037,6 +1051,7 @@ function dailyCard(st){
   const now=new Date(), d=today(), gid=gymIdOf({dayId:d.id});
   if(!GYM_IDS.includes(gid)||(st.doneIds.has(gid)&&st.doneToday!==gid))return "";
   if(workoutsOn(now).some(w=>w.padel&&new Date(w.start)<=now))return ""; /* ya jugó: lo cuenta «Hoy ya jugaste» */
+  if(d.id==="D-act")return `<section class="card coach" style="display:flex;flex-direction:column;gap:8px"><div class="eyebrow" style="color:var(--ball)">Tu día</div><p style="margin:0">Hoy toca la <b>activación</b>: corta, rápida y sin cansarte, para llegar con chispa a la competición. Nada de buscar marcas ni de cargar pierna.</p></section>`;
   const o=dayOpts(), legs=LEGS.has(gid);
   let ms=o.matchSoon, later=!!o.matchLater, planTxt="";
   if(ms===undefined&&weekPlanned(st.m)&&!o.ask){ /* ya lo dijiste en el planificador */
@@ -1094,7 +1109,7 @@ function rescheduleCard(){
     ${dropped.length?`<p class="small muted" style="margin:0">${dropped.length>1?"Se quedan":"Se queda"} fuera esta semana: ${dropped.map(id=>esc(shortTitle(id))).join(", ")}. No pasa nada: mejor una sesión menos que dos el mismo día.</p>`:""}
     ${why?`<p class="small" style="margin:0;color:var(--ball)">${why}</p>`:""}
     ${pick&&pick!==cur?`<button class="ballbtn" style="font-size:18px;padding:13px" data-act="plan-apply" data-id="${pick}">Hoy hago la ${pick}</button>`:!pick&&DAYS[st.todayWd-1].gym&&cur!=="X"?`<button class="ballbtn" style="font-size:18px;padding:13px" data-act="plan-apply" data-id="X">Hoy, solo movilidad</button>`:""}
-    <div style="display:flex;gap:8px;flex-wrap:wrap">${played?"":o.matchSoon===undefined?`<button class="chip" style="background:var(--surface2);color:var(--muted)" data-act="match-ask">¿Ha cambiado algo? Cuéntamelo</button>`:`<button class="chip" style="background:var(--surface2);color:var(--muted)" data-act="match-reset">Cambiar mi respuesta</button>`}${wpl?"":`<button class="chip" style="background:var(--surface2);color:var(--muted)" data-act="skip-missed">${st.missed.length>1?"No las voy a recuperar":"No la voy a recuperar"}</button>`}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">${played?"":o.matchSoon===undefined?`<button class="chip" style="background:var(--surface2);color:var(--muted)" data-act="match-ask">¿Ha cambiado algo? Cuéntamelo</button>`:`<button class="chip" style="background:var(--surface2);color:var(--muted)" data-act="match-reset">Cambiar mi respuesta</button>`}${`<button class="chip" style="background:var(--surface2);color:var(--muted)" data-act="skip-missed">${st.missed.length>1?"No las voy a recuperar":"No la voy a recuperar"}</button>`}</div>
   </section>`;
 }
 
@@ -1168,12 +1183,15 @@ function coachNotes(){
   if(wd>=6)N.push({i:"🎾",t:"Si hoy juegas varios partidos o mañana repites: al terminar, 10 minutos en agua fría (10-15 °C) o ducha fría ayudan a llegar mejor al siguiente. Después de partidos sí; después del gimnasio, no."});
   if(!S.lastPhotos||now-new Date(S.lastPhotos+"T12:00:00")>28*864e5)N.push({i:"📸",t:"Toca hacer tus fotos de progreso (una vez al mes): Progreso → Fotos de progreso.",act:"go-progreso"});
   /* Glucosa después del deporte: tu patrón es pico y bajada 2-3 h después */
-  const endsToday=[...todayS.map(s=>+new Date(s.start)+(s.minutes||0)*6e4),...realWorkouts().filter(w=>w.padel&&sameDay(new Date(w.start),now)).map(w=>+new Date(w.start)+w.minutes*6e4),
+  const yd=addDays(now,-1), lateY=now.getHours()<6?[...sessionsOn(yd).map(s=>+new Date(s.start)+(s.minutes||0)*6e4),...realWorkouts().filter(w=>w.padel&&sameDay(new Date(w.start),yd)).map(w=>+new Date(w.start)+w.minutes*6e4)].filter(x=>x>=+now-6*36e5):[];
+  const endsToday=[...lateY,...todayS.map(s=>+new Date(s.start)+(s.minutes||0)*6e4),...realWorkouts().filter(w=>w.padel&&sameDay(new Date(w.start),now)).map(w=>+new Date(w.start)+w.minutes*6e4),
     ...(weekPlanned(monday(now))?padOn(now).filter(p=>!(p.skip&&p.skip[localKey(now)])&&!padPlayed(p,now)).map(p=>+new Date(localKey(now)+"T"+p.h+":00")+(+p.min||90)*6e4):[])].filter(x=>x<=+now+36e5);
-  if(endsToday.length){const t=new Date(Math.max(...endsToday)+150*6e4), late=+t<=+now;
+  const compPend=(()=>{const c=compOn(now),k=localKey(now);return c&&!(c.logged&&c.logged[k])&&!(c.skip&&c.skip[k])&&!realWorkouts().some(w=>w.padel&&sameDay(new Date(w.start),now)&&(!c.h||new Date(w.start)>=new Date(k+"T"+c.h+":00")-36e5))})();
+  const E=compPend?lateY:endsToday; /* compitiendo hoy, el aviso llega al apuntar los partidos (salvo lo de anoche) */
+  if(E.length){const t=new Date(Math.max(...E)+150*6e4), late=+t<=+now;
     N.push({i:"💧",t:late?`Ahora toca mirar la glucosa: han pasado 2-3 h desde el deporte. Y otra vez al acostarte: es cuando te suele bajar.`:`Mira tu glucosa sobre las ${t.toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})} (2-3 h después del deporte) y otra vez al acostarte: es cuando te suele bajar.`})}
   /* Un consejo de alimentación distinto cada día */
-  const TIPS=["Proteína: apunta a 130-160 g al día. Un yogur alto en proteína o skyr de 200-250 g en el desayuno suma mucho.","Frutos secos: un puñado (25-30 g) y no más. Son sanos, pero muy calóricos.","Agua con gas: prueba esta semana mitad con gas y mitad sin gas, y sin gas antes de jugar o entrenar. Mira que el sodio sea menor de 50 mg/L.","Antes de entrenar, hidratos lentos como la manzana: te suben menos la glucosa y después te bajan menos.","Después de entrenar o jugar, algo de proteína (yogur proteico o batido) para recuperar el músculo.","Pregunta pendiente para tu endocrino: tu pauta para días de pádel largo o competición (antes, durante, después y la cena).","Duerme 7-9 horas: es lo que más recupera, y con poco sueño se acumula grasa en la barriga.","La cintura de los lunes manda: 0,5-1 cm menos al mes es el ritmo bueno."];
+  const TIPS=["Proteína: apunta a 130-160 g al día. Un yogur alto en proteína o skyr de 200-250 g en el desayuno suma mucho.","Frutos secos: un puñado (25-30 g) y no más. Son sanos, pero muy calóricos.","Agua con gas: prueba esta semana mitad con gas y mitad sin gas, y sin gas antes de jugar o entrenar. Mira que el sodio sea menor de 50 mg/L.","Pregunta para tu endocrino: qué tomar antes de entrenar y antes de jugar, y con cuánto tiempo.","Después de entrenar o jugar, algo de proteína (yogur proteico o batido) para recuperar el músculo.","Pregunta pendiente para tu endocrino: tu pauta para días de pádel largo o competición (antes, durante, después y la cena).","Duerme 7-9 horas: es lo que más recupera, y con poco sueño se acumula grasa en la barriga.","La cintura de los lunes manda: 0,5-1 cm menos al mes es el ritmo bueno."];
   const doy=Math.floor((now-new Date(now.getFullYear(),0,0))/864e5);N.push({i:"🥗",t:TIPS[doy%TIPS.length]});
   if(S.sessions.length>=3&&(!S.lastBackup||now-new Date(S.lastBackup)>14*864e5))N.push({i:"💾",t:"Hace tiempo que no guardas una copia de tus registros. Progreso → Copia de seguridad → Guardar copia.",act:"go-progreso"});
   if(!N.length)return "";
@@ -1211,7 +1229,7 @@ function renderHoy(){
        <button class="chip" data-act="toggle-short" style="${dayOpts().short?"background:var(--court);color:var(--ink)":"background:var(--surface2);color:var(--muted)"}">${dayOpts().short?"✓ ":""}Versión corta (poco tiempo o día malo)</button>
      </div>`:""}
      ${d.warn?`<div style="background:color-mix(in srgb,var(--ball) 10%,transparent);color:var(--ball);border-radius:14px;padding:12px;font-size:13px;font-weight:500">${ICON.drop} ${esc(d.warn)}</div>`:""}
-     ${done?`<div style="color:var(--ok);font-weight:600">✓ Sesión guardada · RPE ${done.rpe} · carga ${done.rpe*done.minutes} UA</div>`:`${md&&matchDone("cal")?`<div style="color:var(--ok);font-weight:600">✓ Calentamiento hecho</div>`:""}<button class="ballbtn" data-act="start">${md?(matchDone("cal")?"Recuperación (al acabar de jugar)":"Empezar calentamiento"):d.kinds.includes("compite")||d.id==="sab"||d.id==="dom"?"Empezar calentamiento":"Empezar sesión"}</button>`}
+     ${done?`<div style="color:var(--ok);font-weight:600">✓ Sesión guardada · RPE ${done.rpe} · carga ${done.rpe*done.minutes} UA</div>`:`${md&&matchDone("cal")?`<div style="color:var(--ok);font-weight:600">✓ Calentamiento hecho</div>`:""}<button class="ballbtn" data-act="start">${md?(nextMatchPart()==="post"?"Recuperación (al acabar de jugar)":"Empezar calentamiento"):d.kinds.includes("compite")||d.id==="sab"||d.id==="dom"?"Empezar calentamiento":"Empezar sesión"}</button>`}
    </section>
    ${playedTodayCard()}
    ${recoveryCard()}
@@ -1596,10 +1614,17 @@ function prefill(step){
   if(P&&last.sid===P.sid)return v;
   if(e.b2){const r=prefillB2(e,mine,last,v);if(r)return r}
   if(e.metrics.includes("kg")&&e.defaults.RIR!=null){
-    const prev=mine.filter(s=>s.sid===last.sid&&s.RIR!=null);
-    const target=prev.find(s=>s.tRIR!=null)?.tRIR??e.defaults.RIR; /* el RIR que se pedía aquel día */
-    const base=v.kg;
-    if(prev.length){
+    const all=mine.filter(s=>s.sid===last.sid&&s.RIR!=null), top=all.length?Math.max(...all.map(s=>+s.kg||0)):v.kg;
+    const prev=all.filter(s=>(+s.kg||0)===top); /* solo las series con tu peso de trabajo (no las de aproximación ni las rebajadas) */
+    const tNow=e.defaults.RIR, tOld=prev.find(s=>s.tRIR!=null)?.tRIR??tNow; /* el RIR de hoy y el que se pedía aquel día */
+    if(prev.length)v.kg=top;
+    const base=v.kg, reps=v.reps||prev.at(-1)?.reps;
+    if(prev.length&&tNow!==tOld&&top>0&&reps){ /* esta semana cambia el RIR: el peso sale de tu fuerza estimada de la última vez */
+      const bar=e.barbell?20:0, m=Math.min(...prev.map(x=>x.RIR)), e1=Math.max(...prev.filter(x=>x.RIR===m&&x.reps>0).map(x=>(x.kg+bar)*(1+(x.reps+Math.min(4,x.RIR))/30)));
+      let nk=Math.max(0,snapKg(e,e1/(1+(reps+tNow)/30)-bar)); const cap=snapKg(e,base+2*kgStep(e,base,1));if(nk>cap)nk=cap;
+      if(isFinite(nk)){v.kg=nk;P&&(P.hint={t:nk>base?"up":nk<base?"down":"same",txt:`Esta semana toca ${tNow>tOld?"más suave":"más cerca del fallo"} (RIR ${tNow}): ${nk===base?"mantienes":"ajusto a"} ${fmtNum(nk)} kg.`})}
+    }else if(prev.length){
+      const target=top>0?tOld:tNow;
       const minR=Math.min(...prev.map(s=>s.RIR)), avgR=prev.reduce((a,s)=>a+s.RIR,0)/prev.length;
       const up=v.kg+kgStep(e,v.kg,1);
       if(minR>=target+1&&avgR>=target+1.5){v.kg=snapKg(e,up+kgStep(e,up,1));P&&(P.hint={t:"up",txt:`Subo ${fmtNum(Math.round((v.kg-base)*100)/100)} kg: la última vez te sobraban repeticiones (RIR ${fmtNum(Math.round(avgR*10)/10)}).`})}
@@ -1615,6 +1640,7 @@ function prefill(step){
    dentro del bloque (3 → 2 en la semana 3), igual con la última sesión. Devuelve null para seguir con la progresión normal. */
 function prefillB2(e,mine,last,v){
   if(e.defaults.reps!=null)v.reps=e.defaults.reps;
+  if(e.defaults.seg!=null)v.seg=e.defaults.seg; /* el tiempo es el de esta sesión, no el de otra */
   if(e.fixKg&&e.defaults.kg!=null){v.kg=e.defaults.kg;return v}
   if(!e.metrics.includes("kg"))return v;
   const bar=e.barbell?20:0, b0=monday(blockOf(new Date()).start), tOf=x=>new Date(x.t), ok=x=>x.kg>0&&x.reps>0;
@@ -1646,7 +1672,7 @@ const openSession=()=>S.sessions.filter(s=>s.status==="en curso").sort((a,b)=>ne
 const isMatchDay=d=>!!d&&d.blocks.length===2&&d.blocks[0].id==="cal"&&d.blocks[1].id==="post";
 function matchPart(d,part){return {...d,blocks:d.blocks.filter(b=>b.id===part),part,title:part==="cal"?"Calentamiento competitivo":"Recuperación después de jugar"}}
 const matchDone=(part,now=new Date())=>sessionsOn(now).some(s=>s.part===part);
-const nextMatchPart=()=>matchDone("cal")?"post":"cal";
+const nextMatchPart=()=>matchDone("cal")||playedToday()?"post":"cal";
 function rebuildDay(s){const base=s.dayId==="D-act"?ACTIVATION:[...DAYS,ACTIVATION].find(d=>d.id===s.dayId);if(!base)return null;let d=materialize(base,new Date(s.start),{short:!!s.short});if(s.part&&isMatchDay(d))d=matchPart(d,s.part);return s.extra?withExtra(d):d}
 /* Minutos de verdad: suma los ratos entre series, cada uno como mucho 15'. Así no cuentan ni las pausas largas
    en mitad de la sesión ni las horas después si cerraste la app. */
@@ -2127,7 +2153,8 @@ function openFinish(partial){
     if(confirm("No has apuntado ninguna serie. ¿Descarto la sesión?")){S.sessions=S.sessions.filter(s=>s.id!==P.sid);save();closePlayer();render();toast("Sesión descartada")}
     return}
   let mins=activeMinutes(P.start,ts);
-  F={rpe:7,partial,reason:null,mins,pain:{}};
+  const rr=P.day&&Array.isArray(P.day.rpe)?P.day.rpe:null; /* el esfuerzo previsto de la sesión; calentamientos y movilidad, suave */
+  F={rpe:rr?Math.round((rr[0]+rr.at(-1))/2):3,partial,reason:null,mins,pain:{}};
   $("#finish")?.remove();
   const el=document.createElement("div"); el.className="sheet"; el.id="finish";
   el.innerHTML=`<div class="panel" role="dialog" aria-modal="true" aria-label="Cerrar la sesión">
@@ -2335,7 +2362,7 @@ function actMetrics(x){
   const s=x.start,e=s+x.min*6e4;
   const before=gAt(s,30*6e4)??x.gB??null, end=gAt(e,25*6e4)??x.gA??null;
   const dur=gMin(s,e), durMax=gMax(s,e), post=gMin(e,e+6*36e5), postMax=gMax(e,e+2*36e5);
-  const nd=new Date(e); nd.setDate(nd.getDate()+1); nd.setHours(0,0,0,0); /* la noche siguiente al final de la actividad */
+  const nd=new Date(e); if(nd.getHours()>=6)nd.setDate(nd.getDate()+1); nd.setHours(0,0,0,0); /* la noche siguiente al final de la actividad (si acaba de madrugada, esa misma noche) */
   const night=gMin(+nd,+nd+6*36e5);
   const has=gRange(s-36e5,e+6*36e5).length>3;
   const lows=[dur,post].filter(Boolean).some(r=>r.v<70);
@@ -2492,7 +2519,7 @@ function openPadelLog(editId,pre){
   const w0=editId?S.health.workouts.find(x=>x.id===editId):null, now=new Date();
   const w=w0||(pre?{kind:pre.kind,start:new Date(pre.d+"T"+(pre.h||"10:00")+":00").toISOString(),minutes:+pre.min||90,name:pre.name||null}:null), st=w?new Date(w.start):null;
   PL={kind:w?padelKind(w):"Partido",res:w?.res??null,legs:w?.legs??null,move:w?.move??null,fails:(w?.fails||[]).slice(),edit:w0?w0.id:null,plan:pre?pre.ref:null,name:w?.name||null};
-  const d=st?localKey(st):dayKey(now), hh=st?`${String(st.getHours()).padStart(2,"0")}:${String(st.getMinutes()).padStart(2,"0")}`:String(Math.max(0,now.getHours()-2)).padStart(2,"0")+":00";
+  const g=new Date(+now-2*36e5), d=st?localKey(st):dayKey(g), hh=st?`${String(st.getHours()).padStart(2,"0")}:${String(st.getMinutes()).padStart(2,"0")}`:String(g.getHours()).padStart(2,"0")+":00"; /* por defecto, hace 2 h (de madrugada, anoche) */
   const val=v=>v==null?"":esc(fmtNum(v));
   const el=document.createElement("div");el.className="sheet";el.id="padellog";
   el.innerHTML=`<div class="panel" role="dialog" aria-modal="true" aria-label="Apuntar pádel">
@@ -2655,9 +2682,10 @@ function openReport(){
 }
 
 /* ============ NOVEDADES Y AJUSTES ============ */
-const APP_VERSION="2026.11.25b";
+const APP_VERSION="2026.11.25c";
 /* [icono, texto, versión]: al abrir la app nueva solo salen las novedades desde la última versión que viste */
 const CHANGELOG=[
+ ["🔍","Revisión a fondo de la app: la recuperación tiene en cuenta todo tu día (también si juegas tarde o pasada la medianoche); el día después de competir no hay pierna pesada; la B no lleva sprints la víspera de competir; dos pádeles el mismo día se apuntan bien; al cambiar de semana el peso se ajusta al nuevo RIR; y el aviso de glucosa del spa te dice que, si tienes síntomas, salgas y la trates ya.","2026.11.25c"],
  ["🧖","Recuperación arreglada: si después del gimnasio te queda pádel o competición ese mismo día, la app ya no te manda al spa. Te dice que esperes a terminar el último esfuerzo y, cuando lo apuntas, te da la recuperación buena.","2026.11.25b"],
  ["🚀","El bloque 2 (Transformación) ya está en la app y empieza solo el lunes 21 de diciembre: frenadas, contrastes con salto, sprints de pádel y kilos recalculados desde tu bloque 1. Hasta entonces, todo sigue igual.","2026.11.25a"],
  ["📊","Al guardar una sesión o un partido ves la escala de esfuerzo completa (1-3 muy suave… 10 al máximo), con tu número resaltado. Así puntúas siempre con el mismo criterio.","2026.11.24u"],
@@ -2922,6 +2950,8 @@ if("serviceWorker" in navigator&&location.protocol==="https:"&&!location.hostnam
 try{if(S.body&&S.body.length){const n=S.body.length;normalizeBody();if(S.body.length!==n)save()}}catch(e){}
 /* Pide al iPhone que no borre los datos de la app si se queda sin espacio */
 try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persisted().then(p=>{if(!p)navigator.storage.persist()}).catch(()=>{})}catch(e){}
+/* Una sesión «en curso» abandonada (más de 6 h sin series) se guarda como parcial: así cuenta en tu semana y tu carga */
+try{S.sessions.filter(s=>s.status==="en curso").forEach(o=>{const ts=S.sets.filter(x=>x.sid===o.id).map(x=>+new Date(x.t));if(Date.now()-Math.max(+new Date(o.start),...ts)>6*36e5)closeAsPartial(o)})}catch(e){}
 render();
 setTimeout(()=>checkBadges(S.seenVersion!==APP_VERSION),1500);
 if(S.seenVersion!==APP_VERSION)setTimeout(()=>{if(!$("#layer").children.length)openWhatsNew()},600);
