@@ -903,15 +903,18 @@ function recoveryCtx(now=new Date()){
   const tom=addDays(now,1), compToday=!!compOn(now), compTom=!!compOn(tom);
   const padTom=padOn(tom).length>0;
   const st=weekState(now), tWd=(tom.getDay()+6)%7+1, gymTom=tWd<=5&&tWd>st.todayWd?planWeek(now).plan[tWd]:null;
-  const legsLow=pad.some(w=>w.legs!=null&&w.legs<=2);
-  return {gym:gymS?gymIdOf(gymS):null,legs:gymS&&LEGS.has(gymIdOf(gymS)),pad,padMin:pad.reduce((a,w)=>a+w.minutes,0),end:ends.length?Math.max(...ends):null,compToday,compTom,padTom,gymTom,legsLow};
+  const legsLow=pad.some(w=>w.legs!=null&&w.legs<=2), k=localKey(now);
+  /* Pádel o competición de hoy que aún no has jugado (o no has apuntado): la recuperación va después del último esfuerzo */
+  const cT=compOn(now), later=[...padOn(now).filter(p=>!(p.skip&&p.skip[k])&&!padPlayed(p,now)).map(p=>({h:p.h,n:p.name||PADK[p.kind]||"Pádel",st:+new Date(k+"T"+p.h+":00")})),
+    ...(cT&&cT.h&&!(cT.logged&&cT.logged[k])&&!(cT.skip&&cT.skip[k])&&!pad.some(w=>new Date(w.start)>=new Date(k+"T"+cT.h+":00")-36e5)?[{h:cT.h,n:cT.name||"Competición",st:+new Date(k+"T"+cT.h+":00")}]:[])].sort((a,b)=>a.st-b.st)[0]||null;
+  return {later,gym:gymS?gymIdOf(gymS):null,legs:gymS&&LEGS.has(gymIdOf(gymS)),pad,padMin:pad.reduce((a,w)=>a+w.minutes,0),end:ends.length?Math.max(...ends):null,compToday,compTom,padTom,gymTom,legsLow};
 }
 function recoveryPlan(c){
   const cold=c.compToday||c.compTom||(c.pad.length&&(!c.gym||c.compTom)&&(c.padTom||c.legsLow||c.padMin>=100||LEGS.has(c.gymTom||"")));
   const noCold=c.gym&&!c.compTom&&!c.compToday;
   const steps=[], tip=[];
   if(cold&&!noCold){
-    steps.push({m:10,t:"Pileta fría",d:"En la primera hora después de jugar. 2-3 entradas de 2-3 minutos hasta el pecho (unos 10 minutos en total), con 1 minuto fuera entre medias. Respira despacio."});
+    steps.push({m:10,t:"Pileta fría",d:`En la primera hora después de ${c.pad.length?"jugar":"entrenar"}. 2-3 entradas de 2-3 minutos hasta el pecho (unos 10 minutos en total), con 1 minuto fuera entre medias. Respira despacio.`});
     steps.push({m:5,t:"Ducha templada",d:"Para entrar en calor poco a poco. Nada de baño turco justo después del frío."});
     tip.push(c.compTom?"Mañana compites: hoy manda llegar fresco. Esta noche, nada de baño turco ni jacuzzi largo: el calor fuerte la víspera puede quitarte chispa.":"Mañana vuelves a jugar o a cargar pierna: el frío te ayuda a llegar con menos dolor.");
   }else if(c.gym){
@@ -930,6 +933,11 @@ const RECOV_GLU="🩸 Glucosa: mírala antes de entrar y al salir, y otra vez 1 
 function recoveryCard(){
   const now=new Date(), c=recoveryCtx(now);
   if(!c.end||now-c.end>5*36e5||c.end>+now)return "";
+  if(c.later){const started=c.later.st<=+now;
+    return `<section class="card" style="display:flex;flex-direction:column;gap:8px"><div class="eyebrow" style="color:var(--court)">Tu recuperación en el spa</div>
+    <p style="margin:0"><b>${started?`Primero apunta ${esc(c.later.n)}`:`Ahora, nada de spa: a las ${esc(c.later.h)} tienes ${esc(c.later.n)}`}</b>.</p>
+    <p class="small" style="margin:0">${started?"Cuando lo apuntes en «¿Lo jugaste?», aquí te digo qué hacer en el spa según cómo acabaste y lo que tienes mañana.":"Ni frío ni calor hasta entonces. El jacuzzi y el baño turco te pueden bajar la glucosa, te deshidratan y te quitan energía para la pista. El frío toca al terminar el último esfuerzo del día, no entre medias. Hasta entonces: come según tu pauta, bebe agua y descansa."}</p>
+    ${started?"":`<p class="small" style="margin:0">🩸 Mira la glucosa antes de entrar en la pista. Al terminar, apúntalo en «¿Lo jugaste?» y te digo aquí tu recuperación.</p>`}</section>`}
   const r=recoveryPlan(c);if(!r.steps.length)return "";
   let t=new Date(Math.max(c.end+10*6e4,+now));
   const hh=d=>d.toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"});
@@ -2647,9 +2655,10 @@ function openReport(){
 }
 
 /* ============ NOVEDADES Y AJUSTES ============ */
-const APP_VERSION="2026.11.25a";
+const APP_VERSION="2026.11.25b";
 /* [icono, texto, versión]: al abrir la app nueva solo salen las novedades desde la última versión que viste */
 const CHANGELOG=[
+ ["🧖","Recuperación arreglada: si después del gimnasio te queda pádel o competición ese mismo día, la app ya no te manda al spa. Te dice que esperes a terminar el último esfuerzo y, cuando lo apuntas, te da la recuperación buena.","2026.11.25b"],
  ["🚀","El bloque 2 (Transformación) ya está en la app y empieza solo el lunes 21 de diciembre: frenadas, contrastes con salto, sprints de pádel y kilos recalculados desde tu bloque 1. Hasta entonces, todo sigue igual.","2026.11.25a"],
  ["📊","Al guardar una sesión o un partido ves la escala de esfuerzo completa (1-3 muy suave… 10 al máximo), con tu número resaltado. Así puntúas siempre con el mismo criterio.","2026.11.24u"],
  ["↶","En plena sesión: «Corregir la anterior» si apuntaste mal una serie, y «Ocupado: luego» si la máquina está cogida (ese ejercicio pasa al final del bloque). Si haces el mismo ejercicio seguido en una superserie, descansas la vuelta entera.","2026.11.24t"],
