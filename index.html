@@ -214,9 +214,16 @@ nav.tabs button[aria-selected="true"]{color:var(--ball)}
 const PHASES=[{k:"A",n:"Acumulación",g:"Base: fuerza en tus ejercicios ancla, rodilla y aeróbico"},{k:"T",n:"Transformación",g:"Convertir la base en potencia y velocidad"},{k:"R",n:"Realización",g:"Intensidad de partido, menos volumen"}];
 const BLOCK_START=new Date(2026,10,23);
 const WEEK_INFO={1:{t:"Semana 1 · aprendes los pesos",rir:1,sets:0},2:{t:"Semana 2 · carga normal",rir:0,sets:0},3:{t:"Semana 3 · la más exigente",rir:-1,sets:0},4:{t:"Semana 4 · descarga",rir:2,sets:-1}};
-function blockWeekRaw(d=new Date()){return Math.floor(Math.round((monday(d)-monday(BLOCK_START))/86400000)/7)+1}
-function blockWeek(d=new Date()){const days=Math.round((monday(d)-monday(BLOCK_START))/86400000);return Math.min(4,Math.max(1,Math.floor(days/7)+1))}
-const BLOCK={phase:"A",get week(){return blockWeek()},weeks:4};
+/* Bloque 2 · Transformación: semana 1 con margen (RIR +1), 2 la escrita, 3 la más dura (RIR −1, mínimo 1),
+   4 descarga activa: misma intensidad y ~40 % menos series */
+const B2_START=new Date(2026,11,21);
+const WEEK_INFO2={1:{t:"Semana 1 · aprendes los ejercicios nuevos",rir:1,sets:0},2:{t:"Semana 2 · carga",rir:0,sets:0},3:{t:"Semana 3 · la más exigente",rir:-1,sets:0,rirMin:1},4:{t:"Semana 4 · descarga activa",rir:0,sets:0,mul:0.6}};
+const BLOCKS=[{n:1,phase:"A",start:BLOCK_START},{n:2,phase:"T",start:B2_START}];
+function blockOf(d=new Date()){const m=monday(d);let b=BLOCKS[0];BLOCKS.forEach(x=>{if(m>=monday(x.start))b=x});return b}
+function blockWeekRaw(d=new Date()){return Math.floor(Math.round((monday(d)-monday(blockOf(d).start))/86400000)/7)+1}
+function blockWeek(d=new Date()){return Math.min(4,Math.max(1,blockWeekRaw(d)))}
+const weekInfo=(d=new Date())=>(blockOf(d).n===2?WEEK_INFO2:WEEK_INFO)[blockWeek(d)];
+const BLOCK={get phase(){return blockOf().phase},get n(){return blockOf().n},get week(){return blockWeek()},weeks:4};
 
 /* presc admite {S} (series de esa semana) y {R} (RIR de esa semana) */
 const ex=(id,name,presc,cue,video,sets,metrics,defaults,rest,barbell=false,opt={})=>({id,name,presc,cue,video,sets,metrics,defaults,rest,barbell,...opt});
@@ -348,22 +355,173 @@ const EXTRA={
  D:{id:"xd",mat:"Balón de 5 kg que bote y la rampa.",title:"Extra · potencia",note:"Opcional · 3 rondas",ex:[
   ex("slam","Balón al suelo (slam)","{S} × 5","Balón de 5 kg que bota. Brazos arriba estirado y lánzalo al suelo con todo el cuerpo, lo más fuerte que puedas.","medicine ball slam",3,["kg","reps"],{kg:5,reps:5},30),
   ex("sprint-rampa","Sprint en rampa","{S} × 1 de 10 m","Al 100 % y vuelves andando.","hill sprint acceleration",3,["reps"],{reps:1},60)]}};
-function withExtra(day){const x=EXTRA[day.id];if(!x)return day;const b={...x,ex:x.ex.map(e=>({...e,presc:e.presc.replace("{S}",e.sets)}))};return {...day,blocks:[...day.blocks,b],extra:true}}
+const extraFor=d=>d&&!(d.b2&&(d.id==="A"||d.id==="D"||d.week===4))?EXTRA[d.id]:null;
+function withExtra(day){const x=extraFor(day);if(!x)return day;const b={...x,ex:x.ex.map(e=>({...e,presc:e.presc.replace("{S}",e.sets)}))};return {...day,blocks:[...day.blocks,b],extra:true}}
 const DAYS=[
  SESSION_A, SESSION_B, RECOVERY, SESSION_C, SESSION_D,
  {id:"sab",wd:6,title:"Partido o descanso",sub:"Si juegas: calentamiento antes y recuperación al terminar. Si no, descanso.",kinds:[],gym:0,padel:0,rpe:null,warn:"Ten a mano tu pauta de hidratos para los partidos largos.",blocks:WARMUP},
  {id:"dom",wd:7,title:"Descanso o partido",sub:"Si no juegas, paseo y movilidad. Si juegas, el mismo calentamiento.",kinds:["descanso"],gym:0,padel:0,rpe:null,warn:null,blocks:WARMUP}];
 
+
+/* ============ PLAN · BLOQUE 2 · TRANSFORMACIÓN (lunes 21-12-2026 → domingo 17-01-2027) ============
+   Mismo reparto semanal que el bloque 1. La app cambia sola a estas sesiones el 21-12.
+   Está escrita la semana 2. wk:{n:{…}} cambia un ejercicio o un bloque la semana n (fx: series fijas).
+   when: "satComp" (compites el sábado), "rsa" (sprints repetidos si hoy no juegas), "norsa" (si no hay sprints).
+   plyo: se quita el lunes tras un fin de semana cargado · ct: saltos por serie · lite: D al -30 % si compites el domingo.
+   pct: el primer día del bloque, ese % del peso del bloque 1 · fixKg: usa el peso escrito, no el de la última vez. */
+const exOf=(day,id)=>{for(const b of day.blocks)for(const e of b.ex)if(e.id===id)return {...e};return null};
+const PUNO=ex("puno","Prueba del puño","Aprieta fuerte el puño con cada mano","Si duele, o te duele levantar una taza con la palma hacia abajo, hoy nada de agarre pesado ni lanzamientos con ese brazo.","grip squeeze elbow pain test",1,["reps"],{reps:1},0);
+const ISO_PINES=ex("iso-pines","Isométrico de media sentadilla contra los pines","{S} × 3\" empujando al máximo","Barra por debajo de los seguros, en media sentadilla. Empuja hacia arriba con todo durante 3\", soltando el aire poco a poco (sin aguantar la respiración).","isometric pin squat",3,["seg"],{seg:3},90);
+const KNEE_S3="Lo reactivo de la semana 3 solo si se cumple todo: dolor 0-2 y sin aumento a la mañana siguiente, la rodilla no se hincha, ninguna sensación de que «se va» y el vídeo de frente del patinador sale bien. Si no, repite lo de la semana 2.";
+
+const B2A={id:"A",wd:1,b2:1,title:"A · Piernas: contraste pesado, frenadas y rodilla",sub:"Frenadas con las piernas frescas, sentadilla con salto y rodilla. La sesión más exigente: nunca a menos de 6 horas de jugar.",kinds:["gym"],gym:63,padel:0,rpe:[7,8],warn:"Pierna pesada y saltos: mide la glucosa antes de empezar.",blocks:[
+ {id:"a0",mat:"Bici, goma de tobillo y mini band.",title:"Calentamiento",note:"1 vuelta · 8 min",ex:[
+  {...exOf(SESSION_A,"a-bici"),presc:"3 min con 2 aceleraciones de 5\"",defaults:{seg:180}},
+  exOf(SESSION_A,"a-tobillo"),exOf(SESSION_A,"a-9090"),exOf(SESSION_A,"a-monster"),
+  ex("a-salto","Salto de control","3 saltos con el medidor 📏 · manos en la cintura","30\" de pausa entre saltos. Te dice si hoy llegas con las piernas frescas.","countermovement jump technique",1,["reps"],{reps:3},0),
+  PUNO]},
+ {id:"a1",mat:"5 m libres y unas marcas en el suelo.",title:"Frenadas y cambio de dirección",note:"3 rondas · con las piernas frescas",tip:"Cada repetición dura 1-3\", siempre al 100 %, y vuelves andando. Al frenar: cadera atrás, rodilla mirando a los cordones y en silencio.",wk:{3:{tip:KNEE_S3},4:{tip:KNEE_S3}},ex:[
+  ex("cod-180","Media vuelta (180°) y salida en diagonal","{S} × 5 · a 2-3 m desde el split-step","Desplázate 2-3 m, frena con la cadera baja, gira 180° y sal en diagonal, como a una bola cruzada.","180 degree turn sprint drill",3,["reps"],{reps:5},60,false,{plyo:1,wk:{
+   1:{id:"cod-frena",name:"Acelerar 5 m y frenar en 2 pasos",presc:"2 × 6 · frontal y lateral",cue:"Frontal: acelera 5 m y frena en 2 pasos. Lateral: 3 m de lado, frena y vuelve. Cadera baja y rodilla mirando a los cordones.",video:"deceleration drill",sets:2,defaults:{reps:6},fx:1},
+   3:{id:"cod-react",name:"Salidas reactivas a 4 direcciones",presc:"3 × 6 · 2-4 m, frenar y volver al centro",cue:"Con el modo reacción: sal hacia donde marque, frena y vuelve al centro. Solo si la rodilla cumple los criterios; si no, la media vuelta de la semana 2.",video:"reactive agility drill",sets:3,defaults:{reps:6},fx:1},
+   4:{id:"cod-react",name:"Salidas reactivas a 4 direcciones",presc:"2 × 4 · 2-4 m, frenar y volver al centro",cue:"Con el modo reacción: sal hacia donde marque, frena y vuelve al centro. Solo si la rodilla cumple los criterios; si no, la media vuelta de la semana 2.",video:"reactive agility drill",sets:2,defaults:{reps:4},fx:1}}})]},
+ {id:"a2",mat:"Jaula con la barra y los seguros a tu altura, polea para el Pallof y 3 m libres para el salto.",title:"Contraste pesado",note:"3 rondas",tip:"Sentadilla, Pallof en la pausa y 3 saltos: 2-3' entre la sentadilla y el salto. Si el salto sale peor que el anterior, esa serie se acaba.",ex:[
+  {...exOf(SESSION_A,"sentadilla"),presc:"{S} × 3 · RIR {R}",sets:3,defaults:{kg:45,reps:3,RIR:2},rest:30,cue:"Barra libre en la jaula con los seguros un poco por debajo de tu sentadilla. Baja controlado y sube lo más rápido que puedas. Apunta solo los discos."},
+  ex("pallof-iso","Pallof isométrico","{S} × 20\" por lado","Brazos estirados al frente y aguanta: la polea no te gira. Es la pausa activa antes del salto.","pallof press hold",3,["kg","seg"],{kg:5,seg:20},40),
+  ex("longitud","Salto horizontal","{S} × 3 · pies juntos, clavando la caída","Lo más lejos que puedas y aguanta 2\" en la caída, rodillas hacia fuera. 10\" entre saltos.","standing broad jump landing",3,["reps"],{reps:3},120,false,{plyo:1,ct:3})],
+  wk:{3:{title:"Contraste francés",mat:"Jaula, cajón, 2 mancuernas de 10 kg y 3 m libres.",tip:"Sentadilla y, con 20\" entre cada uno: cajón, salto con mancuernas y pogos. 3-4' antes de la siguiente ronda.",ex:[
+   {...exOf(SESSION_A,"sentadilla"),presc:"{S} × 2 · RIR {R}",sets:3,defaults:{kg:45,reps:2,RIR:2},rest:20,cue:"Baja controlado y sube lo más rápido que puedas. Apunta solo los discos."},
+   {...exOf(SESSION_A,"a-cajon"),presc:"{S} × 3 · máxima altura",sets:3,rest:20,plyo:1,ct:3},
+   ex("salto-manc","Salto con mancuernas","{S} × 3 · con 10 kg","Mancuernas a los lados, baja a media sentadilla y salta. Cae suave, rodillas hacia fuera.","dumbbell jump squat",3,["kg","reps"],{kg:10,reps:3},20,false,{plyo:1,ct:3,fixKg:1}),
+   ex("pogos","Pogos (saltos de tobillo)","{S} × 5","Tobillos rígidos y rebote rápido, rodillas casi rectas.","pogo jumps",3,["reps"],{reps:5},210,false,{plyo:1,ct:5})]}}},
+ {id:"a2i",when:"satComp",mat:"Jaula con los seguros a la altura de media sentadilla.",title:"Isométrico (compites el sábado)",note:"3 rondas",ex:[ISO_PINES]},
+ {id:"a3",mat:"Banco, 2 mancuernas y 3 m libres a los lados.",title:"Una pierna + salto",note:"3 rondas",ex:[
+  {...exOf(SESSION_A,"bulgara"),presc:"{S} × 4 por pierna · RIR {R}",defaults:{kg:12.5,reps:4,RIR:2},rest:120,cue:"Empieza por la derecha. Rodilla sobre el pie, sin que se vaya hacia dentro, y sube rápido.",wk:{3:{sets:2}}},
+  ex("patinador","Salto del patinador","{S} × 2 por lado · encadenado","Salta de lado a una pierna y encadena con el siguiente. Rodilla encima del pie. Una vez por semana, grábate de frente con el móvil a la altura de la rodilla.","skater jump",3,["reps"],{reps:2},90,false,{plyo:1,ct:4,wk:{
+   1:{presc:"{S} × 2 por lado · aguanta la caída 2\"",cue:"Cae sobre una pierna y aguanta 2\" quieto, rodilla encima del pie."},
+   3:{presc:"{S} × 2 por lado · a la señal",cue:"Sales hacia el lado que marque el modo reacción. Solo si la rodilla cumple los criterios; si no, encadenado como en la semana 2.",sets:2}}})]},
+ {id:"a4",mat:"Esterilla, toalla, la Smith bloqueada abajo, un cajón y un banco.",title:"Rodilla y excéntrico",note:"2 rondas",ex:[
+  {...exOf(SESSION_A,"nordico"),presc:"{S} × 4",sets:2,wk:{3:{sets:1}}},
+  {...exOf(SESSION_A,"stepdown"),presc:"{S} × 6 por pierna · 3\" bajando",sets:2,rest:30,cue:"Lo más específico para tu rótula. De pie en el cajón, baja el talón de la otra pierna hasta rozar el suelo en 3\".",wk:{3:{sets:1}}},
+  {...exOf(SESSION_A,"copenhague"),sets:2,rest:60,wk:{3:{sets:1}}}]},
+ {id:"a5",weeks:[1,2,4],mat:"2 mancuernas pesadas y otras ligeras.",title:"Agarre y muñeca",note:"2 rondas",tip:"Si la prueba del puño dolió, sáltate este bloque.",ex:[
+  {...exOf(SESSION_C,"farmer"),presc:"{S} × 20 m · pesado y corto",sets:2,rest:20},
+  {...exOf(SESSION_C,"muneca-flex"),name:"Muñeca: flexo-extensión y pronosupinación",presc:"{S} × 12 de cada por mano · suave (esfuerzo 3-4 de 10)",cue:"Antebrazo apoyado: primero sube y baja la muñeca, y después gira la mancuerna cogida por un extremo. Suave, es para el codo.",sets:2,rest:30}]}]};
+
+const B2B={id:"B",wd:2,b2:1,title:"B · Empuje, lanzamientos y core",sub:"Empuje con lanzamientos y core. Si hoy no juegas, terminas con sprints de pádel.",kinds:["gym"],gym:55,padel:0,rpe:[7,8],warn:null,blocks:[
+ {id:"b0",mat:"Bici o elíptica, goma y la barra vacía en la jaula.",title:"Calentamiento de hombro",note:"1 vuelta · 8 min",ex:[
+  {...exOf(SESSION_B,"b-bici"),name:"Bici o elíptica",video:"stationary bike warm up"},
+  exOf(SESSION_B,"b-w"),exOf(SESSION_B,"b-rot"),exOf(SESSION_B,"b-escap"),PUNO,exOf(SESSION_B,"b-aprox")]},
+ {id:"b1",mat:"Barra en la jaula, el landmine montado y el balón junto a una pared.",title:"Contraste de empuje",note:"3 rondas",tip:"Si el hombro molesta al subir el brazo, cambia el push press por landmine press.",ex:[
+  {...exOf(SESSION_B,"push-press"),presc:"{S} × 3 · RIR {R}",sets:3,defaults:{kg:20,reps:3,RIR:2},rest:30},
+  {...exOf(SESSION_B,"landmine-rot"),presc:"{S} × 6 por lado · en la pausa",rest:30},
+  {...exOf(SESSION_B,"lanz-rot"),presc:"{S} × 4 por lado · explosivo",sets:3,rest:90,cue:"El giro sale de la cadera, como una derecha. Balón de 4-5 kg: aquí manda la velocidad.",wk:{3:{presc:"{S} × 4 por lado · más ligero y más rápido",defaults:{kg:3,reps:4},fixKg:1,cue:"Con un balón de 2-3 kg, lo más rápido que puedas. El giro sale de la cadera."}}}]},
+ {id:"b2",mat:"Banco plano, 2 mancuernas, la barra de dominadas y el balón.",title:"Contraste de press",note:"3 rondas",ex:[
+  {...exOf(SESSION_B,"press-db"),presc:"{S} × 5 · RIR {R}",defaults:{kg:22.5,reps:5,RIR:2}},
+  {...exOf(SESSION_B,"elev-rodillas"),presc:"{S} × 10 · en la pausa",rest:30},
+  ex("lanz-pecho","Lanzamiento de pecho con balón","{S} × 5 · explosivo","De pie frente a la pared, balón al pecho: lánzalo lo más fuerte que puedas y recógelo al rebote. Sin pared libre: flexiones pliométricas ×5.","medicine ball chest pass wall",3,["kg","reps"],{kg:4,reps:5},90)]},
+ {id:"b3",when:"norsa",mat:"Landmine y polea a la altura del pecho.",title:"Rotación y antirrotación",note:"3 rondas",ex:[
+  {...exOf(SESSION_B,"landmine-press"),presc:"{S} × 5 por brazo · rápido",metrics:["kg","reps"],defaults:{kg:10,reps:5},rest:30},
+  ex("pallof-iso","Pallof isométrico","{S} × 25\" por lado","Brazos estirados al frente y aguanta: la polea no te gira.","pallof press hold",3,["kg","seg"],{kg:5,seg:25},60)]},
+ {id:"b4",when:"rsa",ct:20,mat:"La pala y 6 m libres (mejor en una pista o una sala).",title:"Sprints repetidos de pádel",note:"3 rondas",tip:"Antes, 2 × 10 pogos. 15-20\" quieto entre esfuerzos y 3' entre series, como un cambio de lado. Con la rodilla en 3-4: en bici, 8 sprints de 6\" con 20\" de pausa.",ex:[
+  ex("rsa","Sprints de pádel con golpe de sombra","{S} series × 6 esfuerzos de 6-8\"","Con la pala, en 4-6 m: lateral, frenada y vuelta; red, atrás y red, con su golpe de sombra. Cada esfuerzo al 100 % y 15-20\" quieto antes del siguiente. Frenar ya cansado es lo más exigente para la rótula: si la rodilla molesta, a la bici.","padel footwork drills",3,["reps"],{reps:6},180,false,{plyo:1,wk:{
+   1:{presc:"2 series × 6 esfuerzos de 6-8\"",sets:2,fx:1},
+   3:{presc:"3 series × 8 esfuerzos de 6-8\"",defaults:{reps:8},fx:1},
+   4:{presc:"1 serie × 6 esfuerzos de 6-8\"",sets:1,fx:1}}})]}]};
+
+const B2C={id:"C",wd:4,b2:1,title:"C · Tracción y hombro",sub:"Tracción, hombro y cadera, sin agarre pesado: por la tarde tienes pista.",kinds:["gym"],gym:50,padel:0,rpe:[7,7],warn:null,blocks:[
+ {id:"c0",mat:"Goma y barra de dominadas.",title:"Calentamiento",note:"1 vuelta · 6 min",ex:[exOf(SESSION_C,"c-colgado"),exOf(SESSION_C,"c-w"),exOf(SESSION_C,"c-rot"),PUNO]},
+ {id:"c1",mat:"Barra de dominadas, cinturón con cadena y polea alta con cuerda.",title:"Tracción",note:"4 rondas",ex:[
+  {...exOf(SESSION_C,"dominada"),presc:"{S} × 4 · RIR {R}",defaults:{kg:0,reps:4,RIR:2},cue:"Baja hasta estirar los brazos y lleva el pecho a la barra, sin balanceo. Cuando las 4 series de 4 te salgan con 3-4 en reserva, añade un disco con la cadena."},
+  {...exOf(SESSION_C,"facepull"),rest:60}]},
+ {id:"c2",mat:"Banco, una mancuerna, straps y polea a la altura del hombro.",title:"Remo",note:"3 rondas",ex:[
+  {...exOf(SESSION_C,"remo-manc"),presc:"{S} × 6 por lado · rápido, con straps · RIR {R}",defaults:{kg:17.5,reps:6,RIR:2},cue:"Con straps, para no cargar el antebrazo antes de la pista. Sube rápido y baja controlado, tirando con el codo hacia la cadera."},
+  ex("rotext-90","Rotación externa en polea a 90°","{S} × 10 por brazo","Codo a la altura del hombro y doblado a 90°: gira hacia arriba despacio. Muy poco peso.","cable external rotation 90 90",3,["kg","reps"],{kg:2.5,reps:10},45,false,{wk:{3:{presc:"{S} × 10 por brazo · bajando en 3\""}}})]},
+ {id:"c3",mat:"Goma anclada por detrás de la cabeza y esterilla.",title:"Antirrotación",note:"2 rondas",ex:[
+  ex("deadbug","Bicho muerto con goma","{S} × 8 por lado","Tumbado, con la goma tensa por encima de la cabeza. Zona lumbar pegada al suelo: estira despacio el brazo y la pierna contrarios.","banded dead bug",2,["reps"],{reps:8},45)]},
+ {id:"c4",mat:"Banco inclinado y mancuernas.",title:"Codo y hombro de pádel",note:"2 rondas",ex:[{...exOf(SESSION_C,"curl-martillo"),sets:2},{...exOf(SESSION_C,"ytw-banco"),sets:2}]},
+ {id:"c5",mat:"Máquina de abductores o polea al tobillo, y esterilla.",title:"Cadera y movilidad",note:"2 rondas",ex:[
+  ex("abd-cadera","Abducción de cadera con carga","{S} × 12","En máquina o con la polea al tobillo. Protege tu rodilla: evita que se vaya hacia dentro al caer y al frenar.","seated hip abduction machine",2,["kg","reps"],{kg:30,reps:12},45),
+  ex("mov-ct","Movilidad de cadera y tobillo","1 × 3 min","Cadera 90/90 y tobillo contra la pared, sin prisa.","hip ankle mobility",1,["seg"],{seg:180},0)]}]};
+
+const B2D={id:"D",wd:5,b2:1,title:"D · Potencia y reacción",sub:"Salidas a la señal, cargadas con salto, caídas y cadera rápida. Si mañana compites, pulsa «Compito mañana».",kinds:["gym"],gym:55,padel:0,rpe:[7,8],warn:"Saltos y salidas: mide la glucosa antes.",blocks:[
+ {id:"d0",mat:"Bici, goma y la barra vacía.",title:"Calentamiento",note:"1 vuelta · 9 min",ex:[
+  exOf(SESSION_D,"d-bici"),
+  {...exOf(SESSION_D,"d-saltitos"),name:"Skipping y saltos suaves",presc:"10 m de skipping + 20 saltos suaves"},
+  ex("d-rotint","Rotación interna de hombro con goma","2 × 30\" por brazo","Codo pegado al cuerpo o a 90°: gira hacia dentro despacio. Prepara el hombro para los lanzamientos.","band shoulder internal rotation",1,["seg"],{seg:60},0),
+  ex("d-salto","Salto de control","3 saltos con el medidor 📏 · manos en la cintura","30\" de pausa entre saltos.","countermovement jump technique",1,["reps"],{reps:3},0),
+  exOf(SESSION_D,"d-aprox")]},
+ {id:"d1",mat:"El móvil delante con el modo reacción, y la rampa.",title:"Velocidad",note:"3 rondas · con las piernas frescas",ex:[
+  ex("reactiva","Salidas reactivas desde el split-step","{S} × 4 salidas de 2-4 m","Abre el modo reacción y pon el móvil delante. No adivines: sal cuando lo veas, frena y vuelve andando.","reactive agility drill",3,["reps"],{reps:4},45,false,{plyo:1}),
+  {...exOf(SESSION_A,"sprint-rampa"),presc:"{S} × 3 de 5-10 m cuesta arriba",sets:2,defaults:{reps:3},rest:60,plyo:1}]},
+ {id:"d2",mat:"Barra con los discos de hoy y el cajón al lado.",title:"Cargada + cajón",note:"4 rondas",ex:[
+  {...exOf(SESSION_D,"clean"),presc:"{S} × 2 · rápida, RPE 8",sets:4,defaults:{kg:25,reps:2},rest:20,wk:{1:{presc:"4 × 3 · rápida, RPE 7",sets:4,defaults:{kg:25,reps:3},fx:1},3:{presc:"5 × 2 · rápida, RPE 8",sets:5,fx:1},4:{presc:"3 × 2 · rápida, RPE 7",sets:3,fx:1}}},
+  {...exOf(SESSION_A,"a-cajon"),presc:"{S} × 3 · justo después de la cargada",sets:4,rest:120,ct:3,plyo:1,wk:{1:{sets:4,fx:1},3:{sets:5,fx:1},4:{sets:3,fx:1}}}]},
+ {id:"d3",mat:"Jaula con los seguros a media sentadilla y un cajón bajo (≈30 cm).",title:"Isométrico + caída",note:"3 rondas",tip:"Siempre con las dos piernas. Aterriza en silencio, rodilla mirando a los cordones.",ex:[
+  ISO_PINES,
+  ex("caida","Caída desde cajón bajo con rebote","{S} × 4 · cajón de 30 cm","Déjate caer (no saltes) con las dos piernas, toca y rebota hacia arriba lo más rápido que puedas.","depth jump",3,["reps"],{reps:4},90,false,{plyo:1,ct:4,
+   wk:{1:{name:"Caída desde cajón bajo",presc:"{S} × 4 · caer y clavar, sin rebote",cue:"Déjate caer (no saltes) con las dos piernas y clava la caída 2\": cadera atrás, rodillas mirando a los cordones y sin ruido."},
+       3:{presc:"{S} × 4 · cajón alto (40 cm como mucho) solo si la rodilla cumple los criterios",cue:"Al cajón alto solo si la rodilla cumple los criterios y el test de caída salió igual o mejor. Si no, en el de 30 cm."}},
+   lite:{name:"Caída desde cajón bajo",presc:"{S} × 4 · caer y clavar, sin rebote"}})]},
+ {id:"d4",mat:"Barra con disco grande, banco, almohadilla y 3 m libres.",title:"Cadera rápida",note:"3 rondas",ex:[
+  {...exOf(SESSION_D,"hipthrust"),presc:"{S} × 5 · lo más rápido posible",metrics:["kg","reps"],defaults:{kg:10,reps:5},pct:0.45,cue:"Con el 40-50 % del peso del bloque 1: aquí manda la velocidad. Sube explosivo y baja controlado. Apunta solo los discos."},
+  ex("salto-lat","Salto lateral a una pierna","{S} × 2 por lado · clavando la caída","De una pierna a la otra, de lado, y aguanta 2\" quieto. Rodilla encima del pie.","lateral bound stick",3,["reps"],{reps:2},90,false,{plyo:1,ct:4,lite:{presc:"{S} × 2 por lado · con pausa de 3\" en cada caída"}})]},
+ {id:"d5",mat:"Balón, una pared y una esterilla para las rodillas.",title:"Lanzamiento lateral",note:"2 rondas",ex:[
+  ex("lanz-lat","Lanzamiento lateral de rodillas","{S} × 3 por lado · explosivo","De rodillas y de lado a la pared: gira el tronco y lanza con todo, como un revés. Los dos lados.","tall kneeling side toss medicine ball",2,["kg","reps"],{kg:4,reps:3},60)]}]};
+
+const B2ACT={id:"D-act",wd:5,b2:1,title:"Activación pre-competición",sub:"Mañana compites: 30 minutos para salir con chispa, sin cansarte. Sin excéntricos, sin caídas y sin sprints repetidos.",kinds:["gym"],gym:30,padel:0,rpe:[4,5],warn:null,blocks:[
+ {...ACTIVATION.blocks[0],note:"1 vuelta · 10 min"},
+ {id:"v2",mat:"El móvil delante con el modo reacción.",title:"Salidas",note:"2 rondas",ex:[
+  ex("reactiva","Salidas reactivas","{S} × 4 salidas de 2-4 m","Al 100 % y vuelves andando.","reactive agility drill",2,["reps"],{reps:4},60,false,{plyo:1})]},
+ {id:"v3",mat:"3 m libres a cada lado.",title:"Saltos",note:"3 rondas",ex:[
+  {...exOf(ACTIVATION,"v-cmj"),presc:"{S} × 2 · máxima altura",sets:3,defaults:{reps:2},rest:30,ct:2},
+  ex("v-lat","Salto lateral","{S} × 3 por lado","Con las dos piernas, de lado a lado, rápido y suave.","lateral hops",2,["reps"],{reps:3},60,false,{ct:6})]},
+ {id:"v4",mat:"Barra ligera.",title:"Cargada ligera",note:"3 rondas",ex:[
+  ex("clean-act","Cargada colgante ligera","{S} × 2 · RPE 6","Rápida y limpia, con bastante menos peso que en la D. Si no te apetece, salto con mancuernas ligeras. Apunta solo los discos.","hang power clean technique",3,["kg","reps"],{kg:15,reps:2},60,true)]},
+ {id:"v5",mat:"Balón y pared.",title:"Lanzamiento",note:"2 rondas",ex:[{...exOf(SESSION_B,"lanz-rot"),presc:"{S} × 3 por lado",sets:2,defaults:{kg:4,reps:3},rest:45}]}]};
+
+const B2={A:B2A,B:B2B,C:B2C,D:B2D,"D-act":B2ACT};
+(()=>{const mk=e=>{e.b2=1};Object.values(B2).forEach(d=>d.blocks.forEach(b=>{b.ex.forEach(mk);if(b.wk)Object.values(b.wk).forEach(o=>(o.ex||[]).forEach(mk))}))})();
+/* Las sesiones de la fecha: en el bloque 2, títulos y textos del bloque 2 (lo hecho conserva su texto) */
+const forDate=(d,dt)=>{if(!d||blockOf(dt).n!==2)return d;const x=B2[d.id];return x?{...d,title:x.title,...(d.done?{}:{sub:x.sub})}:d};
+/* Fin de semana cargado: compitió y jugó más de 2 partidos (o ≥200') el sábado y el domingo de antes */
+function heavyWeek(date){const m=monday(date),days=[addDays(m,-2),addDays(m,-1)].filter(d=>compOn(d));if(!days.length)return false;
+  const ws=days.flatMap(d=>workoutsOn(d).filter(w=>w.padel));return ws.length>2||ws.reduce((a,w)=>a+(+w.minutes||0),0)>=200}
+const playsOn=d=>!!compOn(d)||workoutsOn(d).some(w=>w.padel)||padOn(d).some(p=>!(p.skip&&p.skip[localKey(d)]));
+function b2Blocks(day,date,w,opts){
+  const heavy=heavyWeek(date), notes=[];
+  const satComp=day.id==="A"&&!!compOn(addDays(monday(date),5));
+  const sunLite=day.id==="D"&&!!compOn(addDays(date,2))&&!compOn(addDays(date,1));
+  const playing=day.id==="B"&&playsOn(date), rsa=day.id==="B"&&!playing&&!heavy;
+  const bl=day.blocks.filter(b=>!(b.weeks&&!b.weeks.includes(w))&&(b.when==="satComp"?satComp:b.when==="rsa"?rsa:b.when==="norsa"?!rsa:true))
+    .map(b=>{const o=b.wk&&b.wk[w];return o?{...b,...o}:b})
+    .map(b=>({...b,ex:b.ex.map(e=>{let x=e.wk&&e.wk[w]?{...e,...e.wk[w]}:e;if(sunLite&&x.lite)x={...x,...x.lite};return x}).filter(e=>!(heavy&&day.id==="A"&&e.plyo))}))
+    .filter(b=>b.ex.length);
+  if(heavy&&day.id==="A")notes.push("⚠️ Fin de semana cargado: hoy sin saltos ni sprints. Mejor aún, si puedes: hoy la C y mañana la A.");
+  if(heavy&&day.id==="B")notes.push("Fin de semana cargado: esta semana, sin sprints repetidos.");
+  else if(playing)notes.push("Hoy juegas: sin sprints repetidos, el partido ya es tu trabajo intermitente.");
+  if(satComp)notes.push("Compites el sábado: llevas el isométrico para no perderlo.");
+  if(sunLite)notes.push("Compites el domingo: D al -30 % (una serie menos y caída sin rebote).");
+  return {blocks:bl,heavy,sunLite,notes};
+}
+/* Saltos (apoyos) de una sesión ya ajustada */
+const jumpsIn=d=>d.blocks.reduce((a,b)=>a+(b.ct||0)+b.ex.reduce((s,e)=>s+(e.ct||0)*e.sets,0),0); /* ct = apoyos por serie */
+
 /* Ajusta una sesión a la semana del bloque, a la versión corta y al «compito mañana» */
 function materialize(day,date=new Date(),opts={}){
-  const w=blockWeek(date), W=WEEK_INFO[w];
+  const bk=blockOf(date), w=blockWeek(date), W=weekInfo(date);
   let base=day;
   if(day.id==="D"&&opts.compete)base=ACTIVATION;
-  let blocks=base.blocks.map(b=>({...b,ex:b.ex.map(e=>{
+  if(bk.n===2&&B2[base.id])base={...B2[base.id],wd:base.wd};
+  let src=base.blocks, fl={};
+  if(base.b2){fl=b2Blocks(base,date,w,opts);src=fl.blocks}
+  let blocks=src.map(b=>({...b,ex:b.ex.map(e=>{
     const multi=e.sets>1;
-    const sets=multi?Math.max(1,e.sets+W.sets):e.sets;
+    let sets=e.sets;
+    if(multi&&!e.fx)sets=W.mul?Math.max(1,Math.round(e.sets*W.mul)):Math.max(1,e.sets+W.sets);
+    if(multi&&fl.sunLite)sets=Math.max(1,sets-1);
     const d={...e.defaults};
-    if(d.RIR!=null)d.RIR=Math.max(e.rirMin??0,d.RIR+W.rir);
+    if(d.RIR!=null)d.RIR=Math.max(e.rirMin??W.rirMin??0,d.RIR+W.rir);
     const presc=e.presc.replace("{S}",sets).replace("{R}",d.RIR??"");
     return {...e,sets,defaults:d,presc};
   })}));
@@ -371,7 +529,8 @@ function materialize(day,date=new Date(),opts={}){
     blocks=blocks.filter((b,i)=>i===0||b.id.endsWith("1")||b.id.endsWith("2")).map(b=>({...b,ex:b.ex.map(e=>({...e,sets:Math.min(e.sets,2),presc:e.presc.replace(/^\d+ ×/,Math.min(e.sets,2)+" ×")}))}));
   }
   blocks=blocks.map(b=>{const r=Math.max(...b.ex.map(e=>e.sets));return {...b,note:b.note.replace(/\d+ rondas/,r+(r===1?" ronda":" rondas"))}});
-  return {...base,blocks,week:w,weekText:W.t,short:!!opts.short};
+  const sub=fl.notes&&fl.notes.length?fl.notes.join(" ")+" "+base.sub:base.sub;
+  return {...base,sub,blocks,week:w,weekText:W.t,short:!!opts.short,block:bk.n};
 }
 /* Duración estimada: trabajo de cada serie + descansos + 20" por cambio de ejercicio + 2' por bloque */
 /* Duración estimada, ajustada con tu sesión real del 24-11: trabajo (x2 si es por lado), descanso de la app,
@@ -410,7 +569,8 @@ function liftPts(L){
     if(top)pts.push({d,v:top.kg+(m.bar?20:0),r:top.reps,app:1})});
   return pts.sort((a,b)=>a.d-b.d)}
 const LAST={"sentadilla":"16 nov · 50 kg de discos × 3 a RPE 8 (70 total) · oct hasta 60 × 4","rdl":"11 abr · 40 kg en discos × 5","bulgara":"Sep · 12,5 kg × 6 (estancada desde mayo) · Oct zancada andando 10 kg × 6","push-press":"17 nov · barra 20 kg de discos × 5 (4 series) · oct con 1 mancuerna 22,5 × 4","press-db":"27 oct · 20 / 20 / 22,5 kg (10-8-6) · 4 semanas sin pasar de 22,5","landmine-press":"Abr · 10-18 kg × 6","dominada":"19 nov · 7 / 6 / 5 / 5 / 5 · mejor marca 27 sep: 8 / 8 / 7 / 4","remo-manc":"Nov · remo a una mano 20 kg · bird dog row 15 kg (13 nov)","farmer":"13 nov · 22,5 kg por mano · a una mano hasta 27,5 (oct)","pinch":"Jul · 15 kg × 20\"","clean":"21 nov · 30 kg de discos × 3 · oct hasta 35 a 1 rep","hipthrust":"Jun · 40 kg en discos × 8"};
-const BTESTS=[{id:"longitud",n:"Salto de longitud",u:"cm",how:"Pies juntos, el mejor de 3 intentos."},{id:"frenada5",n:"Salida y frenada a 5 m",u:"s",how:"Ida y vuelta de 5 m, el mejor de 2. Cronometrado con el móvil."},{id:"dominadas",n:"Dominadas máximas",u:"reps",how:"Agarre prono, sin balanceo."},{id:"km15",n:"1,5 km en cinta",u:"min",how:"A tope, con la cinta al 1% de inclinación. Apunta minutos, por ejemplo 6,45."}];
+const BTESTS=[{id:"longitud",n:"Salto de longitud",u:"cm",how:"Pies juntos, el mejor de 3 intentos."},{id:"frenada5",n:"Salida y frenada a 5 m",u:"s",how:"Ida y vuelta de 5 m, el mejor de 2. Cronometrado con el móvil."},{id:"dominadas",n:"Dominadas máximas",u:"reps",how:"Agarre prono, sin balanceo."},{id:"km15",n:"1,5 km en cinta",u:"min",how:"A tope, con la cinta al 1% de inclinación. Apunta minutos, por ejemplo 6,45."},{id:"rsa6",n:"Sprints repetidos 6 × (5 + 5 m)",u:"s",from:2,how:"6 idas y vueltas de 5 m con giro y 20\" de pausa. Cronometra cada una con el móvil y apunta la media."},{id:"caida30",n:"Salto tras caída de 30 cm",u:"cm",from:2,how:"Déjate caer del cajón de 30 cm y rebota hacia arriba lo más alto y rápido que puedas. Mídelo con 📏, el mejor de 3. Si sale igual o más que tu salto normal, en la semana 3 puedes usar el cajón alto."}];
+const btestsNow=()=>BTESTS.filter(t=>!t.from||blockOf().n>=t.from||((S.tests||{})[t.id]||[]).length);
 const TESTS=["400 m","1,5 km","Sentadillas en 1 minuto","Burpees en 1 minuto","Dominadas máximas","Flexiones máximas"];
 
 /* ============ ESTADO (se guarda en este móvil) ============ */
@@ -464,9 +624,13 @@ const yt=q=>"https://www.youtube.com/results?search_query="+encodeURIComponent(q
 /* Vídeos comprobados (se pueden ver dentro de la app). Si eliges otro, se guarda en S.videos. */
 const VIDEOS={"pogos":{"v":"j0nl5dWuqN4","autor":"(saltos de tobillo)"},"slam":{"v":"EsAhU1jHpiQ","autor":"Horton Barbell"},"triceps-polea":{"v":"vPeQu_L-1n0","autor":"REP"},"curl-inclinado":{"v":"DCe8f6vMe9A","autor":"ATHLEAN-X"},"hollow":{"v":"DKJXFzz9BBk","autor":"hollow hold"},"landmine-rot":{"v":"911qQuwcEMQ","autor":"GPS Human Performance"},"curl-martillo":{"v":"zC3nLlEvin4","autor":"ScottHermanFitness"},"ytw-banco":{"v":"F2HZmu9KyyU","autor":"Zach Connell"},"sprint-rampa":{"v":"PSNS6n9sMDY","autor":"Omar Powell"},"elev-rodillas":{"v":"p9hhX_Sx5v0","autor":"Signum Fitness & Nutrition"},"reactiva":{"v":"roiLnGi_29Q","autor":"PowerLux Fitness"},"lateral-sprint":{"v":"Vu-2wL-dt7Q","autor":"Simple Speed Coach"},"a-bici":{"v":"h2WtDZrLHmk","autor":"Bestcycling"},"a-tobillo":{"v":"ILSbK8RnGdI","autor":"Squat University"},"a-9090":{"v":"MmBb1latnw0","autor":"Xabier Revuelta - FISIOTERAPEUTA"},"a-monster":{"v":"dHJOQ4mjQ30","autor":"Bret Contreras Glute Guy"},"sentadilla":{"v":"Akd5xmZlsvg","autor":"Catalyst Athletics"},"a-cajon":{"v":"R7sS0PfPfHk","autor":"Ambitious Athletics"},"rdl":{"v":"2POPaloE-SM","autor":"Squat University"},"copenhague":{"v":"ACfxr2P5pGQ","autor":"Xabier Revuelta - FISIOTERAPEUTA"},"bulgara":{"v":"bwhl_9jN_3o","autor":"Squat University"},"stepdown":{"v":"JyhOe6NdQoo","autor":"Trainerclub"},"nordico":{"v":"0ia97P5konQ","autor":"Squat University"},"plancha-abd":{"v":"14--dVJ-tU4","autor":"Proet Ejercicio Terapéutico"},"b-w":{"v":"vQYyHMviZCI","autor":"West Coast Strength"},"b-rot":{"v":"wjBA3Qc_38g","autor":"Clínica Fisiofert"},"b-escap":{"v":"zbVUBByJRqY","autor":"Proet Ejercicio Terapéutico"},"push-press":{"v":"iaBVSJm78ko","autor":"CrossFit"},"lanz-rot":{"v":"o9BC7lgN1bo","autor":"Live Lean TV Daily Exercises"},"press-db":{"v":"mTaiQemkEpU","autor":"Andrew Kwong (DeltaBolic)"},"flex-plio":{"v":"hDP-oskzYUs","autor":"Atomic Athlete"},"landmine-press":{"v":"PFIn5PFiajQ","autor":"Darío Orcajada / Perder la barriga"},"pallof":{"v":"o_CxFP4FJhA","autor":"Instituto de Entrenamiento Personal"},"cuban":{"v":"67ewzBXws7M","autor":"MoveU"},"hollow":{"v":"DKJXFzz9BBk","autor":"Nacho Romero | Proyecto Columna"},"rod-gemelo":{"v":"-MOyVz9lFF4","autor":"Fisio andTherapies"},"rod-cuad":{"v":"-DuuGm0_5r0","autor":"Rude Rock Human Performance"},"rod-espalda":{"v":"NS73eSohTbc","autor":"National Academy of Sports Medicine (NASM)"},"rana":{"v":"ft0F3gQUiM4","autor":"GLORY SPORT PHYSIO"},"toracica":{"v":"yHTbstQDkKc","autor":"Athletic Authority"},"x-eliptica":{"v":"Sbv44Rf-5U0","autor":"fitnessdigital"},"c-colgado":{"v":"ppzZQuBjvN8","autor":"Cuerpo Invertido"},"c-w":{"v":"vQYyHMviZCI","autor":"West Coast Strength"},"dominada":{"v":"pT9ZCIeJhEM","autor":"Your House Fitness"},"facepull":{"v":"sVWAZaYydRo","autor":"ATHLEAN-X Español"},"remo-manc":{"v":"evJBZ_8-2ik","autor":"ATHLEAN-X Español"},"rotext-polea":{"v":"DplyMccjRrE","autor":"Vitar Club"},"farmer":{"v":"8OtwXwrJizk","autor":"PureGym"},"pinch":{"v":"jFTV3DQf3HE","autor":"PureGym"},"muneca-flex":{"v":"Wzt9Io8oKoI","autor":"Clínica Fisiofert"},"pronosup":{"v":"EyZ1IAozAJQ","autor":"FisioFit Cross"},"d-bici":{"v":"h2WtDZrLHmk","autor":"Bestcycling"},"d-skipping":{"v":"ztAesLdFb5k","autor":"Be Happy"},"d-saltitos":{"v":"j0nl5dWuqN4","autor":"Runna"},"clean":{"v":"0aP3tgKZcHQ","autor":"CrossFit"},"longitud":{"v":"dVgtvAXeBQw","autor":"Athletics Coach"},"hipthrust":{"v":"bE76E1sa5rA","autor":"Fit Generation"},"patinador":{"v":"HYWKdSBDb3s","autor":"Whole Strength Physical Therapy"},"lateral-goma":{"v":"WiKjiJfnmoI","autor":"Kinetic | Sports Physical Therapy | Delafield, WI"},"frenada":{"v":"88VqqPRdj58","autor":"Pablo Cartas | Preparador Físico y Fisioterapeuta"},"bici-int":{"v":"jN3HeMMvB5o","autor":"NeuStrength | Personal Trainer Wilmington NC"},"cal-movil":{"v":"XYMBIW3cN9g","autor":"Saigon Physio Sport"},"cal-activ":{"v":"7vVgRvPFQj4","autor":"Raúl Morcillo"},"cal-chispa":{"v":"vyIcjNeGh7M","autor":"The Padel School"},"post-lumbar":{"v":"GB2WGGsSz-Q","autor":"Fisioterapia Gratis Bruna Homs"},"post-rodillo":{"v":"bKL8O3TNbdw","autor":"Robert Arias"},"v-9090":{"v":"MmBb1latnw0","autor":"Xabier Revuelta - FISIOTERAPEUTA"},"v-w":{"v":"vQYyHMviZCI","autor":"West Coast Strength"},"v-cmj":{"v":"26pmBcXAcTg","autor":"Professional Performance Training - Proper"},"v-sprint":{"v":"lX36T2iSPd4","autor":"The Progressive Athlete"}};
 /* Ejercicios nuevos del calentamiento: reutilizan el vídeo del mismo movimiento */
-[["b-torax","toracica"],["c-torax","toracica"],["c-rot","b-rot"],["b-aprox","push-press"],["d-aprox","clean"],["v-bici","d-bici"],["b-bici","a-bici"],["c-bici","a-bici"],["v-skip","pogos"]].forEach(([a,b])=>{if(!VIDEOS[a]&&VIDEOS[b])VIDEOS[a]=VIDEOS[b]});
+Object.assign(VIDEOS,{"cod-180":{"v":"xqnH50ZtWFY","autor":"Vitafit"},"salto-manc":{"v":"XOTO2qWRy9U","autor":"Bodybuilding.com"},"iso-pines":{"v":"rUOWZNxiOes","autor":"Gravity Sport Performance"},"caida":{"v":"R2zJ7baA-zA","autor":"Coach Matty Green"},"rsa":{"v":"lqKj2uAyVjA","autor":"Marco Gallerani · PadelStrength"},"lanz-pecho":{"v":"B2qsEALGXYw","autor":"Thundrbro"},"lanz-lat":{"v":"eAZeM-H0WWc","autor":"EASY FISIOTERAPIA"},"abd-cadera":{"v":"G_8LItOiZ0Q","autor":"PureGym"},"deadbug":{"v":"-yhxYnwB5KY","autor":"Train With Cuz"},"d-rotint":{"v":"F-x7OBhfTbE","autor":"Paco The Fisio"},"salto-lat":{"v":"XDBHOQoAa3w","autor":"Champion Physical Therapy and Performance"}});
+[["cod-frena","frenada"],["cod-react","reactiva"],["pallof-iso","pallof"],["a-salto","v-cmj"],["d-salto","v-cmj"],["rotext-90","b-rot"],["mov-ct","a-9090"],["clean-act","clean"],["v-lat","salto-lat"],["b-torax","toracica"],["c-torax","toracica"],["c-rot","b-rot"],["b-aprox","push-press"],["d-aprox","clean"],["v-bici","d-bici"],["b-bici","a-bici"],["c-bici","a-bici"],["v-skip","pogos"]].forEach(([a,b])=>{if(!VIDEOS[a]&&VIDEOS[b])VIDEOS[a]=VIDEOS[b]});
 const ytId=u=>{const m=String(u||"").match(/(?:youtu\.be\/|v=|shorts\/|embed\/)([\w-]{11})/);return m?m[1]:(/^[\w-]{11}$/.test(u)?u:null)};
-const exById=id=>{for(const d of [...DAYS,ACTIVATION,{blocks:Object.values(EXTRA)}])for(const b of d.blocks)for(const e of b.ex)if(e.id===id)return e;return null};
+function allEx(){const out=[],add=e=>{out.push(e);if(e.wk)Object.values(e.wk).forEach(o=>{if(o.id)out.push({...e,...o})})};
+  const b2=Object.values(B2), b1=[...DAYS,ACTIVATION];
+  [...(blockOf().n===2?[...b2,...b1]:[...b1,...b2]),{blocks:Object.values(EXTRA)}].forEach(d=>d.blocks.forEach(b=>{b.ex.forEach(add);if(b.wk)Object.values(b.wk).forEach(o=>(o.ex||[]).forEach(add))}));return out}
+const exById=id=>allEx().find(e=>e.id===id)||null;
 function openVideo(id){
   const e=exById(id); if(!e)return;
   const custom=(S.videos||{})[id], v=custom||(VIDEOS[id]&&VIDEOS[id].v);
@@ -625,7 +789,9 @@ function calLines(){
   const gym=(dt,id,done,ses)=>{let d=DAYS.find(x=>x.id===id);if(!d)return;
     if(ses?ses.dayId==="D-act":id==="D"&&(sameDay(dt,now)?effCompete():compOn(addDays(dt,1))))d=ACTIVATION;
     const mins=Math.max(20,estimateMinutes(materialize(d,dt)));
-    const notes=(d===ACTIVATION?d.sub:(SUBG[id]||d.sub||"")+(LEGS.has(id)?" Mide la glucosa antes.":""))+(done?" Hecha.":" Ábrela en Plan Pádel para empezar.");
+    const b2=blockOf(dt).n===2&&B2[d.id];
+    const notes=(d===ACTIVATION||b2?(b2||d).sub:(SUBG[id]||d.sub||"")+(LEGS.has(id)?" Mide la glucosa antes.":""))+(b2&&LEGS.has(id)?" Mide la glucosa antes.":"")+(done?" Hecha.":" Ábrela en Plan Pádel para empezar.");
+    if(b2)d={...d,title:b2.title};
     if(ses)push(dt,hh(new Date(ses.start)),Math.max(10,+ses.minutes||mins),`✅ ${d.title}`,notes); /* hecha: a su hora real */
     else push(dt,CAL_H,mins,`${done?"✅":"🏋️"} ${d.title}`,notes)};
   const padel=dt=>{
@@ -791,7 +957,7 @@ function openSpaGuide(){
   $("#layer").appendChild(el);
 }
 
-const shortTitle=id=>DAYS.find(d=>d.id===id).title;
+const shortTitle=id=>forDate(DAYS.find(d=>d.id===id),new Date()).title;
 const playedToday=(now=new Date())=>workoutsOn(now).some(w=>w.padel&&new Date(w.start)<=now);
 const dayClosed=(now=new Date())=>playedToday(now)||now.getHours()>=21||(weekPlanned(monday(now))&&padOn(now).some(p=>!(p.skip&&p.skip[localKey(now)])&&new Date(localKey(now)+"T"+p.h+":00")<=now)); /* después de jugar, o ya de noche: hoy no se coloca gimnasio */
 /* Hoy ya jugaste al pádel y la sesión de gimnasio sigue sin hacer: qué pasa con ella */
@@ -974,13 +1140,15 @@ function coachNotes(){
   const now=new Date(), wd=(now.getDay()+6)%7+1, N=[];
   const tom=new Date(now);tom.setDate(tom.getDate()+1);
   const todayS=sessionsOn(now);
-  if(blockWeekRaw(now)>=4)N.push({i:"🧭",t:blockWeekRaw(now)>4?"El bloque 1 ha terminado. Pásale tus registros a tu entrenador para montar el bloque 2 (Transformación); mientras, sigue con esta semana suave.":"Última semana del bloque 1. Antes del lunes, pásale tus registros a tu entrenador para preparar el bloque 2."});
-  if(wd===7&&blockWeekRaw(tom)<=4){const w=blockWeek(tom);N.push({i:"📅",t:sameDay(tom,BLOCK_START)?`Mañana empieza el bloque 1. Semana 1: aprendes los pesos (te sobrarán repeticiones a propósito).`:`Mañana empieza la ${WEEK_INFO[w].t.toLowerCase()}.${w===4?" Descarga: menos series y más fácil, para llegar fresco al siguiente bloque.":w===3?" Es la semana más exigente: duerme bien y vigila la glucosa.":""}`})}
+  const bkN=blockOf(now).n, bwR=blockWeekRaw(now);
+  if(bwR>=4)N.push({i:"🧭",t:bkN===1?"Última semana del bloque 1. El lunes 21 empieza el bloque 2 (Transformación): ya está en la app, con ejercicios nuevos, menos repeticiones y más velocidad.":bwR>4?"El bloque 2 ha terminado. Mientras preparamos el bloque 3 (Realización), sigue con esta semana suave.":"Última semana del bloque 2: misma intensidad y casi la mitad de series. El bloque 3 (Realización) empieza el 18 de enero."});
+  if(wd===7&&blockWeekRaw(tom)<=4){const w=blockWeek(tom),bt=blockOf(tom);N.push({i:"📅",t:sameDay(tom,bt.start)?(bt.n===1?`Mañana empieza el bloque 1. Semana 1: aprendes los pesos (te sobrarán repeticiones a propósito).`:`Mañana empieza el bloque 2 (Transformación). Semana 1: aprendes los ejercicios nuevos, con margen. La app calcula los kilos nuevos desde tu bloque 1. El miércoles 23, tests.`):`Mañana empieza la ${weekInfo(tom).t.toLowerCase()}.${w===4?(bt.n===2?" Descarga activa: misma intensidad y casi la mitad de series, para llegar rápido al bloque 3.":" Descarga: menos series y más fácil, para llegar fresco al siguiente bloque."):w===3?" Es la semana más exigente: duerme bien y vigila la glucosa.":""}`})}
   const cToday=compOn(now), cNext=[1,2,3,4,5,6].map(i=>({i,c:compOn(addDays(now,i))})).find(x=>x.c&&!(cToday&&x.c.id===cToday.id));
   if(cToday)N.push({i:"🏆",t:`Hoy compites: ${cToday.name}. Nada de gimnasio: calentamiento competitivo antes de jugar. Mide la glucosa antes y entre partidos; con los nervios suele subir y después puede bajar. Si mañana repites, 10' de agua fría al terminar.`});
   else if(cNext)N.push({i:"🏆",t:`${cNext.i===1?"Mañana":"El "+addDays(now,cNext.i).toLocaleDateString("es-ES",{weekday:"long"})} tienes ${cNext.c.name}. La app ya lo tiene en cuenta: nada de pierna pesada la víspera${addDays(now,cNext.i).getDay()===6&&cNext.i>1&&!sessionsOn(addDays(now,cNext.i-1)).length?" y el viernes, activación":""}. Duerme bien esos días.`});
-  const tests=Object.values(S.tests||{}).flat().filter(x=>new Date(x.d)>=BLOCK_START);
-  if(now>=BLOCK_START&&blockWeek(now)===1&&!tests.length&&!compOn(now))N.push({i:"⏱️",t:"Esta semana toca hacer los tests del bloque (salto, frenada, dominadas y 1,5 km) en un día suave. Están en Progreso.",act:"go-progreso"});
+  const tests=Object.values(S.tests||{}).flat().filter(x=>new Date(x.d)>=monday(blockOf(now).start));
+  if(now>=BLOCK_START&&blockWeek(now)===1&&!tests.length&&!compOn(now))N.push({i:"⏱️",t:bkN===2?"Esta semana toca repetir los tests (el miércoles 23, por la mañana y al menos 4 h antes de jugar). Hay dos nuevos: sprints repetidos y salto tras caída. Están en Progreso.":"Esta semana toca hacer los tests del bloque (salto, frenada, dominadas y 1,5 km) en un día suave. Están en Progreso.",act:"go-progreso"});
+  if(bkN===2&&bwR===4&&!Object.values(S.tests||{}).flat().some(x=>new Date(x.d)>=monday(now))&&!compOn(now))N.push({i:"⏱️",t:"Esta semana toca repetir los tests para cerrar el bloque 2 (el miércoles 13, por la mañana y al menos 4 h antes de jugar). Están en Progreso.",act:"go-progreso"});
   const B=(S.body||[]).slice().sort((a,b)=>new Date(a.d)-new Date(b.d)), lastB=B.at(-1);
   if(!lastB||now-new Date(lastB.d)>5*864e5)N.push({i:"⚖️",t:"Pésate mañana al levantarte: en ayunas, después del baño y antes de beber."});
   const lastW=B.filter(b=>b.waist!=null).at(-1);
@@ -1058,7 +1226,7 @@ function phaseBar(){
   const ph=PHASES.find(p=>p.k===BLOCK.phase);
   return `<section aria-label="Fase del plan"><div class="atr">${PHASES.map(p=>`<div class="${p.k===BLOCK.phase?"on":""}"><b>${p.k}</b>${p.n}</div>`).join("")}</div>
   <div class="weeks">${Array.from({length:BLOCK.weeks},(_,i)=>`<i class="${i<BLOCK.week?"on":""}"></i>`).join("")}<span class="small muted" style="font-weight:600;white-space:nowrap">Semana ${BLOCK.week} de ${BLOCK.weeks}</span></div>
-  <p class="small" style="margin:8px 0 0"><b>Bloque 1 · ${WEEK_INFO[BLOCK.week].t}</b> <span class="muted">· ${ph.g}</span></p></section>`;
+  <p class="small" style="margin:8px 0 0"><b>Bloque ${BLOCK.n} · ${weekInfo().t}</b> <span class="muted">· ${ph.g}</span></p></section>`;
 }
 /* «Última vez»: lo último que apuntaste en esta app; si aún no hay nada, lo de tu plan anterior */
 function lastTxt(id,skip){
@@ -1073,6 +1241,7 @@ function lastTxt(id,skip){
 function blockCard(b){
   return `<section class="card"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:6px"><h3 class="h3">${esc(b.title)}</h3><span class="small muted">${esc(b.note)}</span></div>
   ${b.mat?`<div class="small muted" style="margin:-2px 0 6px">🧰 ${esc(b.mat)}</div>`:""}
+  ${b.tip?`<div class="small" style="margin:-2px 0 6px;color:var(--text)">💡 ${esc(b.tip)}</div>`:""}
   ${b.ex.map(e=>`<div class="ex-row"><span class="dot"></span><div><div style="font-weight:600">${esc(e.name)}</div><div class="small muted">${esc(e.presc)}</div>${lastTxt(e.id)?`<div class="last">Última vez: ${esc(lastTxt(e.id))}</div>`:""}</div><button class="play" data-video="${e.id}" aria-label="Vídeo de ${esc(e.name)}">${ICON.play}</button></div>`).join("")}</section>`;
 }
 function weekLoad(){
@@ -1152,7 +1321,7 @@ function renderSemana(){
   const max=Math.max(...BD.map(b=>b.tot),1);
   const planned=BD.reduce((a,b)=>a+b.tot,0);
   $("#view").innerHTML=`<div class="stack">
-   <header style="padding-top:8px"><div class="eyebrow">${preBlock?"Antes del bloque 1":`Bloque 1 · semana ${bw} de ${BLOCK.weeks} · ${esc(WEEK_INFO[bw].t.replace(/^Semana \d+ · /,""))}`}</div><h1 class="big">Semana</h1></header>
+   <header style="padding-top:8px"><div class="eyebrow">${preBlock?"Antes del bloque 1":`Bloque ${blockOf(m0).n} · semana ${bw} de ${BLOCK.weeks} · ${esc(weekInfo(m0).t.replace(/^Semana \d+ · /,""))}`}</div><h1 class="big">Semana</h1></header>
    <div style="display:flex;align-items:center;gap:8px">
      <button class="iconbtn" data-act="week-prev" aria-label="Semana anterior" style="font-size:24px">‹</button>
      <div style="flex:1;text-align:center"><div style="font-weight:700">${weekRangeText()}</div><div class="small muted">${weekOff===0?"Esta semana":weekOff===1?"La semana que viene":weekOff===-1?"La semana pasada":weekOff>0?`Dentro de ${weekOff} semanas`:`Hace ${-weekOff} semanas`}</div></div>
@@ -1166,7 +1335,7 @@ function renderSemana(){
      <div class="legend"><span><i style="background:var(--court)"></i>Gimnasio</span><span><i style="background:var(--ball)"></i>Pádel y otros</span><span><i style="background:var(--surface2)"></i>Prevista</span></div>
    </section>
    ${weekOff===0||weekOff===1?planWeekCard(m0):""}
-   <section class="card" style="padding:6px">${DAYS.map(d0=>{const d=A[d0.wd],dt=dW(d0.wd),isT=sameDay(dt,new Date()),ok=sessionsOn(dt).length>0,pad=workoutsOn(dt).filter(w=>w.padel);
+   <section class="card" style="padding:6px">${DAYS.map(d0=>{const dt=dW(d0.wd),d=forDate(A[d0.wd],dt),isT=sameDay(dt,new Date()),ok=sessionsOn(dt).length>0,pad=workoutsOn(dt).filter(w=>w.padel);
      return `<div class="day ${isT?"today":""}" data-day="${d.wd}" data-off="${weekOff}" role="button" tabindex="0" aria-label="Ver la sesión del ${dt.toLocaleDateString("es-ES",{weekday:"long"})}" style="cursor:pointer"><div class="d"><small>${dt.toLocaleDateString("es-ES",{weekday:"short"}).replace(".","")}</small><b style="${isT?"color:var(--ball)":""}">${dt.getDate()}</b></div>
        <div>${compOn(dt)?`<div class="small" style="color:var(--heart);font-weight:700;margin-bottom:2px">🏆 ${esc(compOn(dt).name)} · sin gimnasio</div>`:""}<div style="font-weight:600">${esc(d.title)}</div><div class="small muted" style="margin:2px 0 6px">${esc(d.sub)}</div><div class="chips">${(wp?d.kinds.filter(k=>k!=="padel"):d.kinds).map(k=>chip(k,false)).join("")}${(d.done?[]:padOn(dt).filter(p=>{const k=localKey(dt);return !padPlayed(p,dt)&&!(p.skip&&p.skip[k])})).map(p=>`<span class="chip" style="background:color-mix(in srgb,var(--ball) 22%,transparent);color:var(--ball)">🎾 ${esc(PADS[p.kind]||"Pádel")} ${esc(p.h)}</span>`).join("")}${pad.length?`<span class="chip" style="background:color-mix(in srgb,var(--ball) 14%,transparent);color:var(--ball)">${ICON.watch} Pádel ${pad.reduce((a,w)=>a+w.minutes,0)}'</span>`:""}</div></div>
        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">${ok?'<span style="color:var(--ok);font-size:22px" aria-label="Hecha">✓</span>':""}${ok?`<span class="small muted num">${sessionsOn(dt).reduce((a,x)=>a+(+x.minutes||0),0)}'</span>`:d.gym&&!d.done?`<span class="small muted num">≈${estimateMinutes(materialize(d,dt))}'</span>`:""}<span class="muted" aria-hidden="true" style="font-size:20px">›</span></div></div>`}).join("")}</section>
@@ -1186,7 +1355,7 @@ function openDay(wd,off=0){
   el.innerHTML=`<div class="panel" role="dialog" aria-modal="true" aria-label="${esc(d.title)}">
    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px"><div><div class="eyebrow">${dt.toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"})}</div><h2 class="title" style="font-size:28px">${esc(d.title)}</h2></div><button class="iconbtn" data-act="day-close" aria-label="Cerrar">${ICON.x}</button></div>
    <p class="muted" style="margin:0">${esc(d.sub)}</p>
-   <div style="display:flex;gap:22px">${d.gym?(()=>{const m=sessionsOn(dt).reduce((a,x)=>a+(+x.minutes||0),0);return m?stat(m,"min de gym"):stat("≈"+estimateMinutes(d),"min de gym")})():""}${d.padel?stat(d.padel,"min de pádel"):""}${d.blocks.length?stat(d.blocks.reduce((a,b)=>a+b.ex.length,0),"ejercicios"):""}</div>
+   <div style="display:flex;gap:22px">${d.gym?(()=>{const m=sessionsOn(dt).reduce((a,x)=>a+(+x.minutes||0),0);return m?stat(m,"min de gym"):stat("≈"+estimateMinutes(d),"min de gym")})():""}${d.padel?stat(d.padel,"min de pádel"):""}${d.blocks.length?stat(d.blocks.reduce((a,b)=>a+b.ex.length,0),"ejercicios"):""}${jumpsIn(d)?stat("≈"+jumpsIn(d),"saltos"):""}</div>
    ${d.gym&&!isToday&&!base.done?(swapped?`<button class="ghostbtn" data-act="day-unswap">Quitar el cambio: hoy, la sesión que tocaba</button>`:`<button class="ghostbtn" data-act="day-swap" data-id="${base.id}">Hacer esta sesión hoy</button>`):""}
    ${d.blocks.map(blockCard).join("")}
   </div>`;
@@ -1227,7 +1396,7 @@ function renderProgreso(){
    </section>
    <section class="card"><div class="eyebrow" style="margin-bottom:4px">Tests del bloque</div>
      <p class="small muted" style="margin:0 0 6px">Hazlos al empezar y al terminar cada bloque, con el mismo calentamiento. Así sabremos si mejoras en pista y no solo en el gimnasio.</p>
-     ${BTESTS.map(t=>{const h=((S.tests||{})[t.id]||[]);const last=h.at(-1),first=h[0];return `<div class="row"><div style="min-width:0"><div style="font-weight:600">${t.n}</div><div class="small muted">${last?`Último: ${esc(last.v)} ${t.u} · ${new Date(last.d).toLocaleDateString("es-ES",{day:"numeric",month:"short"})}${h.length>1?` · empezaste en ${esc(first.v)}`:""}`:esc(t.how)}</div></div><div style="display:flex;gap:6px;align-items:center"><input id="t-${t.id}" inputmode="decimal" placeholder="${t.u}" aria-label="${t.n}" style="width:72px;background:var(--surface2);border:0;border-radius:10px;padding:8px;text-align:center"><button class="chip" style="background:var(--court);color:var(--ink)" data-act="test-save" data-id="${t.id}">Guardar</button></div></div>`}).join("")}
+     ${btestsNow().map(t=>{const h=((S.tests||{})[t.id]||[]);const last=h.at(-1),first=h[0];return `<div class="row"><div style="min-width:0"><div style="font-weight:600">${t.n}</div><div class="small muted">${last?`Último: ${esc(last.v)} ${t.u} · ${new Date(last.d).toLocaleDateString("es-ES",{day:"numeric",month:"short"})}${h.length>1?` · empezaste en ${esc(first.v)}`:""}`:esc(t.how)}</div></div><div style="display:flex;gap:6px;align-items:center"><input id="t-${t.id}" inputmode="decimal" placeholder="${t.u}" aria-label="${t.n}" style="width:72px;background:var(--surface2);border:0;border-radius:10px;padding:8px;text-align:center"><button class="chip" style="background:var(--court);color:var(--ink)" data-act="test-save" data-id="${t.id}">Guardar</button></div></div>`}).join("")}
    </section>
   </div>`;
 }
@@ -1347,7 +1516,7 @@ function addBody(list){S.body=S.body||[];const before=new Set(S.body.map(b=>loca
   list.forEach(b=>S.body.push({...b}));normalizeBody();
   return S.body.filter(b=>!before.has(localKey(new Date(b.d)))).length}
 /* Tus ejercicios registrados en esta app: último y mejor peso */
-const EXNAME=(()=>{const m={};[...DAYS,ACTIVATION,{blocks:Object.values(EXTRA)}].forEach(d=>d.blocks.forEach(b=>b.ex.forEach(e=>{m[e.id]=e.name})));return m})();
+const EXNAME=(()=>{const m={};allEx().forEach(e=>{if(!m[e.id])m[e.id]=e.name});return m})();
 function openExChart(id){
   const e=exById(id), sets=S.sets.filter(x=>x.ex===id&&x.kg>0);if(!sets.length)return;
   const bySid={};sets.forEach(x=>{(bySid[x.sid]=bySid[x.sid]||[]).push(x)});
@@ -1417,6 +1586,7 @@ function prefill(step){
   if(!last)return v;
   e.metrics.forEach(m=>{if(last[m]!=null&&m!=="RIR")v[m]=last[m]});
   if(P&&last.sid===P.sid)return v;
+  if(e.b2){const r=prefillB2(e,mine,last,v);if(r)return r}
   if(e.metrics.includes("kg")&&e.defaults.RIR!=null){
     const prev=mine.filter(s=>s.sid===last.sid&&s.RIR!=null);
     const target=prev.find(s=>s.tRIR!=null)?.tRIR??e.defaults.RIR; /* el RIR que se pedía aquel día */
@@ -1431,6 +1601,30 @@ function prefill(step){
     }
   }
   return v;
+}
+/* Bloque 2: las repeticiones son las que tocan esa semana (no las de la última vez). El primer día del bloque,
+   el peso sale de tu fuerza del bloque 1 (peso × (1 + (reps + RIR)/30), RIR hasta 4); si cambian las repeticiones
+   dentro del bloque (3 → 2 en la semana 3), igual con la última sesión. Devuelve null para seguir con la progresión normal. */
+function prefillB2(e,mine,last,v){
+  if(e.defaults.reps!=null)v.reps=e.defaults.reps;
+  if(e.fixKg&&e.defaults.kg!=null){v.kg=e.defaults.kg;return v}
+  if(!e.metrics.includes("kg"))return v;
+  const bar=e.barbell?20:0, b0=monday(blockOf(new Date()).start), tOf=x=>new Date(x.t), ok=x=>x.kg>0&&x.reps>0;
+  const eff=x=>(x.kg+bar)*(1+(x.reps+Math.min(4,x.RIR))/30);
+  const best=arr=>{const m=Math.min(...arr.map(x=>x.RIR));return Math.max(...arr.filter(x=>x.RIR===m).map(eff))}; /* las series más cerca del fallo son las que mejor estiman */
+  const toKg=e1=>Math.max(0,snapKg(e,e1/(1+(e.defaults.reps+(e.defaults.RIR??0))/30)-bar));
+  if(tOf(last)<b0){
+    const prev=mine.filter(x=>ok(x)&&tOf(x)<b0&&tOf(x)>=addDays(b0,-35));
+    if(prev.length&&e.pct){const top=Math.max(...prev.map(x=>x.kg+bar));v.kg=Math.max(0,snapKg(e,top*e.pct-bar));
+      P&&(P.hint={t:"same",txt:`Bloque nuevo: el ${Math.round(e.pct*100)} % de tu peso del bloque 1 (${fmtNum(top-bar)} kg${bar?" de discos":""}), para moverlo rápido.`});return v}
+    const pr=prev.filter(x=>x.RIR!=null);
+    if(pr.length&&e.defaults.RIR!=null){const old=v.kg;v.kg=toKg(best(pr));
+      P&&(P.hint={t:v.kg>=old?"up":"down",txt:`Bloque nuevo: menos repeticiones, así que calculo el peso desde tu bloque 1: ${fmtNum(v.kg)} kg para ${e.defaults.reps} con ${e.defaults.RIR} en reserva.`});return v}
+    return v}
+  if(e.defaults.RIR!=null&&last.reps&&e.defaults.reps&&last.reps!==e.defaults.reps){
+    const ls=mine.filter(x=>x.sid===last.sid&&ok(x)&&x.RIR!=null);
+    if(ls.length){v.kg=toKg(best(ls));P&&(P.hint={t:"same",txt:`Hoy cambian las repeticiones (de ${last.reps} a ${e.defaults.reps}): ajusto el peso a ${fmtNum(v.kg)} kg.`});return v}}
+  return null;
 }
 /* Pesos que existen en tu gimnasio: en barra, discos de 1,25 kg por lado (saltos de 2,5 kg en total);
    mancuernas de 1 en 1 kg hasta 10 y de 2,5 en 2,5 kg a partir de ahí. */
@@ -1535,7 +1729,7 @@ function readinessBlock(){
    ${msg?`<div class="small" style="color:var(--text);font-weight:600">${msg}</div>`:""}
    ${legsDay?`<div style="display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:10px">${jumpStatusHtml()}<button class="ghostbtn small" data-act="jump-open">📏 ${js.today?"Añadir otro salto":"Medir el salto (30 s, opcional)"}</button></div>`:""}
    ${(r&&r.lvl!=="verde"||jTired)&&!short&&!P.day.part?`<button class="ghostbtn small" data-act="pre-short">Cambiar a la versión corta</button>`:""}
-   ${P.day.extra||r&&r.lvl==="verde"&&!jTired&&!short&&EXTRA[P.day.id]&&P.day.week!==4?(P.day.extra?`<div class="small" style="color:var(--ok);font-weight:600">✓ Añadido: ${esc(EXTRA[P.day.id].title)} (≈10' al final)</div><button class="ghostbtn small" data-act="pre-extra">Quitar el bloque extra</button>`:`<button class="ghostbtn small" style="border:1px solid var(--ball);color:var(--ball)" data-act="pre-extra">➕ Vas sobrado: añadir ${esc(EXTRA[P.day.id].title.toLowerCase())} (≈10')</button>`):""}</div>`;
+   ${P.day.extra||r&&r.lvl==="verde"&&!jTired&&!short&&extraFor(P.day)&&P.day.week!==4?(P.day.extra?`<div class="small" style="color:var(--ok);font-weight:600">✓ Añadido: ${esc(EXTRA[P.day.id].title)} (≈10' al final)</div><button class="ghostbtn small" data-act="pre-extra">Quitar el bloque extra</button>`:`<button class="ghostbtn small" style="border:1px solid var(--ball);color:var(--ball)" data-act="pre-extra">➕ Vas sobrado: añadir ${esc(extraFor(P.day).title.toLowerCase())} (≈10')</button>`):""}</div>`;
 }
 function drawPre(){
   const old=$("#layer .overlay"), sc=old&&old.querySelector(".scroll"), top=sc?sc.scrollTop:0;
@@ -1746,7 +1940,7 @@ function badgeCtx(){
   const weeks={};gym.forEach(s=>{const k=dayKey(monday(new Date(s.start)));weeks[k]=(weeks[k]||0)+1});
   const full=Object.keys(weeks).filter(k=>weeks[k]>=4).sort();let streak=0,best4=0,prev=null;full.forEach(k=>{streak=prev&&(new Date(k)-new Date(prev))/864e5<=8?streak+1:1;best4=Math.max(best4,streak);prev=k});
   const W=(S.body||[]).filter(b=>b.waist!=null);const wDrop=W.length>1?Math.max(...W.map(b=>b.waist))-W.at(-1).waist:0;
-  const testsOK=BTESTS.every(t=>((S.tests||{})[t.id]||[]).length);
+  const testsOK=BTESTS.filter(t=>!t.from).every(t=>((S.tests||{})[t.id]||[]).length);
   const round=Object.keys(weeks).some(k=>{const m0=new Date(k+"T00:00:00"),m1=addDays(m0,7);return weeks[k]>=4&&pad.filter(w=>new Date(w.start)>=m0&&new Date(w.start)<m1).reduce((a,w)=>a+w.minutes,0)>=270&&(S.body||[]).filter(b=>new Date(b.d)>=m0&&new Date(b.d)<m1).length>=2});
   return {n:gym.length,pr,padH:padMin/60,full:full.length,best4,wDrop,testsOK,round,extra:gym.filter(s=>s.extra).length};
 }
@@ -2176,8 +2370,9 @@ function jumpStatus(){
   const days=jumpDays(), tk=localKey(new Date()), t=days.find(x=>x.k===tk);
   const from=localKey(addDays(new Date(),-35)), base=days.filter(x=>x.k!==tk&&x.k>=from);
   if(!t||base.length<3)return {today:t||null,base:base.length>=3?base:null,lvl:null};
-  const b=base.reduce((a,x)=>a+x.v,0)/base.length, pct=(t.v-b)/b*100;
-  return {today:t,b:Math.round(b*10)/10,pct:Math.round(pct),lvl:pct>=-5?"verde":pct>=-10?"amarillo":"rojo"};
+  const mons=base.filter(x=>x.d.getDay()===1), mon=blockOf().n>=2&&new Date().getDay()===1&&mons.length>=2, ref=mon?mons:base;
+  const b=ref.reduce((a,x)=>a+x.v,0)/ref.length, pct=(t.v-b)/b*100;
+  return {today:t,b:Math.round(b*10)/10,pct:Math.round(pct),mon,lvl:pct>=-5?"verde":pct>=-10?"amarillo":"rojo"};
 }
 function jumpTodayHtml(){
   const t=jumpDays().find(x=>x.k===localKey(new Date()));
@@ -2255,7 +2450,7 @@ function jumpStatusHtml(){
   if(!s.lvl)return `<div class="small">📏 Salto de hoy: <b>${fmtNum(s.today.v)} cm</b>. Con 3 días medidos empiezo a compararte con tu media.</div>`;
   const c=s.lvl==="verde"?"var(--ok)":s.lvl==="amarillo"?"var(--warn)":"var(--heart)";
   const m=s.lvl==="verde"?"tus piernas están frescas.":s.lvl==="amarillo"?"llegas algo cargado: haz la sesión, pero deja una repetición más en reserva (RIR +1) en lo pesado.":"tus piernas no se han recuperado. Hoy versión corta y sin buscar marcas en saltos ni sprints.";
-  return `<div class="small" style="color:${c};font-weight:600">📏 Salto de hoy: ${fmtNum(s.today.v)} cm (${s.pct>0?"+":""}${s.pct} % frente a tu media de ${fmtNum(s.b)}): ${m}</div>`;
+  return `<div class="small" style="color:${c};font-weight:600">📏 Salto de hoy: ${fmtNum(s.today.v)} cm (${s.pct>0?"+":""}${s.pct} % frente a tu media${s.mon?" de los lunes":""} de ${fmtNum(s.b)}): ${m}</div>`;
 }
 function jumpCard(){
   const days=jumpDays();
@@ -2452,9 +2647,10 @@ function openReport(){
 }
 
 /* ============ NOVEDADES Y AJUSTES ============ */
-const APP_VERSION="2026.11.24u";
+const APP_VERSION="2026.11.25a";
 /* [icono, texto, versión]: al abrir la app nueva solo salen las novedades desde la última versión que viste */
 const CHANGELOG=[
+ ["🚀","El bloque 2 (Transformación) ya está en la app y empieza solo el lunes 21 de diciembre: frenadas, contrastes con salto, sprints de pádel y kilos recalculados desde tu bloque 1. Hasta entonces, todo sigue igual.","2026.11.25a"],
  ["📊","Al guardar una sesión o un partido ves la escala de esfuerzo completa (1-3 muy suave… 10 al máximo), con tu número resaltado. Así puntúas siempre con el mismo criterio.","2026.11.24u"],
  ["↶","En plena sesión: «Corregir la anterior» si apuntaste mal una serie, y «Ocupado: luego» si la máquina está cogida (ese ejercicio pasa al final del bloque). Si haces el mismo ejercicio seguido en una superserie, descansas la vuelta entera.","2026.11.24t"],
  ["💧","Antes de empezar: marca la flecha del Libre y la app te recuerda la guía general (esperar por debajo de 90, cetonas por encima de 270…). Sin dosis: manda tu endocrino.","2026.11.24t"],
