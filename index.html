@@ -980,7 +980,7 @@ function fuelCard(){
     return box("Comida y glucosa · hoy vuelves a jugar",
       p(`<b>Come ya${c.gym&&!c.pad.length?", nada más salir del gimnasio":""}</b>, no lo dejes para después${c.later.h?` de las ${esc(c.later.h)}`:""}: hidratos y proteína. La segunda sesión del día es cuando más fácil llega una bajada.`)+
       p(`🩸 Antes de entrar en pista, mira el número <b>y la flecha</b>. Si va hacia abajo, no empieces hasta que se estabilice.`)+
-      p(`🎾 En pista, mira el sensor a los 15-20 minutos y en cada cambio de lado. El gel, en el banquillo, no en la mochila.`)+endoBox("padel"));
+      p(`🎾 En pista, mira el sensor a los 15-20 minutos y en cada cambio de lado. El gel (mejor sin magnesio), en el banquillo, no en la mochila.`)+endoBox("padel"));
   }
   const endOf=w=>+new Date(w.start)+w.minutes*6e4;
   const last=c.pad.slice().sort((a,b)=>endOf(b)-endOf(a))[0];
@@ -999,6 +999,8 @@ function fuelCard(){
     p(intro)+rh+
     (two?p("⚠️ Hoy has hecho doble sesión: la bajada puede ser mayor y durar más. Vigila también esta noche."):"")+
     p("🩸 Si te baja: el gel, espera unos 15 minutos y vuelve a mirar <b>antes</b> de tomar más. Así evitas el rebote hacia arriba.")+
+    p("🔍 Si el sensor marca bajo sin síntomas y sin motivo, confírmalo pinchándote el dedo antes de tratarlo.")+
+    p("💊 Para rescates, mejor gel o pastillas de glucosa <b>sin magnesio</b>. Algunos geles llevan magnesio, solo permiten un sobre al día y, si tomas varios, te pueden revolver el estómago en pista.")+
     `<details><summary class="small" style="color:var(--ball);cursor:pointer;font-weight:600">¿Qué fruta tomo?</summary><div class="small" style="color:var(--text);display:flex;flex-direction:column;gap:6px;margin-top:8px">
       <div><b>Lentas, para estabilizar</b> (antes de entrenar o entre comidas): manzana, pera, naranja, mandarina, kiwi, melocotón, ciruela o frutos rojos.</div>
       <div><b>Más rápidas</b> (justo antes o durante, si necesitas algo antes que la manzana): plátano, uvas, piña, mango, dátiles o pasas.</div>
@@ -2775,7 +2777,7 @@ function openReport(){
 }
 
 /* ============ NOVEDADES Y AJUSTES ============ */
-const APP_VERSION="2026.11.27f";
+const APP_VERSION="2026.11.27g";
 /* [icono, texto, versión]: al abrir la app nueva solo salen las novedades desde la última versión que viste */
 const CHANGELOG=[
  ["🍽️","Nueva tarjeta «Comida y glucosa» al terminar de entrenar o jugar: cuándo comer, qué tipo de comida, a qué horas mirar el sensor y qué fruta tomar. Cambia si fue gimnasio, pádel o competición, y si te queda otra sesión ese día te avisa de comer ya. Sin cantidades: esas, las de tu pauta.","2026.11.27f"],
