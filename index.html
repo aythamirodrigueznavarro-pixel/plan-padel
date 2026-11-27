@@ -968,6 +968,43 @@ function recoveryPlan(c){
   return {steps,tip};
 }
 const RECOV_GLU="🩸 Glucosa: mírala antes de entrar y al salir, y otra vez 1 hora después. El calor (jacuzzi y baño turco) acelera la absorción de la insulina y te puede bajar, y el sudor y el mareo del calor se parecen a una hipo. No entres si vas bajo o bajando: sigue tu pauta. Lleva hidratos rápidos y no te quedes solo. Si tienes síntomas de hipo, sal y trátala ya según tu pauta. Si no tienes síntomas y el sensor marca bajo con el calor (ya te pasó en la sauna: puede ser una lectura falsa), confírmalo pinchándote el dedo. Bebe medio litro de agua.";
+/* Comida y glucosa después de entrenar o jugar: cuándo comer, qué tipo y cuándo mirar el sensor.
+   Nunca cantidades: esas son las de tu pauta. */
+function fuelCard(){
+  const now=new Date(), c=recoveryCtx(now);
+  if(!c.end||c.end>+now||now-c.end>5*36e5)return "";
+  const hh=t=>new Date(t).toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"});
+  const p=x=>`<p class="small" style="margin:0;color:var(--text)">${x}</p>`;
+  const box=(t,body)=>`<section class="card" style="display:flex;flex-direction:column;gap:10px"><div class="eyebrow" style="color:var(--ball)">🍽️ ${t}</div>${body}<p class="small muted" style="margin:0">Las cantidades, las de tu pauta: la app solo te dice cuándo y qué tipo.</p></section>`;
+  if(c.later){ if(c.later.st<=+now)return ""; /* ya estás jugando */
+    return box("Comida y glucosa · hoy vuelves a jugar",
+      p(`<b>Come ya${c.gym&&!c.pad.length?", nada más salir del gimnasio":""}</b>, no lo dejes para después${c.later.h?` de las ${esc(c.later.h)}`:""}: hidratos y proteína. La segunda sesión del día es cuando más fácil llega una bajada.`)+
+      p(`🩸 Antes de entrar en pista, mira el número <b>y la flecha</b>. Si va hacia abajo, no empieces hasta que se estabilice.`)+
+      p(`🎾 En pista, mira el sensor a los 15-20 minutos y en cada cambio de lado. El gel, en el banquillo, no en la mochila.`)+endoBox("padel"));
+  }
+  const endOf=w=>+new Date(w.start)+w.minutes*6e4;
+  const last=c.pad.slice().sort((a,b)=>endOf(b)-endOf(a))[0];
+  const padLast=!!last&&Math.abs(endOf(last)-c.end)<6e4;
+  const comp=padLast&&(padelKind(last)==="Torneo"||c.compToday);
+  const two=(!!c.gym&&c.pad.length>0)||c.pad.length>1;
+  const intro=comp?"Compitiendo, los nervios (la adrenalina) suben la glucosa y, al terminar, cae rápido. Lo delicado es la hora siguiente."
+    :padLast?"En pádel la glucosa baja pronto, y a veces justo al acabar."
+    :"Durante la fuerza la glucosa suele aguantar. La bajada llega después, en la hora y media siguiente.";
+  const rows=[[c.end,"Come en la primera media hora",`Hidratos y proteína completa: yogur griego o skyr, leche, huevos, pollo, atún, queso fresco batido o batido de proteína. Los BCAA no sustituyen a la proteína.${padLast?" Y bebe agua.":""}`],
+    [c.end+30*6e4,"Mira el sensor","El número y la flecha. Si baja, trátala según tu pauta antes de que llegue a bajo."],
+    [c.end+60*6e4,"Mira el sensor",comp?"Es cuando más rápido suele caer después de competir.":"Número y flecha."],
+    [c.end+90*6e4,"Mira el sensor",!padLast?"Es cuando más te suele bajar después de la fuerza.":"Última comprobación. Luego, antes de cenar y antes de dormir."]];
+  const rh=rows.map(([t,a,b],i)=>`<div style="display:flex;gap:10px;${t+(i?5:30)*6e4<+now?"opacity:.5":""}"><div class="num small" style="min-width:44px;color:var(--ball);font-weight:700">${hh(t)}</div><div style="flex:1"><div style="font-weight:600">${a}</div><div class="small muted">${b}</div></div></div>`).join("");
+  return box(`Comida y glucosa · después ${comp?"de competir":padLast?"de jugar":"del gimnasio"}`,
+    p(intro)+rh+
+    (two?p("⚠️ Hoy has hecho doble sesión: la bajada puede ser mayor y durar más. Vigila también esta noche."):"")+
+    p("🩸 Si te baja: el gel, espera unos 15 minutos y vuelve a mirar <b>antes</b> de tomar más. Así evitas el rebote hacia arriba.")+
+    `<details><summary class="small" style="color:var(--ball);cursor:pointer;font-weight:600">¿Qué fruta tomo?</summary><div class="small" style="color:var(--text);display:flex;flex-direction:column;gap:6px;margin-top:8px">
+      <div><b>Lentas, para estabilizar</b> (antes de entrenar o entre comidas): manzana, pera, naranja, mandarina, kiwi, melocotón, ciruela o frutos rojos.</div>
+      <div><b>Más rápidas</b> (justo antes o durante, si necesitas algo antes que la manzana): plátano, uvas, piña, mango, dátiles o pasas.</div>
+      <div><b>Para una bajada en pista, el gel</b>: la fruta es demasiado lenta para rescatar.</div></div></details>`+
+    endoBox(padLast?"padel":"gym"));
+}
 function recoveryCard(){
   const now=new Date(), c=recoveryCtx(now);
   if(!c.end||now-c.end>5*36e5||c.end>+now)return "";
@@ -1257,6 +1294,7 @@ function renderHoy(){
    </section>
    ${playedTodayCard()}
    ${recoveryCard()}
+   ${fuelCard()}
    ${coachNotes()}
    <section class="card" aria-label="Cómo llegas hoy">
      <div class="health">
@@ -2737,9 +2775,10 @@ function openReport(){
 }
 
 /* ============ NOVEDADES Y AJUSTES ============ */
-const APP_VERSION="2026.11.27e";
+const APP_VERSION="2026.11.27f";
 /* [icono, texto, versión]: al abrir la app nueva solo salen las novedades desde la última versión que viste */
 const CHANGELOG=[
+ ["🍽️","Nueva tarjeta «Comida y glucosa» al terminar de entrenar o jugar: cuándo comer, qué tipo de comida, a qué horas mirar el sensor y qué fruta tomar. Cambia si fue gimnasio, pádel o competición, y si te queda otra sesión ese día te avisa de comer ya. Sin cantidades: esas, las de tu pauta.","2026.11.27f"],
  ["🔁","Cada bloque te dice cómo va: ejercicio solo, superserie, triserie o circuito, con los ejercicios numerados en orden. En plena sesión ves también qué viene después, sin esperar al descanso.","2026.11.27d"],
  ["🎾","Nuevo bloque «Pies rápidos al globo» en la A y la D (≈8 min, con las piernas frescas): pies rápidos y retroceso con los brazos arriba, y «volea o globo» con el modo reacción, que ahora tiene un modo globo. También en el calentamiento antes de jugar.","2026.11.27c"],
  ["🍎","Al terminar el gimnasio o al apuntar el pádel: «¿Tomaste gel?» (no, 1, 2, 3 o más) y «¿Comiste fruta?». Y si se te olvidó poner la glucosa al empezar, ahora puedes ponerla al final. Así sabemos qué subidas son del gel y cuáles de los nervios.","2026.11.27b"],
