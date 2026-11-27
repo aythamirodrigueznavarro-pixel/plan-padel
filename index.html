@@ -231,10 +231,17 @@ const WARMUP=[
  {id:"cal",title:"Calentamiento competitivo · 8 min",note:"Antes de pelotear",ex:[
   ex("cal-movil","Movilidad dinámica","Cadera, tobillo y hombro · 2 min","Todo en movimiento, nada de estiramientos quietos.","padel dynamic warm up",1,["seg"],{seg:120},0),
   ex("cal-activ","Activación","10 sentadillas + 10 zancadas + 10 W con goma","Ritmo vivo.","dynamic warm up squat lunge",1,["reps"],{reps:30},0),
-  ex("cal-chispa","Chispa","3 salidas laterales + 3 saltos + 3 frenadas por lado","Cada vez más rápido. Termina con pulsaciones altas.","padel warm up footwork",1,["reps"],{reps:9},0)]},
+  ex("cal-chispa","Chispa","3 salidas laterales + 3 saltos + 3 frenadas por lado + 2 retrocesos al globo","Cada vez más rápido. En el globo: brazos arriba, de lado y pasitos cortos hacia atrás. Termina con pulsaciones altas.","padel warm up footwork",1,["reps"],{reps:11},0)]},
  {id:"post",title:"Después del partido · 10 min",note:"Nada más salir de la pista",ex:[
   ex("post-lumbar","Descarga lumbar","Rodillas al pecho y rotaciones tumbado · 3 min","Respira lento.","lower back decompression after sport",1,["seg"],{seg:180},0),
   ex("post-rodillo","Rodillo","Gemelos, cuádriceps y glúteo · 5 min","Sin buscar dolor.","foam roll after match",1,["seg"],{seg:300},0)]}];
+
+/* Pies rápidos al globo: de la volea al globo con pasitos cortos y los brazos arriba. Siempre con las piernas frescas */
+const GLOBO={id:"g1",mat:"4-5 m libres hacia atrás (mira que no haya nada detrás) y el móvil delante con el modo reacción.",title:"Pies rápidos al globo",note:"Superserie · 3 rondas · con las piernas frescas",tip:"Brazos arriba en cuanto ves el globo, de lado y con pasitos cortos y rápidos. Nunca corras de espaldas mirando a la red: así es como uno se cae hacia atrás.",ex:[
+  ex("globo-pies","Pies rápidos y retroceso al globo","{S} × 3 por lado","5\" de pies rápidos en el sitio: pasitos muy cortos, en la punta de los pies. Di «¡globo!» y brazos arriba ya (la pala atrás y el otro brazo señalando la bola). Gira hombros y cadera de lado y da 3-4 pasitos cortos y rápidos hacia atrás. Bandeja en sombra, cae sobre la pierna de delante y vuelve rápido a la red. Cada vez a un lado.","padel footwork lob retreat bandeja",3,["reps"],{reps:3},30),
+  ex("globo-react","Volea o globo a la señal","{S} × 6 salidas","Modo reacción, en posición de volea. Flecha ↑ = volea: 1-2 pasos al frente y volea en sombra. Flecha ↙ o ↘ = globo a ese lado: brazos arriba, giro, pasitos cortos de lado hacia atrás, bandeja o víbora en sombra y vuelves a la red. No adivines: sal cuando lo veas.","padel reaction drill volley lob",3,["reps"],{reps:6},90)]};
+const globoA=()=>({...GLOBO,note:"Superserie · 2 rondas · con las piernas frescas",ex:GLOBO.ex.map(e=>({...e,sets:2}))}); /* en la A, 2 rondas: ya lleva primer paso y rampa */
+const globoB2=(a)=>a?globoA():({...GLOBO,ex:GLOBO.ex.map(e=>({...e}))}); /* copia: el bloque 2 marca sus ejercicios */
 
 const SESSION_A={id:"A",wd:1,title:"A · Pierna: primer paso, fuerza y rodilla",sub:"Pierna pesada, primer paso y rodilla: la sesión más exigente de la semana. Nunca a menos de 6 horas de jugar.",kinds:["gym"],gym:60,padel:0,rpe:[7,8],warn:"Pierna pesada y saltos: mide la glucosa antes de empezar.",blocks:[
  {id:"a0",mat:"Bici, goma de tobillo y mini band. Espacio de 15 m para la carrera.",title:"Calentamiento",note:"1 vuelta · 8 min",ex:[
@@ -243,6 +250,7 @@ const SESSION_A={id:"A",wd:1,title:"A · Pierna: primer paso, fuerza y rodilla",
   ex("a-9090","Cadera 90/90","6 cambios por lado","El giro sale de la cadera, espalda recta.","90 90 hip switch mobility",1,["reps"],{reps:6},0),
   ex("a-progres","Skipping y carrera progresiva","10 m de skipping + 2 carreras de 15 m al 60 % y al 80 %","Prepara los isquios para los sprints al 100 % que vienen ahora. Vuelve andando.","build up sprints warm up",1,["reps"],{reps:2},0),
   ex("a-monster","Paso lateral con goma (monster walk)","10 pasos por lado","Goma por encima de las rodillas. Las rodillas empujan hacia fuera: así se activa el glúteo medio, que sujeta tu rótula.","monster walk band glute medius",1,["reps"],{reps:10},0)]},
+ globoA(),
  {id:"a0b",mat:"Espacio de 5 m y la rampa con 10 m marcados.",title:"Primer paso y rampa",note:"Superserie · 3 rondas · con las piernas frescas",ex:[
   ex("lateral-sprint","Salida desde la posición de espera","{S} × 3 salidas de 3-5 m: al frente, lateral y en diagonal hacia atrás","Como en la red: split-step y primer paso explosivo. Cada salida al 100 % y vuelves andando. Así se gana el 80 % de los desplazamientos del pádel, que son de 1-2 m.","lateral shuffle to sprint drill",3,["reps"],{reps:3},30),
   ex("sprint-rampa","Sprint en rampa","{S} × 1 de 10 m cuesta arriba","Marca 10 m en tu rampa (tiene más de 20). Cuerpo inclinado, empuja el suelo hacia atrás con pasos potentes. Vuelve andando despacio.","hill sprint acceleration",3,["reps"],{reps:1},45)]},
@@ -319,6 +327,7 @@ const SESSION_D={id:"D",wd:5,title:"D · Potencia y velocidad",sub:"Cargadas, sa
   ex("d-globo","Retroceso al globo","3 por lado","Desde la red: split-step, giro de cadera, paso cruzado y 2-3 pasos rápidos de lado hacia atrás. Bandeja en sombra y vuelves a la red. No corras de espaldas: de lado y con pasos cortos.","padel footwork bandeja lob",1,["reps"],{reps:3},0),
   ex("d-saltitos","Saltos suaves en el sitio","20 saltos","Tobillos rígidos, como una pelota.","pogo jumps",1,["reps"],{reps:20},0),
   ex("d-aprox","Cargada con la barra vacía","1 × 5 · técnica","Salto, codos rápidos y recibe en media sentadilla. Así llegas a la primera serie con la técnica caliente.","hang power clean technique",1,["reps"],{reps:5},0)]},
+ GLOBO,
  {id:"d1",mat:"Barra con los discos de hoy y 2-3 m libres para el salto.",title:"Cargada + salto",note:"Superserie · 5 rondas",ex:[
   ex("clean","Cargada colgante (hang power clean)","{S} × 3 · rápida, RPE 7","Mismo peso en todas. Si la barra se frena, baja 5 kg. Apunta solo los discos.","hang power clean technique",5,["kg","reps"],{kg:25,reps:3},30,true),
   ex("longitud","Salto de longitud","{S} × 1 · máximo","Cae con las dos piernas a la vez, rodillas hacia fuera, y aguanta 2\".","standing broad jump landing",5,["reps"],{reps:1},90)]},
@@ -380,6 +389,7 @@ const B2A={id:"A",wd:1,b2:1,title:"A · Piernas: contraste pesado, frenadas y ro
   exOf(SESSION_A,"a-tobillo"),exOf(SESSION_A,"a-9090"),exOf(SESSION_A,"a-monster"),
   ex("a-salto","Salto de control","3 saltos con el medidor 📏 · manos en la cintura","30\" de pausa entre saltos. Te dice si hoy llegas con las piernas frescas.","countermovement jump technique",1,["reps"],{reps:3},0),
   PUNO]},
+ globoB2(1),
  {id:"a1",mat:"5 m libres y unas marcas en el suelo.",title:"Frenadas y cambio de dirección",note:"3 rondas · con las piernas frescas",tip:"Cada repetición dura 1-3\", siempre al 100 %, y vuelves andando. Al frenar: cadera atrás, rodilla mirando a los cordones y en silencio.",wk:{3:{tip:KNEE_S3},4:{tip:KNEE_S3}},ex:[
   ex("cod-180","Media vuelta (180°) y salida en diagonal","{S} × 5 · a 2-3 m desde el split-step","Desplázate 2-3 m, frena con la cadera baja, gira 180° y sal en diagonal, como a una bola cruzada.","180 degree turn sprint drill",3,["reps"],{reps:5},60,false,{plyo:1,wk:{
    1:{id:"cod-frena",name:"Acelerar 5 m y frenar en 2 pasos",presc:"2 × 6 · frontal y lateral",cue:"Frontal: acelera 5 m y frena en 2 pasos. Lateral: 3 m de lado, frena y vuelve. Cadera baja y rodilla mirando a los cordones.",video:"deceleration drill",sets:2,defaults:{reps:6},fx:1},
@@ -451,6 +461,7 @@ const B2D={id:"D",wd:5,b2:1,title:"D · Potencia y reacción",sub:"Salidas a la 
   ex("d-rotint","Rotación interna de hombro con goma","2 × 30\" por brazo","Codo pegado al cuerpo o a 90°: gira hacia dentro despacio. Prepara el hombro para los lanzamientos.","band shoulder internal rotation",1,["seg"],{seg:60},0),
   ex("d-salto","Salto de control","3 saltos con el medidor 📏 · manos en la cintura","30\" de pausa entre saltos.","countermovement jump technique",1,["reps"],{reps:3},0),
   exOf(SESSION_D,"d-aprox")]},
+ globoB2(),
  {id:"d1",mat:"El móvil delante con el modo reacción, y la rampa.",title:"Velocidad",note:"3 rondas · con las piernas frescas",ex:[
   ex("reactiva","Salidas reactivas desde el split-step","{S} × 4 salidas de 2-4 m","Abre el modo reacción y pon el móvil delante. No adivines: sal cuando lo veas, frena y vuelve andando.","reactive agility drill",3,["reps"],{reps:4},45,false,{plyo:1}),
   {...exOf(SESSION_A,"sprint-rampa"),presc:"{S} × 3 de 5-10 m cuesta arriba",sets:2,defaults:{reps:3},rest:60,plyo:1}]},
@@ -1277,11 +1288,20 @@ function lastTxt(id,skip){
   const what=top.kg>0?`${fmtNum(top.kg)} kg × ${top.reps??"—"}`:top.reps!=null?`${seq("reps")} repeticiones`:top.seg!=null?`${seq("seg")} s`:"hecho";
   return `${d.toLocaleDateString("es-ES",{day:"numeric",month:"short"})} · ${what}${arr.length>1?` (${arr.length} series)`:""}`;
 }
+/* Cómo se encadenan los ejercicios del bloque: solo, superserie, triserie o circuito */
+function blockKind(b){const n=b.ex.length, r=Math.max(...b.ex.map(e=>e.sets));
+  if(r<=1)return n>1?`Circuito · ${n} ejercicios seguidos, una vuelta`:"Una vez";
+  if(n===1)return `Ejercicio solo · ${r} series con descanso entre ellas`;
+  return `${n===2?"Superserie":n===3?"Triserie":"Circuito de "+n} · 1 serie de cada uno, en este orden, y vuelta a empezar`}
+const noteOf=b=>b.note.replace(/^(Superserie|Triserie) · /,""); /* el tipo ya lo dice la línea 🔁 */
+const kindHtml=b=>`<div class="small" style="margin:-2px 0 6px;color:var(--court);font-weight:600">🔁 ${esc(blockKind(b))}</div>`;
 function blockCard(b){
-  return `<section class="card"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:6px"><h3 class="h3">${esc(b.title)}</h3><span class="small muted">${esc(b.note)}</span></div>
+  const many=b.ex.length>1;
+  return `<section class="card"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:6px"><h3 class="h3">${esc(b.title)}</h3><span class="small muted">${esc(noteOf(b))}</span></div>
+  ${kindHtml(b)}
   ${b.mat?`<div class="small muted" style="margin:-2px 0 6px">🧰 ${esc(b.mat)}</div>`:""}
   ${b.tip?`<div class="small" style="margin:-2px 0 6px;color:var(--text)">💡 ${esc(b.tip)}</div>`:""}
-  ${b.ex.map(e=>`<div class="ex-row"><span class="dot"></span><div><div style="font-weight:600">${esc(e.name)}</div><div class="small muted">${esc(e.presc)}</div>${lastTxt(e.id)?`<div class="last">Última vez: ${esc(lastTxt(e.id))}</div>`:""}</div><button class="play" data-video="${e.id}" aria-label="Vídeo de ${esc(e.name)}">${ICON.play}</button></div>`).join("")}</section>`;
+  ${b.ex.map((e,k)=>`<div class="ex-row"><span class="dot"></span><div><div style="font-weight:600">${many?`${k+1}. `:""}${esc(e.name)}</div><div class="small muted">${esc(e.presc)}</div>${lastTxt(e.id)?`<div class="last">Última vez: ${esc(lastTxt(e.id))}</div>`:""}</div><button class="play" data-video="${e.id}" aria-label="Vídeo de ${esc(e.name)}">${ICON.play}</button></div>`).join("")}</section>`;
 }
 function weekLoad(){
   const m=monday();
@@ -1859,16 +1879,19 @@ function drawPlayer(){
    <div class="topbar"><button class="iconbtn" data-act="exit" aria-label="Terminar sesión">${ICON.x}</button><span class="num muted" id="elapsed" style="font-weight:600">0:00</span><span class="num muted" style="width:56px;text-align:right;font-weight:600">${P.i+1}/${P.steps.length}</span></div>
    <div class="prog" aria-hidden="true">${P.steps.map((_,k)=>`<i class="${k<P.i?"done":k===P.i?"now":""}"></i>`).join("")}</div>
    <div class="scroll">
-     <div style="display:flex;justify-content:space-between;gap:10px"><span class="eyebrow" style="color:var(--court)">${esc(st.b.title)}</span><span class="small muted">${esc(st.b.note)}</span></div>
+     <div style="display:flex;justify-content:space-between;gap:10px"><span class="eyebrow" style="color:var(--court)">${esc(st.b.title)}</span><span class="small muted">${esc(noteOf(st.b))}</span></div>
+     <div style="margin-top:8px">${kindHtml(st.b)}</div>
+     ${st.b.ex.length>1?`<div class="small muted" style="margin:-2px 0 4px">${st.b.ex.map((x,k)=>x.id===e.id?`<b style="color:var(--text)">▶ ${k+1}. ${esc(x.name)}</b>`:`${k+1}. ${esc(x.name)}`).join(" → ")}</div>`:""}
      ${st.b.mat&&st.set===0&&st.b.ex[0]===e?`<div class="small" style="margin:8px 0 2px;padding:8px 12px;border-radius:10px;background:var(--surface2)">🧰 ${esc(st.b.mat)}</div>`:""}
      <h2 class="exname">${esc(e.name)}</h2>
      <div style="font-weight:500;opacity:.88">${esc(e.presc)}</div>
      <p class="small muted" style="margin:6px 0 14px">${esc(e.cue)}</p>
-     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button class="vid" data-video="${e.id}">${ICON.play} Ver vídeo</button>${e.id==="reactiva"?`<button class="vid" data-act="react" style="background:var(--ball);color:var(--ballInk)">⚡ Modo reacción</button>`:""}${lastTxt(e.id,P.sid)?`<span class="small muted">Última vez: ${esc(lastTxt(e.id,P.sid))}</span>`:""}</div>
+     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button class="vid" data-video="${e.id}">${ICON.play} Ver vídeo</button>${e.id==="reactiva"||e.id==="globo-react"?`<button class="vid" data-act="react" style="background:var(--ball);color:var(--ballInk)">⚡ Modo reacción</button>`:""}${lastTxt(e.id,P.sid)?`<span class="small muted">Última vez: ${esc(lastTxt(e.id,P.sid))}</span>`:""}</div>
      <div class="card" style="margin-top:18px;padding:18px">
        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px"><span style="font:800 22px var(--display)">Serie ${st.set+1} de ${e.sets}</span>${e.rest?`<span class="small muted">⏱ ${restText(e.rest)}</span>`:""}</div>
        ${P.hint&&st.set===0?`<div class="small" style="margin:2px 0 8px;padding:8px 10px;border-radius:10px;background:${P.hint.t==="up"?"color-mix(in srgb,var(--ok) 14%,transparent)":P.hint.t==="down"?"color-mix(in srgb,var(--warn) 14%,transparent)":"var(--surface2)"};color:${P.hint.t==="up"?"var(--ok)":P.hint.t==="down"?"var(--warn)":"var(--muted)"}">${P.hint.t==="up"?"▲ ":P.hint.t==="down"?"▼ ":"= "}${esc(P.hint.txt)}</div>`:""}
        ${e.metrics.includes("RIR")?`<div class="small muted" style="margin:-2px 0 6px">Al acabar, pon el RIR real: cuántas repeticiones te quedaban. <button data-act="help-rir" style="color:var(--ball);font-weight:700;text-decoration:underline">¿Qué es el RIR?</button></div>`:""}
+       ${(nx=>nx?`<div class="small muted" style="margin:0 0 8px">Después: <b style="color:var(--text)">${esc(nx.e.name)}</b>${nx.b!==st.b?` · bloque nuevo: ${esc(nx.b.title)}`:` · serie ${nx.set+1} de ${nx.e.sets}`}</div>`:`<div class="small muted" style="margin:0 0 8px">Es la última serie de la sesión.</div>`)(P.steps[P.i+1])}
        ${e.metrics.map(m=>`<div class="stepper"><span class="lab">${m==="seg"?"seg":m==="reps"?"reps":m}${m==="kg"&&e.barbell?"<small>solo discos</small>":m==="RIR"?`<small id="rir-help" style="color:var(--ball)">${rirShort(P.vals.RIR??0)}</small>`:m==="reps"?"<small>repeticiones</small>":""}</span><span></span><button data-step="${m}" data-d="-1" aria-label="Bajar ${m}">−</button><output id="v-${m}" class="num" data-act="edit-val" data-m="${m}" role="button" tabindex="0" aria-label="Escribir ${m}" style="cursor:pointer;text-decoration:underline dotted rgba(255,255,255,.25);text-underline-offset:6px">${fmtNum(P.vals[m]??0)}</output><button data-step="${m}" data-d="1" aria-label="Subir ${m}">+</button></div>`).join("")}
      </div>
      ${P.i>0||canLater()?`<div style="display:flex;gap:8px;margin-top:12px">${P.i>0?`<button class="ghostbtn small" style="flex:1" data-act="undo-set">↶ Corregir la anterior</button>`:""}${canLater()?`<button class="ghostbtn small" style="flex:1" data-act="later">⏭ Ocupado: luego</button>`:""}</div>`:""}
@@ -2299,12 +2322,12 @@ async function exportData(){
 
 /* ============ MODO REACCIÓN: flechas al azar para salir como en pista ============ */
 function ping(){try{if(!actx)return;const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=1320;o.connect(g);g.connect(actx.destination);const t=actx.currentTime;g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.5,t+0.01);g.gain.exponentialRampToValueAtTime(0.0001,t+0.25);o.start(t);o.stop(t+0.27)}catch(e){}}
-function openReaction(n=4){
+function openReaction(n=4,mode=""){
   audioUnlock();
-  const DIRS=[{a:"←",t:"Izquierda"},{a:"→",t:"Derecha"},{a:"↑",t:"Al frente"},{a:"↙",t:"Atrás izquierda"},{a:"↘",t:"Atrás derecha"}];
+  const gl=mode==="globo", DIRS=gl?[{a:"↑",t:"Volea: al frente"},{a:"↙",t:"Globo a tu izquierda"},{a:"↘",t:"Globo a tu derecha"}]:[{a:"←",t:"Izquierda"},{a:"→",t:"Derecha"},{a:"↑",t:"Al frente"},{a:"↙",t:"Atrás izquierda"},{a:"↘",t:"Atrás derecha"}];
   const el=document.createElement("div"); el.id="react"; el.setAttribute("role","dialog"); el.setAttribute("aria-label","Modo reacción");
   el.style.cssText="position:fixed;inset:0;z-index:95;background:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center";
-  el.innerHTML=`<div class="eyebrow">Modo reacción · ${n} salidas</div><div id="r-main" aria-live="assertive" style="font:800 34px var(--display);min-height:50vh;display:flex;flex-direction:column;align-items:center;justify-content:center">Posición de espera.<br>Empieza en 3"</div><div class="small muted" id="r-count">Sal al ver la flecha, corre 2-4 m, frena y vuelve andando.</div><button class="ghostbtn" data-act="react-close" style="max-width:260px">Cerrar</button>`;
+  el.innerHTML=`<div class="eyebrow">Modo reacción · ${n} salidas</div><div id="r-main" aria-live="assertive" style="font:800 34px var(--display);min-height:50vh;display:flex;flex-direction:column;align-items:center;justify-content:center">Posición de espera.<br>Empieza en 3"</div><div class="small muted" id="r-count">${gl?"↑ volea al frente · ↙ ↘ globo: brazos arriba y pasitos de lado hacia atrás.":"Sal al ver la flecha, corre 2-4 m, frena y vuelve andando."}</div><button class="ghostbtn" data-act="react-close" style="max-width:260px">Cerrar</button>`;
   $("#layer").appendChild(el);
   const alive=()=>document.body.contains(el), main=el.querySelector("#r-main"), cnt=el.querySelector("#r-count");
   let k=0, prev=-1;
@@ -2314,7 +2337,7 @@ function openReaction(n=4){
   const show=()=>{if(!alive())return; let i;do{i=Math.floor(Math.random()*DIRS.length)}while(i===prev); prev=i; const d=DIRS[i]; k++;
     main.innerHTML=`<span style="font:700 min(55vw,260px)/1.15 system-ui,sans-serif;color:var(--ball)">${d.a}</span><span style="font-size:30px;margin-top:16px">${d.t}</span>`;
     cnt.textContent=`Salida ${k} de ${n}`; ping(); vibrate(80);
-    setTimeout(()=>{if(!alive())return; main.innerHTML='<span style="font-size:26px" class="muted">Frena, vuelve andando<br>y ponte en posición</span>'; setTimeout(wait,6500)},1300)};
+    setTimeout(()=>{if(!alive())return; main.innerHTML=gl?'<span style="font-size:26px" class="muted">Vuelve a la red<br>y ponte en posición de volea</span>':'<span style="font-size:26px" class="muted">Frena, vuelve andando<br>y ponte en posición</span>'; setTimeout(wait,6500)},1300)};
   setTimeout(wait,3000);
 }
 
@@ -2533,7 +2556,7 @@ function jumpCard(){
 /* ============ DIARIO DE PARTIDO: lo que pasa en pista manda sobre el gimnasio ============ */
 const FAILS=[
  {k:"paso",n:"Primer paso / llegar a la red",r:"Lo trabajan la A (salidas laterales y sprint en rampa) y la D (reacción). Si se repite, subo una serie de salidas."},
- {k:"globo",n:"Retroceder al globo",r:"Retroceso al globo en el calentamiento de la D (paso cruzado y bandeja en sombra) y salidas hacia atrás en el modo reacción. Díselo también a tu entrenador en la próxima clase."},
+ {k:"globo",n:"Retroceder al globo",r:"El bloque «Pies rápidos al globo» de la A y la D: brazos arriba, de lado y pasitos cortos hacia atrás, y «volea o globo» con el modo reacción. Díselo también a tu entrenador en la próxima clase."},
  {k:"pared",n:"Frenar y salir de la pared",r:"Frenadas y cambios de dirección: los de la D. Si sigue, meto frenadas excéntricas también en la A."},
  {k:"lateral",n:"Desplazamiento lateral",r:"Patinador y salidas laterales (A y D). Fíjate en el split-step: el saltito justo cuando golpea el rival."},
  {k:"aire",n:"Bandeja y remate",r:"El remate tiene tres motores: piernas (el salto), giro del tronco (lanzamientos y landmine de la B) y hombro (push press de la B y el bloque de hombro de la C). El remate por 3 o por 4 es sobre todo técnica: trabájalo con tu entrenador; aquí ponemos el motor."},
@@ -2713,9 +2736,11 @@ function openReport(){
 }
 
 /* ============ NOVEDADES Y AJUSTES ============ */
-const APP_VERSION="2026.11.27b";
+const APP_VERSION="2026.11.27d";
 /* [icono, texto, versión]: al abrir la app nueva solo salen las novedades desde la última versión que viste */
 const CHANGELOG=[
+ ["🔁","Cada bloque te dice cómo va: ejercicio solo, superserie, triserie o circuito, con los ejercicios numerados en orden. En plena sesión ves también qué viene después, sin esperar al descanso.","2026.11.27d"],
+ ["🎾","Nuevo bloque «Pies rápidos al globo» en la A y la D (≈8 min, con las piernas frescas): pies rápidos y retroceso con los brazos arriba, y «volea o globo» con el modo reacción, que ahora tiene un modo globo. También en el calentamiento antes de jugar.","2026.11.27c"],
  ["🍎","Al terminar el gimnasio o al apuntar el pádel: «¿Tomaste gel?» (no, 1, 2, 3 o más) y «¿Comiste fruta?». Y si se te olvidó poner la glucosa al empezar, ahora puedes ponerla al final. Así sabemos qué subidas son del gel y cuáles de los nervios.","2026.11.27b"],
  ["🏆","El día después de competir, la sesión de pierna (D) sale en versión corta por defecto, y la app te ofrece quedarte en movilidad si llegas reventado. Puedes quitar la versión corta si de verdad vas fresco.","2026.11.27a"],
  ["🔍","Revisión a fondo de la app: la recuperación tiene en cuenta todo tu día (también si juegas tarde o pasada la medianoche); el día después de competir no hay pierna pesada; la B no lleva sprints la víspera de competir; dos pádeles el mismo día se apuntan bien; al cambiar de semana el peso se ajusta al nuevo RIR; y el aviso de glucosa del spa te dice que, si tienes síntomas, salgas y la trates ya.","2026.11.25c"],
@@ -2850,7 +2875,7 @@ document.addEventListener("click",e=>{
     case "backup":backup();break;
     case "body-save":{const r={d:new Date().toISOString(),src:"manual"};let ok=false,bad=false;BODYM.forEach(m=>{const v=$("#b-"+m.id).value.trim().replace(",",".");if(v){if(isFinite(+v)&&+v>0){r[m.id]=+v;ok=true}else bad=true}});
       if(bad||!ok){toast("Escribe al menos un número");break}if(r.fat!=null&&r.fat>60){toast("La grasa va en %, por ejemplo 23,5");break}addBody([r]);save();toast("Medida guardada");render();checkBadges();break}
-    case "react":openReaction(P&&P.steps[P.i]?.e?.defaults?.reps||4);break;
+    case "react":openReaction(P&&P.steps[P.i]?.e?.defaults?.reps||4,P&&P.steps[P.i]?.e?.id==="globo-react"?"globo":"");break;
     case "react-close":$("#react")?.remove();break;
     case "test-save":{const id=t.dataset.id,v=$("#t-"+id).value.trim().replace(",",".");if(!v||!isFinite(+v)){toast("Escribe un número");break}S.tests=S.tests||{};(S.tests[id]=S.tests[id]||[]).push({d:new Date().toISOString(),v:+v});save();toast("Test guardado");render();checkBadges();break}
     case "video-close":$("#video")?.remove();break;
