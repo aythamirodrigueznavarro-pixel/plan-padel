@@ -2202,7 +2202,8 @@ function openFinish(partial){
   let mins=activeMinutes(P.start,ts);
   const rr=P.day&&Array.isArray(P.day.rpe)?P.day.rpe:null; /* el esfuerzo previsto de la sesión; calentamientos y movilidad, suave */
   F={rpe:rr?Math.round((rr[0]+rr.at(-1))/2):3,partial,reason:null,mins,pain:{}}; FU={gel:null,fruit:null};
-  const s0=S.sessions.find(x=>x.id===P.sid), noGB=!s0||s0.gBefore==null; /* si se te olvidó al empezar, aquí la pones */
+  const gymS=!!P.day&&(GYM_IDS.includes(P.day.id)||P.day.id==="D-act"); /* calentamiento de partido y movilidad: el pádel se apunta aparte */
+  const s0=S.sessions.find(x=>x.id===P.sid), noGB=gymS&&(!s0||s0.gBefore==null); /* si se te olvidó al empezar, aquí la pones */
   $("#finish")?.remove();
   const el=document.createElement("div"); el.className="sheet"; el.id="finish";
   el.innerHTML=`<div class="panel" role="dialog" aria-modal="true" aria-label="Cerrar la sesión">
@@ -2215,7 +2216,7 @@ function openFinish(partial){
      ${noGB?`<div class="field"><label for="f-gb">Glucosa antes</label><input id="f-gb" inputmode="numeric" placeholder="mg/dL"></div>`:""}
      <div class="field"><label for="f-gl">Glucosa después</label><input id="f-gl" inputmode="numeric" placeholder="mg/dL"></div></div>
    ${noGB?`<p class="small muted" style="margin:-4px 0 0">No pusiste la glucosa al empezar: si la sabes, apúntala aquí.</p>`:""}
-   ${fuelHtml()}
+   ${gymS?fuelHtml():""}
    <div class="field"><label style="display:flex;justify-content:space-between;align-items:center;font-size:15px;color:var(--text)">No la he terminado <input type="checkbox" id="f-partial" ${partial?"checked":""} style="width:22px;height:22px;accent-color:#3f7df4"></label>
      <div id="reasons" class="chips" style="margin-top:10px;${partial?"":"display:none"}">${["Sin tiempo","Cansado","Me encuentro mal","Sin material","Molestia"].map(r=>`<button class="chip" data-reason="${r}" style="background:var(--surface);color:var(--muted)">${r}</button>`).join("")}</div></div>
    <div class="field"><label for="f-knee">Rodilla derecha: molestia de 0 (nada) a 10</label><div style="display:flex;align-items:center;gap:12px"><input type="range" id="f-knee" min="0" max="10" step="1" value="0" style="flex:1;accent-color:#3f7df4"><b id="f-knee-v" class="num" style="font:700 24px var(--body);min-width:28px;text-align:right">0</b></div></div>
@@ -2260,7 +2261,7 @@ function saveSession(){
   const mins=parseInt($("#f-min").value,10)||F.mins;
   const gl=parseFloat(($("#f-gl").value||"").replace(",",".")), gb=$("#f-gb")?parseFloat(($("#f-gb").value||"").replace(",",".")):NaN;
   if(isFinite(gb))s.gBefore=gb;
-  Object.assign(s,{fuel:fuelOut(),minutes:mins,rpe:F.rpe,status:$("#f-partial").checked?"parcial":"completa",reason:$("#f-partial").checked?F.reason:null,gAfter:isFinite(gl)?gl:null,note:$("#f-note").value.trim(),knee:+$("#f-knee").value,pain:Object.keys(F.pain).length?{...F.pain}:null});
+  Object.assign(s,{fuel:$("[data-act=fuel]")?fuelOut():null,minutes:mins,rpe:F.rpe,status:$("#f-partial").checked?"parcial":"completa",reason:$("#f-partial").checked?F.reason:null,gAfter:isFinite(gl)?gl:null,note:$("#f-note").value.trim(),knee:+$("#f-knee").value,pain:Object.keys(F.pain).length?{...F.pain}:null});
   save(); const sm=sessionSummary(s); closePlayer(); render(); showSummary(sm); setTimeout(()=>checkBadges(),4200);
   if(s.knee>=4)toast("Rodilla con molestia: mañana sin saltos y, si sigue, consúltalo con tu fisio.");
   else{const z=PAINZ.find(z=>s.pain&&s.pain[z.k]>=4);if(z)toast(`${z.n} con molestia: ${z.tip}`)}
@@ -2736,7 +2737,7 @@ function openReport(){
 }
 
 /* ============ NOVEDADES Y AJUSTES ============ */
-const APP_VERSION="2026.11.27d";
+const APP_VERSION="2026.11.27e";
 /* [icono, texto, versión]: al abrir la app nueva solo salen las novedades desde la última versión que viste */
 const CHANGELOG=[
  ["🔁","Cada bloque te dice cómo va: ejercicio solo, superserie, triserie o circuito, con los ejercicios numerados en orden. En plena sesión ves también qué viene después, sin esperar al descanso.","2026.11.27d"],
