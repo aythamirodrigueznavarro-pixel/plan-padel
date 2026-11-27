@@ -607,6 +607,8 @@ const setDayOpt=(k,v)=>{S.opts=S.opts||{};const o=S.opts[dayKey()]||{};o[k]=v;S.
 const localKey=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
 const compOn=d=>{const k=localKey(d);return (S.comps||[]).find(c=>k>=c.from&&k<=(c.to||c.from)&&!(c.skip&&c.skip[k]))}; /* «No lo jugué» libera ese día */
+const postComp=(d=new Date())=>{const y=addDays(d,-1);return !!compOn(y)||workoutsOn(y).some(w=>w.padel&&w.kind==="Torneo")}; /* ayer competiste */
+const effShort=()=>{const o=dayOpts();return o.short!=null?!!o.short:postComp()&&LEGS.has(todayBase().id)}; /* tras competir, la D sale corta por defecto */
 const effCompete=()=>{const o=dayOpts();return o.compete!=null?!!o.compete:!!compOn(addDays(new Date(),1))};
 /* Lo que toca hoy. Orden: lo ya hecho hoy manda → día de competición → la sesión que elegiste tú a mano
    → fin de semana → entre semana, el reparto de planWeek (el mismo que ven Semana y el calendario). */
@@ -620,7 +622,17 @@ const todayBase=()=>{const now=new Date(),o=dayOpts(),st=weekState(now),wd=st.to
   let base=p?placed(p,wd,pl):restDay(wd);
   if(base.id==="A"&&effCompete())base=SESSION_B; /* la víspera de competir, nada de pierna pesada */
   return base};
-const today=()=>{const o=dayOpts();return materialize(todayBase(),new Date(),{...o,compete:effCompete()})};
+const today=()=>{const o=dayOpts();return materialize(todayBase(),new Date(),{...o,short:effShort(),compete:effCompete()})};
+/* El día después de competir: pierna (D) en versión corta o descanso */
+function postCompCard(){
+  const now=new Date(), st=weekState(now);
+  if(st.todayWd>5||st.doneToday||compOn(now)||!postComp(now))return "";
+  const d=today();if(!LEGS.has(d.id))return "";
+  return `<section class="card coach" style="display:flex;flex-direction:column;gap:8px"><div class="eyebrow" style="color:var(--ball)">Ayer competiste</div>
+    <p style="margin:0">Hoy te dejo la <b>${esc(shortTitle(d.id))}</b> en <b>versión corta</b>: menos series y la misma chispa. Aunque te sientas bien, el cansancio de competir quita explosividad y no se nota hasta que saltas.</p>
+    <p class="small muted" style="margin:0">Si llegas reventado o te molesta algo, mejor descanso: un día flojo bien gestionado no se pierde.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">${d.short?"":`<button class="chip" style="background:var(--surface2);color:var(--muted)" data-act="toggle-short">Volver a la versión corta</button>`}<button class="chip" style="background:var(--surface2);color:var(--muted)" data-act="plan-apply" data-id="X">Hoy, solo movilidad (20')</button></div></section>`;
+}
 const yt=q=>"https://www.youtube.com/results?search_query="+encodeURIComponent(q);
 /* Vídeos comprobados (se pueden ver dentro de la app). Si eliges otro, se guarda en S.videos. */
 const VIDEOS={"pogos":{"v":"j0nl5dWuqN4","autor":"(saltos de tobillo)"},"slam":{"v":"EsAhU1jHpiQ","autor":"Horton Barbell"},"triceps-polea":{"v":"vPeQu_L-1n0","autor":"REP"},"curl-inclinado":{"v":"DCe8f6vMe9A","autor":"ATHLEAN-X"},"hollow":{"v":"DKJXFzz9BBk","autor":"hollow hold"},"landmine-rot":{"v":"911qQuwcEMQ","autor":"GPS Human Performance"},"curl-martillo":{"v":"zC3nLlEvin4","autor":"ScottHermanFitness"},"ytw-banco":{"v":"F2HZmu9KyyU","autor":"Zach Connell"},"sprint-rampa":{"v":"PSNS6n9sMDY","autor":"Omar Powell"},"elev-rodillas":{"v":"p9hhX_Sx5v0","autor":"Signum Fitness & Nutrition"},"reactiva":{"v":"roiLnGi_29Q","autor":"PowerLux Fitness"},"lateral-sprint":{"v":"Vu-2wL-dt7Q","autor":"Simple Speed Coach"},"a-bici":{"v":"h2WtDZrLHmk","autor":"Bestcycling"},"a-tobillo":{"v":"ILSbK8RnGdI","autor":"Squat University"},"a-9090":{"v":"MmBb1latnw0","autor":"Xabier Revuelta - FISIOTERAPEUTA"},"a-monster":{"v":"dHJOQ4mjQ30","autor":"Bret Contreras Glute Guy"},"sentadilla":{"v":"Akd5xmZlsvg","autor":"Catalyst Athletics"},"a-cajon":{"v":"R7sS0PfPfHk","autor":"Ambitious Athletics"},"rdl":{"v":"2POPaloE-SM","autor":"Squat University"},"copenhague":{"v":"ACfxr2P5pGQ","autor":"Xabier Revuelta - FISIOTERAPEUTA"},"bulgara":{"v":"bwhl_9jN_3o","autor":"Squat University"},"stepdown":{"v":"JyhOe6NdQoo","autor":"Trainerclub"},"nordico":{"v":"0ia97P5konQ","autor":"Squat University"},"plancha-abd":{"v":"14--dVJ-tU4","autor":"Proet Ejercicio Terapéutico"},"b-w":{"v":"vQYyHMviZCI","autor":"West Coast Strength"},"b-rot":{"v":"wjBA3Qc_38g","autor":"Clínica Fisiofert"},"b-escap":{"v":"zbVUBByJRqY","autor":"Proet Ejercicio Terapéutico"},"push-press":{"v":"iaBVSJm78ko","autor":"CrossFit"},"lanz-rot":{"v":"o9BC7lgN1bo","autor":"Live Lean TV Daily Exercises"},"press-db":{"v":"mTaiQemkEpU","autor":"Andrew Kwong (DeltaBolic)"},"flex-plio":{"v":"hDP-oskzYUs","autor":"Atomic Athlete"},"landmine-press":{"v":"PFIn5PFiajQ","autor":"Darío Orcajada / Perder la barriga"},"pallof":{"v":"o_CxFP4FJhA","autor":"Instituto de Entrenamiento Personal"},"cuban":{"v":"67ewzBXws7M","autor":"MoveU"},"hollow":{"v":"DKJXFzz9BBk","autor":"Nacho Romero | Proyecto Columna"},"rod-gemelo":{"v":"-MOyVz9lFF4","autor":"Fisio andTherapies"},"rod-cuad":{"v":"-DuuGm0_5r0","autor":"Rude Rock Human Performance"},"rod-espalda":{"v":"NS73eSohTbc","autor":"National Academy of Sports Medicine (NASM)"},"rana":{"v":"ft0F3gQUiM4","autor":"GLORY SPORT PHYSIO"},"toracica":{"v":"yHTbstQDkKc","autor":"Athletic Authority"},"x-eliptica":{"v":"Sbv44Rf-5U0","autor":"fitnessdigital"},"c-colgado":{"v":"ppzZQuBjvN8","autor":"Cuerpo Invertido"},"c-w":{"v":"vQYyHMviZCI","autor":"West Coast Strength"},"dominada":{"v":"pT9ZCIeJhEM","autor":"Your House Fitness"},"facepull":{"v":"sVWAZaYydRo","autor":"ATHLEAN-X Español"},"remo-manc":{"v":"evJBZ_8-2ik","autor":"ATHLEAN-X Español"},"rotext-polea":{"v":"DplyMccjRrE","autor":"Vitar Club"},"farmer":{"v":"8OtwXwrJizk","autor":"PureGym"},"pinch":{"v":"jFTV3DQf3HE","autor":"PureGym"},"muneca-flex":{"v":"Wzt9Io8oKoI","autor":"Clínica Fisiofert"},"pronosup":{"v":"EyZ1IAozAJQ","autor":"FisioFit Cross"},"d-bici":{"v":"h2WtDZrLHmk","autor":"Bestcycling"},"d-skipping":{"v":"ztAesLdFb5k","autor":"Be Happy"},"d-saltitos":{"v":"j0nl5dWuqN4","autor":"Runna"},"clean":{"v":"0aP3tgKZcHQ","autor":"CrossFit"},"longitud":{"v":"dVgtvAXeBQw","autor":"Athletics Coach"},"hipthrust":{"v":"bE76E1sa5rA","autor":"Fit Generation"},"patinador":{"v":"HYWKdSBDb3s","autor":"Whole Strength Physical Therapy"},"lateral-goma":{"v":"WiKjiJfnmoI","autor":"Kinetic | Sports Physical Therapy | Delafield, WI"},"frenada":{"v":"88VqqPRdj58","autor":"Pablo Cartas | Preparador Físico y Fisioterapeuta"},"bici-int":{"v":"jN3HeMMvB5o","autor":"NeuStrength | Personal Trainer Wilmington NC"},"cal-movil":{"v":"XYMBIW3cN9g","autor":"Saigon Physio Sport"},"cal-activ":{"v":"7vVgRvPFQj4","autor":"Raúl Morcillo"},"cal-chispa":{"v":"vyIcjNeGh7M","autor":"The Padel School"},"post-lumbar":{"v":"GB2WGGsSz-Q","autor":"Fisioterapia Gratis Bruna Homs"},"post-rodillo":{"v":"bKL8O3TNbdw","autor":"Robert Arias"},"v-9090":{"v":"MmBb1latnw0","autor":"Xabier Revuelta - FISIOTERAPEUTA"},"v-w":{"v":"vQYyHMviZCI","autor":"West Coast Strength"},"v-cmj":{"v":"26pmBcXAcTg","autor":"Professional Performance Training - Proper"},"v-sprint":{"v":"lX36T2iSPd4","autor":"The Progressive Athlete"}};
@@ -1218,6 +1230,7 @@ function renderHoy(){
    ${plannedLogCard()}
    ${planReminderCard()}
    ${calStaleCard()}
+   ${postCompCard()}
    ${rescheduleCard()}
    <section class="card" style="padding:20px;display:flex;flex-direction:column;gap:14px">
      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${d.kinds.map(k=>chip(k)).join("")}<span style="margin-left:auto" class="num small muted">${d.rpe?(d.rpe[0]===d.rpe[1]?"RPE "+d.rpe[0]:`RPE ${d.rpe[0]}–${d.rpe[1]}`):""}</span></div>
@@ -1226,7 +1239,7 @@ function renderHoy(){
      <div style="display:flex;gap:22px">${d.gym?stat(done?done.minutes:"≈"+estimateMinutes(d),"min de gym"):""}${d.padel?stat(d.padel,"min de pádel"):""}${stat(nEx,"ejercicios")}</div>
      ${d.gym&&!done?`<div class="chips">
        ${(d.id==="D"||d.id==="D-act")?`<button class="chip" data-act="toggle-compete" style="${effCompete()?"background:var(--warn);color:var(--ink)":"background:var(--surface2);color:var(--muted)"}">${effCompete()?"✓ ":""}Compito mañana</button>`:""}
-       <button class="chip" data-act="toggle-short" style="${dayOpts().short?"background:var(--court);color:var(--ink)":"background:var(--surface2);color:var(--muted)"}">${dayOpts().short?"✓ ":""}Versión corta (poco tiempo o día malo)</button>
+       <button class="chip" data-act="toggle-short" style="${effShort()?"background:var(--court);color:var(--ink)":"background:var(--surface2);color:var(--muted)"}">${effShort()?"✓ ":""}Versión corta (poco tiempo o día malo)</button>
      </div>`:""}
      ${d.warn?`<div style="background:color-mix(in srgb,var(--ball) 10%,transparent);color:var(--ball);border-radius:14px;padding:12px;font-size:13px;font-weight:500">${ICON.drop} ${esc(d.warn)}</div>`:""}
      ${done?`<div style="color:var(--ok);font-weight:600">✓ Sesión guardada · RPE ${done.rpe} · carga ${done.rpe*done.minutes} UA</div>`:`${md&&matchDone("cal")?`<div style="color:var(--ok);font-weight:600">✓ Calentamiento hecho</div>`:""}<button class="ballbtn" data-act="start">${md?(nextMatchPart()==="post"?"Recuperación (al acabar de jugar)":"Empezar calentamiento"):d.kinds.includes("compite")||d.id==="sab"||d.id==="dom"?"Empezar calentamiento":"Empezar sesión"}</button>`}
@@ -1754,16 +1767,16 @@ function readiness(rd){const v=RD_Q.map(q=>rd[q.k]).filter(x=>x);if(v.length<RD_
 function readinessBlock(){
   const rd=P.rd||{}, r=readiness(rd);
   const y=addDays(new Date(),-1), padelY=workoutsOn(y).filter(w=>w.padel).reduce((a,w)=>a+w.minutes,0);
-  const short=P.day.short, legsDay=LEGS.has(P.day.id), js=jumpStatus(), jTired=js.lvl==="amarillo"||js.lvl==="rojo";
-  const msg=!r?"":r.lvl==="verde"?"🟢 Llegas bien: sesión normal. A por ella.":r.lvl==="amarillo"?(short?"🟡 Llegas regular: con la versión corta vas bien. Si una serie no sale con el RIR marcado, baja el peso.":"🟡 Llegas regular: haz la sesión, pero si una serie no sale con el RIR marcado, baja el peso. Si vas justo de tiempo o de cuerpo, versión corta."):(short?"🔴 Hoy vas tocado: versión corta suave, sin buscar marcas. O solo movilidad.":"🔴 Hoy vas tocado: mejor versión corta o solo movilidad. Un día flojo bien gestionado no se pierde; uno forzado, a veces sí.");
+  const short=P.day.short, legsDay=LEGS.has(P.day.id), js=jumpStatus(), jTired=js.lvl==="amarillo"||js.lvl==="rojo", pc=legsDay&&postComp();
+  const msg=!r?"":r.lvl==="verde"?(pc?(short?"🟢 Llegas bien, pero ayer competiste: versión corta, rápida y sin buscar marcas.":"🟡 Llegas bien, pero ayer competiste: mejor la versión corta y sin buscar marcas."):"🟢 Llegas bien: sesión normal. A por ella."):r.lvl==="amarillo"?(short?"🟡 Llegas regular: con la versión corta vas bien. Si una serie no sale con el RIR marcado, baja el peso.":"🟡 Llegas regular: haz la sesión, pero si una serie no sale con el RIR marcado, baja el peso. Si vas justo de tiempo o de cuerpo, versión corta."):(short?"🔴 Hoy vas tocado: versión corta suave, sin buscar marcas. O solo movilidad.":"🔴 Hoy vas tocado: mejor versión corta o solo movilidad. Un día flojo bien gestionado no se pierde; uno forzado, a veces sí.");
   return `<div class="card" style="padding:16px;margin:0 0 14px;display:flex;flex-direction:column;gap:10px"><div style="font-weight:600">¿Cómo llegas hoy?</div>
    ${RD_Q.map(q=>`<div><div class="small muted" style="display:flex;justify-content:space-between"><span style="color:var(--text);font-weight:600">${q.n}</span><span>${q.lo} → ${q.hi}</span></div>
      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:4px">${[1,2,3,4,5].map(v=>`<button data-act="rd" data-k="${q.k}" data-v="${v}" aria-pressed="${rd[q.k]===v}" aria-label="${q.n} ${v}" style="padding:9px 0;border-radius:10px;font-weight:700;background:${rd[q.k]===v?(v<=2?"var(--heart)":v===3?"var(--warn)":"var(--ok)"):"var(--surface2)"};color:${rd[q.k]===v?"var(--ink)":"var(--muted)"}">${v}</button>`).join("")}</div></div>`).join("")}
-   ${padelY>=60&&legsDay?`<div class="small" style="color:var(--warn)">Ayer jugaste ${padelY}' de pádel: ten en cuenta las piernas.</div>`:""}
+   ${pc?`<div class="small" style="color:var(--warn)">Ayer competiste: el cansancio quita explosividad aunque no lo notes. Si vas reventado, mejor descanso.</div>`:padelY>=60&&legsDay?`<div class="small" style="color:var(--warn)">Ayer jugaste ${padelY}' de pádel: ten en cuenta las piernas.</div>`:""}
    ${msg?`<div class="small" style="color:var(--text);font-weight:600">${msg}</div>`:""}
    ${legsDay?`<div style="display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:10px">${jumpStatusHtml()}<button class="ghostbtn small" data-act="jump-open">📏 ${js.today?"Añadir otro salto":"Medir el salto (30 s, opcional)"}</button></div>`:""}
-   ${(r&&r.lvl!=="verde"||jTired)&&!short&&!P.day.part?`<button class="ghostbtn small" data-act="pre-short">Cambiar a la versión corta</button>`:""}
-   ${P.day.extra||r&&r.lvl==="verde"&&!jTired&&!short&&extraFor(P.day)&&P.day.week!==4?(P.day.extra?`<div class="small" style="color:var(--ok);font-weight:600">✓ Añadido: ${esc(EXTRA[P.day.id].title)} (≈10' al final)</div><button class="ghostbtn small" data-act="pre-extra">Quitar el bloque extra</button>`:`<button class="ghostbtn small" style="border:1px solid var(--ball);color:var(--ball)" data-act="pre-extra">➕ Vas sobrado: añadir ${esc(extraFor(P.day).title.toLowerCase())} (≈10')</button>`):""}</div>`;
+   ${(r&&r.lvl!=="verde"||jTired||pc)&&!short&&!P.day.part?`<button class="ghostbtn small" data-act="pre-short">Cambiar a la versión corta</button>`:""}
+   ${P.day.extra||r&&r.lvl==="verde"&&!jTired&&!pc&&!short&&extraFor(P.day)&&P.day.week!==4?(P.day.extra?`<div class="small" style="color:var(--ok);font-weight:600">✓ Añadido: ${esc(EXTRA[P.day.id].title)} (≈10' al final)</div><button class="ghostbtn small" data-act="pre-extra">Quitar el bloque extra</button>`:`<button class="ghostbtn small" style="border:1px solid var(--ball);color:var(--ball)" data-act="pre-extra">➕ Vas sobrado: añadir ${esc(extraFor(P.day).title.toLowerCase())} (≈10')</button>`):""}</div>`;
 }
 function drawPre(){
   const old=$("#layer .overlay"), sc=old&&old.querySelector(".scroll"), top=sc?sc.scrollTop:0;
@@ -2682,9 +2695,10 @@ function openReport(){
 }
 
 /* ============ NOVEDADES Y AJUSTES ============ */
-const APP_VERSION="2026.11.25c";
+const APP_VERSION="2026.11.27a";
 /* [icono, texto, versión]: al abrir la app nueva solo salen las novedades desde la última versión que viste */
 const CHANGELOG=[
+ ["🏆","El día después de competir, la sesión de pierna (D) sale en versión corta por defecto, y la app te ofrece quedarte en movilidad si llegas reventado. Puedes quitar la versión corta si de verdad vas fresco.","2026.11.27a"],
  ["🔍","Revisión a fondo de la app: la recuperación tiene en cuenta todo tu día (también si juegas tarde o pasada la medianoche); el día después de competir no hay pierna pesada; la B no lleva sprints la víspera de competir; dos pádeles el mismo día se apuntan bien; al cambiar de semana el peso se ajusta al nuevo RIR; y el aviso de glucosa del spa te dice que, si tienes síntomas, salgas y la trates ya.","2026.11.25c"],
  ["🧖","Recuperación arreglada: si después del gimnasio te queda pádel o competición ese mismo día, la app ya no te manda al spa. Te dice que esperes a terminar el último esfuerzo y, cuando lo apuntas, te da la recuperación buena.","2026.11.25b"],
  ["🚀","El bloque 2 (Transformación) ya está en la app y empieza solo el lunes 21 de diciembre: frenadas, contrastes con salto, sprints de pádel y kilos recalculados desde tu bloque 1. Hasta entonces, todo sigue igual.","2026.11.25a"],
@@ -2912,7 +2926,7 @@ document.addEventListener("click",e=>{
     case "day-close":$("#dayview")?.remove();break;
     case "day-swap":setDayOpt("swap",t.dataset.id);$("#dayview")?.remove();tab="hoy";render();window.scrollTo(0,0);toast("Hoy haces esta sesión");break;
     case "day-unswap":setDayOpt("swap",null);$("#dayview")?.remove();tab="hoy";render();window.scrollTo(0,0);break;
-    case "toggle-short":setDayOpt("short",!dayOpts().short);render();break;
+    case "toggle-short":setDayOpt("short",!effShort());render();break;
   }
 });
 document.addEventListener("input",e=>{
