@@ -626,14 +626,14 @@ const effCompete=()=>{const o=dayOpts();return o.compete!=null?!!o.compete:!!com
 const todayBase=()=>{const now=new Date(),o=dayOpts(),st=weekState(now),wd=st.todayWd,nat=DAYS[wd-1],pl=weekPlanned(st.m);
   if(st.doneToday){const s0=sessionsOn(now).find(x=>gymIdOf(x)===st.doneToday);return s0&&s0.dayId==="D-act"?{...ACTIVATION,wd}:placed(st.doneToday,wd,pl)}
   if(compOn(now))return compDayObj(now); /* el día que compites, nada de gimnasio: calentamiento competitivo */
-  const sw=o.swap&&!o.autoSwap&&!dayClosed(now)&&[...DAYS,ACTIVATION].find(x=>x.id===o.swap); /* «Hacer esta sesión hoy» */
+  const sw=o.swap&&!o.autoSwap&&!playedToday(now)&&[...DAYS,ACTIVATION].find(x=>x.id===o.swap); /* «Hacer esta sesión hoy» (aunque sea tarde) */
   if(sw)return sw.wd===wd?sw:{...sw,wd};
   if(wd>5)return pl?weekendObj(now):nat;
   const p=planWeek(now).plan[wd];
   let base=p?placed(p,wd,pl):restDay(wd);
   if(base.id==="A"&&effCompete())base=SESSION_B; /* la víspera de competir, nada de pierna pesada */
   return base};
-const today=()=>{const o=dayOpts();return materialize(todayBase(),new Date(),{...o,short:effShort(),compete:effCompete()})};
+const today=()=>{const o=dayOpts();return materialize(todayBase(),new Date(),{...o,short:effShort(),compete:effCompete()&&!weekState().doneToday})}; /* si ya hiciste la D, no se convierte en activación */
 /* El día después de competir: pierna (D) en versión corta o descanso */
 function postCompCard(){
   const now=new Date(), st=weekState(now);
@@ -688,7 +688,7 @@ function padPlayed(p,dt){const k=localKey(dt), id=p.logged&&p.logged[k];
   if(id){const w=S.health.workouts.find(x=>x.id===id);if(w)return w}
   const pl=padOn(dt), at=q=>+new Date(k+"T"+q.h+":00"), st=at(p), claimed=new Set(pl.filter(q=>q!==p).map(q=>q.logged&&q.logged[k]).filter(Boolean));
   return workoutsOn(dt).find(w=>{if(!w.padel||claimed.has(w.id))return false;const t=+new Date(w.start), dd=Math.abs(t-st);
-    return dd<3*36e5&&pl.every(q=>q===p||(q.logged&&q.logged[k])||Math.abs(t-at(q))>dd)})||null} /* un pádel apuntado cuenta para el plan más cercano en hora */
+    return dd<3*36e5&&pl.every(q=>q===p||(q.logged&&q.logged[k])||Math.abs(t-at(q))>dd||(Math.abs(t-at(q))===dd&&pl.indexOf(q)>pl.indexOf(p)))})||null} /* empate: el que va antes en la lista */ /* un pádel apuntado cuenta para el plan más cercano en hora */
 const latestGlucose=()=>S.health.glucose.slice().sort((a,b)=>new Date(b.t)-new Date(a.t))[0];
 const vibrate=p=>{try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}};
 function toast(t){const el=document.createElement("div");el.className="toast";el.setAttribute("role","status");el.textContent=t;document.body.appendChild(el);setTimeout(()=>el.remove(),2400)}
@@ -719,7 +719,7 @@ function weekState(now=new Date()){
 /* ============ TU SEMANA DE PÁDEL (planificador) ============
    S.pad = pádel previsto [{id,d:"AAAA-MM-DD",h:"19:00",kind,min}]; S.planned[lunes] = true si planificaste esa semana.
    Con la semana planificada, el reparto de sesiones usa tus horarios reales en vez de los días de pádel por defecto. */
-const GYM_END_H=16.5; /* gimnasio a las 9:30 → pádel antes de las 16:30 = menos de 6 h: nada de pierna ese día */
+const GYM_END_H=16.75; /* gimnasio de 9:30 a 10:45 → pádel antes de las 16:45 = menos de 6 h: nada de pierna ese día */
 const hNum=h=>{const m=String(h||"").match(/(\d{1,2}):(\d{2})/);return m?+m[1]+(+m[2])/60:12};
 const padOn=d=>{const k=localKey(d);return (S.pad||[]).filter(p=>p.d===k).sort((a,b)=>hNum(a.h)-hNum(b.h))};
 const weekPlanned=m=>!!(S.planned||{})[localKey(m)];
@@ -733,7 +733,8 @@ function planWeek(now=new Date(),optsIn){
   for(let wd=st.todayWd;wd<=5;wd++){
     const isToday=wd===st.todayWd, dDay=addDays(st.m,wd-1);
     if(isToday&&st.doneToday){days.push({wd,fixed:st.doneToday});continue}
-    if(isToday&&o.swap&&!o.autoSwap&&GYM_IDS.includes(o.swap)&&!dayClosed(now)&&!compOn(dDay)){days.push({wd,fixed:o.swap});continue} /* la que elegiste a mano para hoy */
+    if(isToday&&o.swap&&!o.autoSwap&&GYM_IDS.includes(o.swap)&&!playedToday(now)&&!compOn(dDay)){days.push({wd,fixed:o.swap});continue} /* la que elegiste a mano para hoy (aunque sea tarde) */
+    if(isToday&&o.swap==="X"&&!o.autoSwap){days.push({wd,comp:true});continue} /* «Hoy, solo movilidad»: lo de hoy se recoloca */
     if(compOn(dDay)||(isToday&&dayClosed(now))){days.push({wd,comp:true});continue}
     const pl=padOn(dDay), early=pl.some(p=>hNum(p.h)<GYM_END_H);
     let busy;
@@ -744,8 +745,8 @@ function planWeek(now=new Date(),optsIn){
     const cls=planned&&pl.some(p=>p.kind==="Entreno"); /* el día de clase con tu entrenador, nada de pierna */
     const clsTom=planned&&padOn(addDays(dDay,1)).some(p=>p.kind==="Entreno"); /* y mejor no la víspera */
     const preComp=isToday?(o.compete!=null?!!o.compete:!!compOn(addDays(dDay,1))):!!compOn(addDays(dDay,1));
-    const postComp=!!compOn(addDays(dDay,-1)); /* el día después de competir, nada de pierna pesada */
-    days.push({wd,busy,preComp,cls,clsTom,postComp});
+    const pcD=postComp(dDay); /* el día después de competir (o de un torneo apuntado), nada de pierna pesada */
+    days.push({wd,busy,preComp,cls,clsTom,postComp:pcD});
   }
   const ok=(id,d,prevLegs)=>{
     if(!planned&&!st.missed.includes(id)&&natWd(id)>d.wd)return false;
@@ -756,7 +757,7 @@ function planWeek(now=new Date(),optsIn){
   const go=(i,left,prevLegs,sc,a)=>{
     if(i===days.length){if(sc>best.sc)best={sc,a:{...a}};return}
     const d=days[i];
-    if(d.fixed){a[d.wd]=d.fixed;go(i+1,left,LEGS.has(d.fixed),sc,a);delete a[d.wd];return}
+    if(d.fixed){a[d.wd]=d.fixed;go(i+1,left.filter(x=>x!==d.fixed),LEGS.has(d.fixed),sc,a);delete a[d.wd];return} /* la fijada no se vuelve a colocar otro día */
     if(!d.comp)left.forEach((id,j)=>{if(!ok(id,d,prevLegs))return;
       a[d.wd]=id;go(i+1,left.filter((_,k)=>k!==j),LEGS.has(id),sc+W[id]*100-3*Math.abs(d.wd-natWd(id))-(d.wd===3?4:0)-(LEGS.has(id)&&d.clsTom?6:0),a);delete a[d.wd]});
     go(i+1,left,false,sc,a);
@@ -764,7 +765,7 @@ function planWeek(now=new Date(),optsIn){
   go(0,rem,st.legsYesterday,0,{});
   Object.assign(plan,best.a);
   const used=new Set(Object.values(plan));
-  return {plan,dropped:rem.filter(id=>!used.has(id)),st};
+  return {plan,dropped:st.todayWd>5?[]:rem.filter(id=>!used.has(id)),st};
 }
 /* Lo que toca cada día de la semana (esta o la siguiente), con el reparto ya hecho */
 const SUBG={A:"Pierna pesada, primer paso y rodilla: la sesión más exigente de la semana.",B:"Tren superior: empuje, lanzamientos y core. Las piernas descansan.",C:"Tracción, agarre, codo y hombro. Las piernas descansan.",D:"Cargadas, saltos, reacción y frenadas."};
@@ -897,7 +898,7 @@ function drawPlanner(){
     ...comps.map(c=>({k:c.from<ks[0]?ks[0]:c.from,t:c.h?hNum(c.h):0,txt:`🏆 ${c.name}${c.h?" · "+c.h:""}${c.to&&c.to!==c.from?` (hasta el ${new Date(c.to+"T12:00:00").toLocaleDateString("es-ES",{weekday:"long"})})`:""}`,id:c.id}))].sort((a,b)=>a.k<b.k?-1:a.k>b.k?1:a.t-b.t);
   const isPast=wd=>PLN.off===0&&localKey(days[wd-1].dt)<localKey(new Date());
   pn.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><h2 class="title" style="font-size:28px">🗓️ Tu semana</h2><button class="iconbtn" data-act="pln-close" aria-label="Cerrar">${ICON.x}</button></div>
-   <p class="small muted" style="margin:0">${fd(days[0].dt)} – ${fd(days[6].dt)}. Apunta cada partido, clase o competición. Con eso coloco el gimnasio: nada de pierna si juegas antes de las 16:30, ni el día de clase con tu entrenador, ni la víspera de competir. Si algo cambia a mitad de semana, vuelve aquí y cámbialo.</p>
+   <p class="small muted" style="margin:0">${fd(days[0].dt)} – ${fd(days[6].dt)}. Apunta cada partido, clase o competición. Con eso coloco el gimnasio: nada de pierna si juegas antes de las 16:45, ni el día de clase con tu entrenador, ni la víspera de competir. Si algo cambia a mitad de semana, vuelve aquí y cámbialo.</p>
    <div><div class="small muted" style="font-weight:600;margin-bottom:6px">Día</div>
     <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">${days.map(x=>`<button data-act="pln-day" data-wd="${x.wd}" ${isPast(x.wd)?"disabled":""} style="padding:8px 0;border-radius:10px;font-weight:700;font-size:13px;line-height:1.2;${x.wd===PLN.wd?"background:var(--ball);color:var(--ballInk)":"background:var(--surface2);color:var(--muted)"};${isPast(x.wd)?"opacity:.35":""}">${x.dt.toLocaleDateString("es-ES",{weekday:"narrow"})}<br>${x.dt.getDate()}</button>`).join("")}</div></div>
    <div class="chips">${Object.keys(PADK).map(k=>`<button class="chip" data-act="pln-kind" data-k="${k}" style="${k===PLN.kind?"background:var(--ball);color:var(--ballInk)":"background:var(--surface2);color:var(--muted)"}">${PADK[k]}</button>`).join("")}</div>
@@ -1084,7 +1085,7 @@ function playedTodayCard(){
   const wp=weekPlanned(st.m), nx=st.todayWd<5&&wp?planWeek(now).plan[st.todayWd+1]:null, tmw=dayName(st.todayWd+1);
   const tom=st.todayWd===5?"El fin de semana no se recupera nada: el lunes empieza otra semana y seguimos."
     :!wp?`Mañana ${tmw}, al abrir la app, te pregunto si juegas y te digo qué toca. Si ya sabes qué días juegas esta semana, planifícala en <b>Semana</b> y te lo digo desde ya.`
-    :nx?`<b>Mañana ${tmw} te toca la ${nx}</b>${LEGS.has(nx)?" (si mañana juegas antes de las 16:30, te la cambio por otra)":""}. Al abrir la app te lo confirmo.`
+    :nx?`<b>Mañana ${tmw} te toca la ${nx}</b>${LEGS.has(nx)?" (si mañana juegas antes de las 16:45, te la cambio por otra)":""}. Al abrir la app te lo confirmo.`
     :`Mañana ${tmw}, al abrir la app, te digo qué toca.`;
   return `<section class="card coach" style="display:flex;flex-direction:column;gap:8px"><div class="eyebrow" style="color:var(--ball)">Hoy ya jugaste</div>
     <p style="margin:0">Apuntaste ${esc((KIND_LABEL[padelKind(w)]||"pádel").toLowerCase())} · ${mins} min. <b>Hoy ya no toca gimnasio</b>: después de jugar, toca recuperar.${recoveryCard()?" Mira abajo tu plan de spa.":""}</p>
@@ -1117,7 +1118,7 @@ function dailyCard(st){
   const o=dayOpts(), legs=LEGS.has(gid);
   let ms=o.matchSoon, later=!!o.matchLater, planTxt="";
   if(ms===undefined&&weekPlanned(st.m)&&!o.ask){ /* ya lo dijiste en el planificador */
-    const nx=padOn(now).find(p=>new Date(localKey(now)+"T"+p.h+":00")-now>-2*36e5);
+    const nx=padOn(now).find(p=>!(p.skip&&p.skip[localKey(now)])&&!padPlayed(p,now)&&new Date(localKey(now)+"T"+p.h+":00")-now>-2*36e5);
     if(nx){const dt=new Date(localKey(now)+"T"+nx.h+":00")-now;ms=dt<6*36e5;later=!ms;planTxt=`Según tu semana, hoy tienes ${nx.name?esc(nx.name):esc(PADK[nx.kind]||"pádel").toLowerCase()} a las ${esc(nx.h)}. `}
     else{ms=false;later=false;planTxt="Según tu semana, hoy no tienes pádel. "}}
   if(ms===undefined)return askDayHtml("Tu día",`Hoy toca <b>${esc(d.title)}</b>. Para recomendarte bien:`);
@@ -1146,7 +1147,9 @@ function autoPlan(){
 }
 /* Por qué hoy no hay pierna, con la razón de verdad */
 function legsWhy(now,st){
-  const wp=weekPlanned(st.m), pl=wp?padOn(now):[], early=pl.find(p=>hNum(p.h)<GYM_END_H);
+  const wp=weekPlanned(st.m), k=localKey(now), pl=wp?padOn(now).filter(p=>!(p.skip&&p.skip[k])):[], early=pl.find(p=>hNum(p.h)<GYM_END_H);
+  if(postComp(now))return "Ayer competiste: hoy nada de pierna pesada.";
+  if(now.getHours()>=21)return "Son más de las 21:00: hoy ya no toca gimnasio.";
   if(pl.some(p=>p.kind==="Entreno"))return "Hoy tienes clase con tu entrenador: ese día, nada de pierna.";
   if(early)return `Juegas hoy a las ${early.h}: nada de pierna pesada a menos de 6 horas de jugar.`;
   if(compOn(addDays(now,1)))return "Mañana compites: hoy nada de pierna pesada.";
@@ -1230,7 +1233,7 @@ function coachNotes(){
   if(wd===7&&blockWeekRaw(tom)<=4){const w=blockWeek(tom),bt=blockOf(tom);N.push({i:"📅",t:sameDay(tom,bt.start)?(bt.n===1?`Mañana empieza el bloque 1. Semana 1: aprendes los pesos (te sobrarán repeticiones a propósito).`:`Mañana empieza el bloque 2 (Transformación). Semana 1: aprendes los ejercicios nuevos, con margen. La app calcula los kilos nuevos desde tu bloque 1. El miércoles 23, tests.`):`Mañana empieza la ${weekInfo(tom).t.toLowerCase()}.${w===4?(bt.n===2?" Descarga activa: misma intensidad y casi la mitad de series, para llegar rápido al bloque 3.":" Descarga: menos series y más fácil, para llegar fresco al siguiente bloque."):w===3?" Es la semana más exigente: duerme bien y vigila la glucosa.":""}`})}
   const cToday=compOn(now), cNext=[1,2,3,4,5,6].map(i=>({i,c:compOn(addDays(now,i))})).find(x=>x.c&&!(cToday&&x.c.id===cToday.id));
   if(cToday)N.push({i:"🏆",t:`Hoy compites: ${cToday.name}. Nada de gimnasio: calentamiento competitivo antes de jugar. Mide la glucosa antes y entre partidos; con los nervios suele subir y después puede bajar. Si mañana repites, 10' de agua fría al terminar.`});
-  else if(cNext)N.push({i:"🏆",t:`${cNext.i===1?"Mañana":"El "+addDays(now,cNext.i).toLocaleDateString("es-ES",{weekday:"long"})} tienes ${cNext.c.name}. La app ya lo tiene en cuenta: nada de pierna pesada la víspera${addDays(now,cNext.i).getDay()===6&&cNext.i>1&&!sessionsOn(addDays(now,cNext.i-1)).length?" y el viernes, activación":""}. Duerme bien esos días.`});
+  else if(cNext)N.push({i:"🏆",t:`${cNext.i===1?"Mañana":"El "+addDays(now,cNext.i).toLocaleDateString("es-ES",{weekday:"long"})} tienes ${cNext.c.name}. La app ya lo tiene en cuenta: nada de pierna pesada la víspera${addDays(now,cNext.i).getDay()===6&&cNext.i>1&&!weekState(now).doneIds.has("D")?" y el viernes, activación":""}. Duerme bien esos días.`});
   const tests=Object.values(S.tests||{}).flat().filter(x=>new Date(x.d)>=monday(blockOf(now).start));
   if(now>=BLOCK_START&&blockWeek(now)===1&&!tests.length&&!compOn(now))N.push({i:"⏱️",t:bkN===2?"Esta semana toca repetir los tests (el miércoles 23, por la mañana y al menos 4 h antes de jugar). Hay dos nuevos: sprints repetidos y salto tras caída. Están en Progreso.":"Esta semana toca hacer los tests del bloque (salto, frenada, dominadas y 1,5 km) en un día suave. Están en Progreso.",act:"go-progreso"});
   if(bkN===2&&bwR===4&&!Object.values(S.tests||{}).flat().some(x=>new Date(x.d)>=monday(now))&&!compOn(now))N.push({i:"⏱️",t:"Esta semana toca repetir los tests para cerrar el bloque 2 (el miércoles 13, por la mañana y al menos 4 h antes de jugar). Están en Progreso.",act:"go-progreso"});
@@ -1491,7 +1494,7 @@ function renderProgreso(){
    ${myLiftsCard()}
    <section class="card"><div class="eyebrow" style="margin-bottom:6px">Copia de seguridad</div>
      <p class="small muted" style="margin:0 0 10px">Tus registros viven solo en este iPhone. Guarda una copia de vez en cuando (en Archivos o iCloud) por si cambias de móvil.${S.lastBackup?` Última copia: ${new Date(S.lastBackup).toLocaleDateString("es-ES",{day:"numeric",month:"long"})}.`:" Aún no has guardado ninguna."} Las fotos de progreso no van en la copia: si las quieres conservar, guárdalas también en tu carrete.</p>
-     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="ghostbtn small" data-act="backup">Guardar copia</button><label class="ghostbtn small" style="text-align:center;cursor:pointer">Restaurar copia<input type="file" id="restore" accept="application/json,.json" hidden></label></div>
+     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="ghostbtn small" data-act="backup">Guardar copia</button><label class="ghostbtn small" style="text-align:center;cursor:pointer">Restaurar copia<input type="file" id="restore" accept="application/json,.json" hidden></label></div><p class="small muted" style="margin:0">Las fotos de progreso no van en la copia: se quedan solo en este iPhone.</p>
    </section>
    <section class="card"><div class="eyebrow" style="margin-bottom:4px">Tests del bloque</div>
      <p class="small muted" style="margin:0 0 6px">Hazlos al empezar y al terminar cada bloque, con el mismo calentamiento. Así sabremos si mejoras en pista y no solo en el gimnasio.</p>
@@ -1642,7 +1645,7 @@ function myLiftsCard(){
   </section>`;
 }
 async function backup(){
-  const txt=JSON.stringify({app:"plan-padel",version:1,fecha:new Date().toISOString(),datos:S});
+  const txt=JSON.stringify({app:"plan-padel",version:1,fecha:new Date().toISOString(),datos:{...S,lastBackup:new Date().toISOString()}}); /* al restaurarla no vuelve el aviso de «haz copia» */
   const name=`plan-padel-copia-${dayKey()}.json`, done=()=>{S.lastBackup=new Date().toISOString();save()};
   try{const f=new File([txt],name,{type:"application/json"});if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:"Copia de Plan Pádel"});done();toast("Copia guardada");return}}catch(e){if(e&&e.name==="AbortError")return}
   try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([txt],{type:"application/json"}));a.download=name;document.body.appendChild(a);a.click();a.remove();done();toast("Copia descargada")}catch(e){toast("No se pudo guardar la copia")}
@@ -1746,7 +1749,8 @@ const isMatchDay=d=>!!d&&d.blocks.length===2&&d.blocks[0].id==="cal"&&d.blocks[1
 function matchPart(d,part){return {...d,blocks:d.blocks.filter(b=>b.id===part),part,title:part==="cal"?"Calentamiento competitivo":"Recuperación después de jugar"}}
 const matchDone=(part,now=new Date())=>sessionsOn(now).some(s=>s.part===part);
 const nextMatchPart=()=>matchDone("cal")||playedToday()?"post":"cal";
-function rebuildDay(s){const base=s.dayId==="D-act"?ACTIVATION:[...DAYS,ACTIVATION].find(d=>d.id===s.dayId);if(!base)return null;let d=materialize(base,new Date(s.start),{short:!!s.short});if(s.part&&isMatchDay(d))d=matchPart(d,s.part);return s.extra?withExtra(d):d}
+function rebuildDay(s){const base=s.dayId==="D-act"?ACTIVATION:[...DAYS,ACTIVATION].find(d=>d.id===s.dayId);if(!base)return null;let d=materialize(base,new Date(s.start),{...(s.mo||{}),short:!!s.short});
+  if(Array.isArray(s.bl)&&s.bl.length){const keep=d.blocks.filter(b=>s.bl.includes(b.id));if(keep.length)d={...d,blocks:keep}} /* los mismos bloques con los que empezó */if(s.part&&isMatchDay(d))d=matchPart(d,s.part);return s.extra?withExtra(d):d}
 /* Minutos de verdad: suma los ratos entre series, cada uno como mucho 15'. Así no cuentan ni las pausas largas
    en mitad de la sesión ni las horas después si cerraste la app. */
 function activeMinutes(start,ts,now=Date.now()){
@@ -1863,12 +1867,14 @@ function drawPre(){
   const ns=$("#layer .overlay .scroll"); if(ns&&top)ns.scrollTop=top;
 }
 function go(){
-  const gv=parseFloat(($("#g-pre").value||"").replace(",","."));
+  let gv=parseFloat(($("#g-pre").value||"").replace(",","."));
+  if(isFinite(gv)&&(gv<20||gv>600)){toast("La glucosa va en mg/dL (por ejemplo 120): no la he guardado");gv=NaN}
   P.start=Date.now();
   P.sid="s"+P.start;
   const rr=readiness(P.rd||{});
-  S.sessions.push({id:P.sid,dayId:P.day.id,part:P.day.part||null,title:P.day.title,start:new Date(P.start).toISOString(),minutes:0,rpe:0,status:"en curso",short:!!P.day.short,extra:!!P.day.extra,gBefore:isFinite(gv)?gv:null,gTrend:P.gTrend||null,ready:rr?{...P.rd,sc:Math.round(rr.sc*10)/10,lvl:rr.lvl}:null});
-  save(); drawPlayer();
+  S.sessions.push({id:P.sid,dayId:P.day.id,part:P.day.part||null,title:P.day.title,start:new Date(P.start).toISOString(),minutes:0,rpe:0,status:"en curso",short:!!P.day.short,extra:!!P.day.extra,gBefore:isFinite(gv)?gv:null,gTrend:P.gTrend||null,ready:rr?{...P.rd,sc:Math.round(rr.sc*10)/10,lvl:rr.lvl}:null,
+    mo:(()=>{const o=dayOpts();return {matchSoon:o.matchSoon,matchLater:o.matchLater,compete:effCompete()}})(),bl:P.day.blocks.map(b=>b.id)}); /* para retomarla igual */
+  save(); P.lastTap=performance.now(); drawPlayer(); /* un doble toque en «Empezar» no apunta la primera serie */
   P.timer=setInterval(tick,250);
   audioUnlock(); keepAwake();
 }
@@ -1926,7 +1932,7 @@ function drawPlayer(){
      <h2 class="exname">${esc(e.name)}</h2>
      <div style="font-weight:500;opacity:.88">${esc(e.presc)}</div>
      <p class="small muted" style="margin:6px 0 14px">${esc(e.cue)}</p>
-     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button class="vid" data-video="${e.id}">${ICON.play} Ver vídeo</button>${e.id==="reactiva"||e.id==="globo-react"?`<button class="vid" data-act="react" style="background:var(--ball);color:var(--ballInk)">⚡ Modo reacción</button>`:""}${lastTxt(e.id,P.sid)?`<span class="small muted">Última vez: ${esc(lastTxt(e.id,P.sid))}</span>`:""}</div>
+     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button class="vid" data-video="${e.id}">${ICON.play} Ver vídeo</button>${e.id==="reactiva"||e.id==="globo-react"||e.id==="cod-react"?`<button class="vid" data-act="react" style="background:var(--ball);color:var(--ballInk)">⚡ Modo reacción</button>`:""}${lastTxt(e.id,P.sid)?`<span class="small muted">Última vez: ${esc(lastTxt(e.id,P.sid))}</span>`:""}</div>
      <div class="card" style="margin-top:18px;padding:18px">
        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px"><span style="font:800 22px var(--display)">Serie ${st.set+1} de ${e.sets}</span>${e.rest?`<span class="small muted">⏱ ${restText(e.rest)}</span>`:""}</div>
        ${P.hint&&st.set===0?`<div class="small" style="margin:2px 0 8px;padding:8px 10px;border-radius:10px;background:${P.hint.t==="up"?"color-mix(in srgb,var(--ok) 14%,transparent)":P.hint.t==="down"?"color-mix(in srgb,var(--warn) 14%,transparent)":"var(--surface2)"};color:${P.hint.t==="up"?"var(--ok)":P.hint.t==="down"?"var(--warn)":"var(--muted)"}">${P.hint.t==="up"?"▲ ":P.hint.t==="down"?"▼ ":"= "}${esc(P.hint.txt)}</div>`:""}
@@ -2008,6 +2014,7 @@ function undoSet(){
   /* el paso de esa serie (por si el orden cambió) */
   let k=idx;if(!(P.steps[k]&&P.steps[k].e.id===last.ex&&P.steps[k].set===last.set)){const j=P.steps.findIndex((s,n)=>n<=idx&&s.e.id===last.ex&&s.set===last.set);if(j>=0){const [m]=P.steps.splice(j,1);P.steps.splice(idx,0,m)}}
   P.i=idx; const st=P.steps[P.i];
+  {const ses=S.sessions.find(x=>x.id===P.sid);if(ses&&ses.order){ses.order=P.steps.slice(P.i).map(s=>[s.e.id,s.set,s.b.id]);save()}} /* retomar en el orden real */
   P.vals=Object.assign({},st.e.defaults);st.e.metrics.forEach(m=>{if(last[m]!=null)P.vals[m]=last[m]});P.hint=null;
   P.prs=[];S.sets.filter(x=>x.sid===P.sid).forEach(r=>{const pr=checkPR(r),e=exById(r.ex);if(pr&&e)P.prs.push({name:e.name,txt:pr})});
   drawPlayer(); toast("Corrige los números y vuelve a darle a «Serie hecha»");
@@ -2249,8 +2256,8 @@ function openFinish(partial){
   el.innerHTML=`<div class="panel" role="dialog" aria-modal="true" aria-label="Cerrar la sesión">
    <h2 class="title" id="fin-title">${partial?"Sesión parcial":"Sesión terminada"}</h2>
    <div><div style="font-weight:600;margin-bottom:8px">¿Qué tan dura ha sido? (RPE) <button data-act="help-rir" style="color:var(--ball);font-weight:700;text-decoration:underline;font-size:13px">¿Qué es?</button></div>
-     <div class="rpe">${Array.from({length:10},(_,k)=>`<button data-rpe="${k+1}" aria-pressed="${k+1===7}">${k+1}</button>`).join("")}</div>
-     <div id="rpe-txt">${rpeScale(7)}</div></div>
+     <div class="rpe">${Array.from({length:10},(_,k)=>`<button data-rpe="${k+1}" aria-pressed="${k+1===F.rpe}">${k+1}</button>`).join("")}</div>
+     <div id="rpe-txt">${rpeScale(F.rpe)}</div></div>
    <div style="display:grid;grid-template-columns:${noGB?"1fr 1fr 1fr":"1fr 1fr"};gap:10px">
      <div class="field"><label for="f-min">Minutos</label><input id="f-min" inputmode="numeric" value="${mins}"></div>
      ${noGB?`<div class="field"><label for="f-gb">Glucosa antes</label><input id="f-gb" inputmode="numeric" placeholder="mg/dL"></div>`:""}
@@ -2262,7 +2269,7 @@ function openFinish(partial){
    <div class="field"><label for="f-knee">Rodilla derecha: molestia de 0 (nada) a 10</label><div style="display:flex;align-items:center;gap:12px"><input type="range" id="f-knee" min="0" max="10" step="1" value="0" style="flex:1;accent-color:#3f7df4"><b id="f-knee-v" class="num" style="font:700 24px var(--body);min-width:28px;text-align:right">0</b></div></div>
    <div class="field"><label>¿Otra molestia?</label><div class="chips">${PAINZ.map(z=>`<button class="chip" data-act="pz" data-z="${z.k}" aria-pressed="false" style="background:var(--surface);color:var(--muted)">${z.n}</button>`).join("")}</div><div id="pz-box" style="display:flex;flex-direction:column;gap:8px;margin-top:8px"></div></div>
    <div class="field"><label for="f-note">Notas</label><textarea id="f-note" rows="2" placeholder="Molestias, sensaciones, qué ejercicio te costó…"></textarea></div>
-   <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="small muted">Carga de la sesión</span><span><b id="f-load" class="num" style="font:700 34px var(--body)">${7*mins}</b> <span class="small muted">UA</span></span></div>
+   <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="small muted">Carga de la sesión</span><span><b id="f-load" class="num" style="font:700 34px var(--body)">${F.rpe*mins}</b> <span class="small muted">UA</span></span></div>
    <button class="ballbtn" data-act="save">Guardar sesión</button>
    ${!partial&&S.sets.some(x=>x.sid===P.sid)?`<button class="ghostbtn small" data-act="undo-set">↶ Corregir la última serie</button>`:""}</div>`;
   $("#layer").appendChild(el);
@@ -2300,8 +2307,8 @@ function saveSession(){
   const s=S.sessions.find(x=>x.id===P.sid);
   const mins=parseInt($("#f-min").value,10)||F.mins;
   const gl=parseFloat(($("#f-gl").value||"").replace(",",".")), gb=$("#f-gb")?parseFloat(($("#f-gb").value||"").replace(",",".")):NaN;
-  if(isFinite(gb))s.gBefore=gb;
-  Object.assign(s,{fuel:$("[data-act=fuel]")?fuelOut():null,minutes:mins,rpe:F.rpe,status:$("#f-partial").checked?"parcial":"completa",reason:$("#f-partial").checked?F.reason:null,gAfter:isFinite(gl)?gl:null,note:$("#f-note").value.trim(),knee:+$("#f-knee").value,pain:Object.keys(F.pain).length?{...F.pain}:null});
+  const okG=v=>isFinite(v)&&v>=20&&v<=600; if(okG(gb))s.gBefore=gb;
+  Object.assign(s,{fuel:$("[data-act=fuel]")?fuelOut():null,minutes:mins,rpe:F.rpe,status:$("#f-partial").checked?"parcial":"completa",reason:$("#f-partial").checked?F.reason:null,gAfter:okG(gl)?gl:null,note:$("#f-note").value.trim(),knee:+$("#f-knee").value,pain:Object.keys(F.pain).length?{...F.pain}:null});
   save(); const sm=sessionSummary(s); closePlayer(); render(); showSummary(sm); setTimeout(()=>checkBadges(),4200);
   if(s.knee>=4)toast("Rodilla con molestia: mañana sin saltos y, si sigue, consúltalo con tu fisio.");
   else{const z=PAINZ.find(z=>s.pain&&s.pain[z.k]>=4);if(z)toast(`${z.n} con molestia: ${z.tip}`)}
@@ -2356,7 +2363,9 @@ function importHealth(raw){
   toast(nb&&!gl.length&&!wo.length?`Importadas ${nb} medidas de la báscula`:`Importado: ${gl.length} glucosas, ${wo.length} entrenos${nb?` y ${nb} pesajes`:""}`); return null;
 }
 async function exportData(){
-  const txt=JSON.stringify({exportado:new Date().toISOString(),sesiones:S.sessions.filter(s=>s.status!=="en curso"),series:S.sets,salud:S.health,cuerpo:S.body||[],tests:S.tests||{},saltos:S.jumps||[],pauta:S.endo||null,padelPrevisto:S.pad||[],competiciones:S.comps||[]});
+  /* Glucosa: solo los últimos 14 días y una lectura cada 15 minutos (el archivo completo no cabe en un mensaje) */
+  const g0=Date.now()-14*864e5, GB=new Map(); gArr().filter(g=>g.ms>=g0).forEach(g=>{const k=Math.floor(g.ms/9e5);if(!GB.has(k))GB.set(k,{t:new Date(g.ms).toISOString(),v:Math.round(g.v)})});
+  const txt=JSON.stringify({exportado:new Date().toISOString(),sesiones:S.sessions.filter(s=>s.status!=="en curso"),series:S.sets,salud:{...S.health,glucose:[...GB.values()],glucosaNota:"últimos 14 días, 1 lectura cada 15 min"},cuerpo:S.body||[],tests:S.tests||{},saltos:S.jumps||[],pauta:S.endo||null,padelPrevisto:S.pad||[],competiciones:S.comps||[]});
   try{await navigator.clipboard.writeText(txt);toast("Copiado. Pégamelo en el chat.")}
   catch(e){const t=document.createElement("textarea");t.value=txt;t.style.cssText="position:fixed;opacity:0";document.body.appendChild(t);t.select();try{document.execCommand("copy");toast("Copiado. Pégamelo en el chat.")}catch(_){toast("No se pudo copiar")}t.remove()}
 }
@@ -2414,7 +2423,7 @@ function importLibreView(txt){
   const seen=new Set(S.health.glucose.map(g=>gk(g.t))); let n=0;
   r.list.forEach(g=>{const k=gk(g.t);if(!seen.has(k)){S.health.glucose.push(g);seen.add(k);n++}});
   S.health.glucose.sort((a,b)=>new Date(a.t)-new Date(b.t)); S.health.glucose=S.health.glucose.slice(-20000); GC=null; save();
-  const a=new Date(r.list[0].t),b=new Date(r.list.at(-1).t),f=d=>d.toLocaleDateString("es-ES",{day:"numeric",month:"short"});
+  const a=new Date(r.list[0].t),b=new Date(r.list.at(-1).t),yr=a.getFullYear()!==b.getFullYear(),f=d=>d.toLocaleDateString("es-ES",{day:"numeric",month:"short",...(yr?{year:"numeric"}:{})});
   return `Glucosa importada: ${n} lecturas nuevas (${f(a<b?a:b)} – ${f(a<b?b:a)})`;
 }
 /* Búsqueda rápida en la serie de glucosa */
@@ -2645,8 +2654,8 @@ function savePadelLog(){
   const d=$("#pl-d").value,h=$("#pl-h").value||"10:00",m=parseInt($("#pl-m").value,10);
   if(!d||!(m>0)){toast("Pon el día y los minutos");return}
   const st=new Date(`${d}T${h}:00`); if(isNaN(st)){toast("Fecha no válida");return}
-  const n=v=>{v=parseFloat((v||"").replace(",","."));return isFinite(v)?v:null};
-  const rec={type:"Pádel · "+PL.kind,kind:PL.kind,padel:true,start:st.toISOString(),minutes:m,rpe:n($("#pl-r").value),gBefore:n($("#pl-gb").value),gAfter:n($("#pl-ga").value),
+  const n=v=>{v=parseFloat((v||"").replace(",","."));return isFinite(v)?v:null}, ng=v=>{v=n(v);return v!=null&&v>=20&&v<=600?v:null};
+  const rec={type:"Pádel · "+PL.kind,kind:PL.kind,padel:true,start:st.toISOString(),minutes:m,rpe:n($("#pl-r").value),gBefore:ng($("#pl-gb").value),gAfter:ng($("#pl-ga").value),
     res:PL.res,legs:PL.legs,move:PL.move,fails:PL.fails.slice(),note:($("#pl-note").value||"").trim()||null,name:PL.name||null,fuel:fuelOut()};
   const w=PL.edit&&S.health.workouts.find(x=>x.id===PL.edit);
   let wid=w?w.id:"m"+st.getTime()+Math.random().toString(36).slice(2,6); /* único aunque apuntes dos partidos a la misma hora */
@@ -2714,7 +2723,10 @@ function openEndo(){
 
 /* Informe para el endocrino (pantalla imprimible → PDF) */
 let repDays=90;
-function glucoseStats(a){if(!a.length)return null;const v=a.map(x=>x.v),n=v.length,mean=v.reduce((s,x)=>s+x,0)/n,sd=Math.sqrt(v.reduce((s,x)=>s+(x-mean)**2,0)/n);
+function glucoseStats(a){if(!a.length)return null;
+  /* Por tiempo, como LibreView: una media por cada 15 minutos. Si no, los escaneos (más frecuentes cuando vas bajo) pesan de más */
+  if(a[0].ms!=null){const B=new Map();a.forEach(x=>{const k=Math.floor(x.ms/9e5),b=B.get(k);if(b){b.s+=x.v;b.n++}else B.set(k,{s:x.v,n:1})});a=[...B.values()].map(b=>({v:b.s/b.n}))}
+  const v=a.map(x=>x.v),n=v.length,mean=v.reduce((s,x)=>s+x,0)/n,sd=Math.sqrt(v.reduce((s,x)=>s+(x-mean)**2,0)/n);
   const pct=f=>fmtNum(Math.round(v.filter(f).length/n*1000)/10);
   return {n,mean,cv:sd/mean*100,gmi:3.31+0.02392*mean,tir:pct(x=>x>=70&&x<=180),tbr:pct(x=>x<70),tbr54:pct(x=>x<54),tar:pct(x=>x>180),tar250:pct(x=>x>250)}}
 function curveSvg(groups){
@@ -2777,9 +2789,10 @@ function openReport(){
 }
 
 /* ============ NOVEDADES Y AJUSTES ============ */
-const APP_VERSION="2026.11.27g";
+const APP_VERSION="2026.11.28a";
 /* [icono, texto, versión]: al abrir la app nueva solo salen las novedades desde la última versión que viste */
 const CHANGELOG=[
+ ["🔍","Segunda revisión a fondo (3 meses simulados día a día): «Hacer esta sesión hoy» y «Solo movilidad» funcionan siempre, también después de las 21:00; ninguna sesión sale repetida en la semana; el RPE que ves al cerrar es el que se guarda; al retomar una sesión se respeta «hoy juego» y «compito mañana»; las estadísticas de glucosa cuentan por tiempo, como LibreView; «Copiar mis registros» lleva solo 14 días de glucosa; medidas imposibles se rechazan; «Borrar todo» borra también las fotos.","2026.11.28a"],
  ["🍽️","Nueva tarjeta «Comida y glucosa» al terminar de entrenar o jugar: cuándo comer, qué tipo de comida, a qué horas mirar el sensor y qué fruta tomar. Cambia si fue gimnasio, pádel o competición, y si te queda otra sesión ese día te avisa de comer ya. Sin cantidades: esas, las de tu pauta.","2026.11.27f"],
  ["🔁","Cada bloque te dice cómo va: ejercicio solo, superserie, triserie o circuito, con los ejercicios numerados en orden. En plena sesión ves también qué viene después, sin esperar al descanso.","2026.11.27d"],
  ["🎾","Nuevo bloque «Pies rápidos al globo» en la A y la D (≈8 min, con las piernas frescas): pies rápidos y retroceso con los brazos arriba, y «volea o globo» con el modo reacción, que ahora tiene un modo globo. También en el calentamiento antes de jugar.","2026.11.27c"],
@@ -2871,7 +2884,7 @@ function openSettings(){
    <div style="display:flex;flex-direction:column;gap:4px"><label style="display:flex;justify-content:space-between;align-items:center;gap:12px;font-weight:600">🔔 Que el pitido suene aunque el iPhone esté en silencio <input type="checkbox" id="pref-loud" ${S.prefs&&S.prefs.loud?"checked":""} style="width:24px;height:24px;flex:none;accent-color:#3f7df4"></label>
      <span class="small muted">Puede pausar la música que tengas puesta mientras dura la sesión. ${"audioSession" in navigator?"":"Este iPhone no lo permite (hace falta iOS 17 o posterior)."}</span>
      <button class="ghostbtn small" data-act="beep-test">Probar el pitido</button></div>
-   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="ghostbtn small" data-act="backup">💾 Guardar copia</button><label class="ghostbtn small" style="text-align:center;cursor:pointer">Restaurar copia<input type="file" id="restore" accept="application/json,.json" hidden></label></div>
+   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="ghostbtn small" data-act="backup">💾 Guardar copia</button><label class="ghostbtn small" style="text-align:center;cursor:pointer">Restaurar copia<input type="file" id="restore" accept="application/json,.json" hidden></label></div><p class="small muted" style="margin:0">Las fotos de progreso no van en la copia: se quedan solo en este iPhone.</p>
    <button class="ghostbtn small" data-act="export">Copiar mis registros para tu entrenador</button>
    <div class="small muted">Tus datos viven solo en este iPhone (${used} KB). Nadie más los ve. Versión ${APP_VERSION}.</div>
    <button class="ghostbtn small" style="color:var(--heart)" data-act="wipe">Borrar todos mis datos</button></div>`;
@@ -2906,7 +2919,7 @@ document.addEventListener("click",e=>{
     case "rest-skip":P.restEnd=0;$("#rest")?.remove();break;
     case "exit":openExit();break;
     case "exit-partial":$("#exit")?.remove();openFinish(true);break;
-    case "exit-discard":S.sessions=S.sessions.filter(s=>s.id!==P.sid);S.sets=S.sets.filter(s=>s.sid!==P.sid);save();closePlayer();render();break;
+    case "exit-discard":if(S.sets.some(x=>x.sid===P.sid)&&!confirm("¿Descartar la sesión y borrar las series que ya apuntaste?"))break;S.sessions=S.sessions.filter(s=>s.id!==P.sid);S.sets=S.sets.filter(s=>s.sid!==P.sid);save();closePlayer();render();break;
     case "exit-cancel":$("#exit")?.remove();break;
     case "save":saveSession();break;
     case "import":openImport();break;
@@ -2916,7 +2929,9 @@ document.addEventListener("click",e=>{
     case "export":exportData();break;
     case "backup":backup();break;
     case "body-save":{const r={d:new Date().toISOString(),src:"manual"};let ok=false,bad=false;BODYM.forEach(m=>{const v=$("#b-"+m.id).value.trim().replace(",",".");if(v){if(isFinite(+v)&&+v>0){r[m.id]=+v;ok=true}else bad=true}});
-      if(bad||!ok){toast("Escribe al menos un número");break}if(r.fat!=null&&r.fat>60){toast("La grasa va en %, por ejemplo 23,5");break}addBody([r]);save();toast("Medida guardada");render();checkBadges();break}
+      if(bad||!ok){toast("Escribe al menos un número");break}if(r.fat!=null&&r.fat>60){toast("La grasa va en %, por ejemplo 23,5");break}
+      const RG={kg:[30,250,"El peso va en kg, por ejemplo 80,5"],fat:[3,60,"La grasa va en %, por ejemplo 23,5"],skm:[10,120,"El músculo va en kg, por ejemplo 40"],waist:[50,160,"La cintura va en cm, por ejemplo 90"]};
+      const off=Object.keys(RG).find(k=>r[k]!=null&&(r[k]<RG[k][0]||r[k]>RG[k][1]));if(off){toast(RG[off][2]);break}addBody([r]);save();toast("Medida guardada");render();checkBadges();break}
     case "react":openReaction(P&&P.steps[P.i]?.e?.defaults?.reps||4,P&&P.steps[P.i]?.e?.id==="globo-react"?"globo":"");break;
     case "react-close":$("#react")?.remove();break;
     case "test-save":{const id=t.dataset.id,v=$("#t-"+id).value.trim().replace(",",".");if(!v||!isFinite(+v)){toast("Escribe un número");break}S.tests=S.tests||{};(S.tests[id]=S.tests[id]||[]).push({d:new Date().toISOString(),v:+v});save();toast("Test guardado");render();checkBadges();break}
@@ -2932,7 +2947,7 @@ document.addEventListener("click",e=>{
     case "match-later":setDayOpt("matchLater",true);setDayOpt("matchSoon",false);autoPlan();render();break;
     case "match-ask":setDayOpt("ask",true);render();break;
     case "match-reset":{const o=dayOpts();delete o.matchSoon;delete o.matchLater;if(o.autoSwap){delete o.swap;delete o.autoSwap}S.opts[dayKey()]=o;save();render();break}
-    case "plan-apply":{const id=t.dataset.id;setDayOpt("autoSwap",false);setDayOpt("swap",id===DAYS[(new Date().getDay()+6)%7].id?null:id);render();window.scrollTo(0,0);toast(id==="X"?"Hoy, movilidad":"Hoy toca la "+id);break}
+    case "plan-apply":{const id=t.dataset.id;setDayOpt("autoSwap",false);setDayOpt("swap",id!=="X"&&id===DAYS[(new Date().getDay()+6)%7].id?null:id);render();window.scrollTo(0,0);toast(id==="X"?"Hoy, movilidad":"Hoy toca la "+id);break} /* «solo movilidad» se guarda siempre, también el miércoles */
     case "skip-missed":{const st=weekState();S.skip=S.skip||{};const k=dayKey(st.m);S.skip[k]=[...new Set([...(S.skip[k]||[]),...st.missed])];save();render();toast("Vale, seguimos con lo que queda de semana");break}
     case "go-progreso":tab="progreso";render();window.scrollTo(0,0);break;
     case "share-summary":shareSummary();break;
@@ -2949,13 +2964,13 @@ document.addEventListener("click",e=>{
     case "rirhelp-close":$("#rirhelp")?.remove();break;
     case "edit-val":{const m=t.dataset.m,lab={kg:"Peso en kg"+(P.steps[P.i].e.barbell?" (solo los discos)":""),reps:"Repeticiones",RIR:"RIR: repeticiones que te quedaban",seg:"Segundos"}[m]||m;
       const r=prompt(lab,fmtNum(P.vals[m]??0));if(r==null)break;const v=parseFloat(String(r).replace(",","."));if(!isFinite(v)||v<0){toast("Escribe un número");break}
-      P.vals[m]=Math.round(v*100)/100;$("#v-"+m).textContent=fmtNum(P.vals[m]);if(m==="RIR"&&$("#rir-help"))$("#rir-help").textContent=rirShort(P.vals.RIR);break}
+      P.vals[m]=Math.round(v*100)/100;$("#v-"+m).textContent=fmtNum(P.vals[m]);if(m==="RIR"&&$("#rir-help"))$("#rir-help").textContent=rirShort(P.vals.RIR);if(m==="seg"&&$("#hold-sec"))$("#hold-sec").textContent=mmss(P.vals.seg);break}
     case "settings":openSettings();break;
     case "settings-close":$("#settings")?.remove();break;
     case "whatsnew":$("#settings")?.remove();openWhatsNew();break;
     case "whatsnew-all":openWhatsNew(true);break;
     case "whatsnew-ok":S.seenVersion=APP_VERSION;save();$("#whatsnew")?.remove();break;
-    case "wipe":if(confirm("¿Borrar TODOS tus registros de este iPhone? Guarda antes una copia: no se puede deshacer.")&&confirm("¿Seguro? Se borrarán sesiones, series, pesajes, glucosa y pádel.")){S={sessions:[],sets:[],health:{glucose:[],workouts:[]},seenVersion:APP_VERSION};GC=null;save();$("#settings")?.remove();render();toast("Datos borrados")}break;
+    case "wipe":if(confirm("¿Borrar TODOS tus registros de este iPhone? Guarda antes una copia: no se puede deshacer.")&&confirm("¿Seguro? Se borrarán sesiones, series, pesajes, glucosa, pádel y fotos de progreso.")){S={sessions:[],sets:[],health:{glucose:[],workouts:[]},seenVersion:APP_VERSION};GC=null;save();phAll().then(ps=>ps.length&&phDel(ps.map(p=>p.id))).then(()=>{PH=[]}).catch(()=>{}); /* también las fotos */$("#settings")?.remove();render();toast("Datos borrados")}break;
     case "resume":resumeSession(false);break;
     case "resume-finish":resumeSession(true);break;
     case "resume-discard":{const s=openSession();if(s&&confirm("¿Descartar esta sesión y sus series?")){S.sessions=S.sessions.filter(x=>x.id!==s.id);S.sets=S.sets.filter(x=>x.sid!==s.id);save();render();toast("Sesión descartada")}break}
@@ -3011,8 +3026,8 @@ document.addEventListener("click",e=>{
     case "rep-close":$("#report")?.remove();break;
     case "rep-print":window.print();break;
     case "day-close":$("#dayview")?.remove();break;
-    case "day-swap":setDayOpt("swap",t.dataset.id);$("#dayview")?.remove();tab="hoy";render();window.scrollTo(0,0);toast("Hoy haces esta sesión");break;
-    case "day-unswap":setDayOpt("swap",null);$("#dayview")?.remove();tab="hoy";render();window.scrollTo(0,0);break;
+    case "day-swap":setDayOpt("autoSwap",false);setDayOpt("swap",t.dataset.id);$("#dayview")?.remove();tab="hoy";render();window.scrollTo(0,0);toast("Hoy haces esta sesión");break;
+    case "day-unswap":setDayOpt("autoSwap",false);setDayOpt("swap",null);$("#dayview")?.remove();tab="hoy";render();window.scrollTo(0,0);break;
     case "toggle-short":setDayOpt("short",!effShort());render();break;
   }
 });
@@ -3021,7 +3036,7 @@ document.addEventListener("input",e=>{
   if(e.target.id==="pl-r"){const b=$("#pl-rs");if(b)b.innerHTML=rpeScale(parseInt(e.target.value,10)||0,1)}
   if(e.target.id==="f-min"&&F){$("#f-load").textContent=F.rpe*(parseInt(e.target.value,10)||0)}
   if(e.target.id==="imp-txt")$("#imp-err").textContent="";
-  if(e.target.id==="restore"&&e.target.files[0])restore(e.target.files[0]);
+  if(e.target.id==="restore"&&e.target.files[0]){restore(e.target.files[0]);e.target.value=""} /* para poder elegir otra vez el mismo archivo */
   if(e.target.id==="jump-file"&&e.target.files[0]){jumpLoad(e.target.files[0]);e.target.value=""}
   if(["pln-h","pln-m","pln-n"].includes(e.target.id))PLN.dirty=true;
   if(e.target.id==="jv-r"){const v=$("#jv");if(v&&isFinite(v.duration)){v.pause();v.currentTime=e.target.value/1000*v.duration}}
