@@ -218,11 +218,14 @@ const WEEK_INFO={1:{t:"Semana 1 · aprendes los pesos",rir:1,sets:0},2:{t:"Seman
    4 descarga activa: misma intensidad y ~40 % menos series */
 const B2_START=new Date(2026,11,21);
 const WEEK_INFO2={1:{t:"Semana 1 · aprendes los ejercicios nuevos",rir:1,sets:0},2:{t:"Semana 2 · carga",rir:0,sets:0},3:{t:"Semana 3 · la más exigente",rir:-1,sets:0,rirMin:1},4:{t:"Semana 4 · descarga activa",rir:0,sets:0,mul:0.6}};
-const BLOCKS=[{n:1,phase:"A",start:BLOCK_START},{n:2,phase:"T",start:B2_START}];
-function blockOf(d=new Date()){const m=monday(d);let b=BLOCKS[0];BLOCKS.forEach(x=>{if(m>=monday(x.start))b=x});return b}
+const WEEK_INFO3={1:{t:"Semana 1 · intensidad de partido",rir:0,sets:0},2:{t:"Semana 2 · la más intensa",rir:-1,sets:0,rirMin:1},3:{t:"Semana 3 · pico: menos series, máxima calidad",rir:0,sets:0,mul:0.75},4:{t:"Semana 4 · puesta a punto y tests",rir:1,sets:0,mul:0.5}};
+/* Bloques de 4 semanas desde el 23-11-2026: 1 Acumulación (23-11), 2 Transformación (21-12), 3 Realización (18-01)
+   y luego el ciclo vuelve a empezar (bloque 4 = Acumulación con tus pesos de ese momento, y así siempre). tpl = qué sesiones usa */
+function blockOf(d=new Date()){const wk=Math.floor(Math.round((monday(d)-monday(BLOCK_START))/864e5)/7), i=Math.max(0,Math.floor(wk/4)), t=i%3;
+  return {n:i+1,phase:["A","T","R"][t],tpl:t+1,start:addDays(monday(BLOCK_START),i*28)}}
 function blockWeekRaw(d=new Date()){return Math.floor(Math.round((monday(d)-monday(blockOf(d).start))/86400000)/7)+1}
 function blockWeek(d=new Date()){return Math.min(4,Math.max(1,blockWeekRaw(d)))}
-const weekInfo=(d=new Date())=>(blockOf(d).n===2?WEEK_INFO2:WEEK_INFO)[blockWeek(d)];
+const weekInfo=(d=new Date())=>({1:WEEK_INFO,2:WEEK_INFO2,3:WEEK_INFO3}[blockOf(d).tpl])[blockWeek(d)];
 const BLOCK={get phase(){return blockOf().phase},get n(){return blockOf().n},get week(){return blockWeek()},weeks:4};
 
 /* presc admite {S} (series de esa semana) y {R} (RIR de esa semana) */
@@ -491,10 +494,69 @@ const B2ACT={id:"D-act",wd:5,b2:1,title:"Activación pre-competición",sub:"Mañ
   ex("clean-act","Cargada colgante ligera","{S} × 2 · RPE 6","Rápida y limpia, con bastante menos peso que en la D. Si no te apetece, salto con mancuernas ligeras. Apunta solo los discos.","hang power clean technique",3,["kg","reps"],{kg:15,reps:2},60,true)]},
  {id:"v5",mat:"Balón y pared.",title:"Lanzamiento",note:"2 rondas",ex:[{...exOf(SESSION_B,"lanz-rot"),presc:"{S} × 3 por lado",sets:2,defaults:{kg:4,reps:3},rest:45}]}]};
 
-const B2={A:B2A,B:B2B,C:B2C,D:B2D,"D-act":B2ACT};
-(()=>{const mk=e=>{e.b2=1};Object.values(B2).forEach(d=>d.blocks.forEach(b=>{b.ex.forEach(mk);if(b.wk)Object.values(b.wk).forEach(o=>(o.ex||[]).forEach(mk))}))})();
+
+/* ============ BLOQUE 3 · REALIZACIÓN (desde el 18-01-2027) ============
+   Pasar la fuerza y la potencia a la pista: menos volumen, fuerza pesada con 2-3 repeticiones para mantenerla
+   sin cansarte, todo a máxima velocidad y con señal, y el gesto del globo y de la bandeja.
+   Semana 1 intensidad de partido · 2 la más intensa · 3 pico (−25 % series) · 4 puesta a punto y tests (−50 %). */
+const B3A={id:"A",wd:1,b2:1,title:"A · Piernas: fuerza máxima y frenadas a la señal",sub:"Pocas series, muy pesadas o muy rápidas: fuerza y chispa para los partidos. Nunca a menos de 6 horas de jugar.",kinds:["gym"],gym:50,padel:0,rpe:[7,8],warn:"Pierna pesada y saltos: mide la glucosa antes de empezar.",blocks:[
+ B2A.blocks[0],
+ globoB2(1),
+ {id:"a1",mat:"5 m libres y el móvil delante con el modo reacción.",title:"Frenadas a la señal",note:"3 rondas · con las piernas frescas",tip:"Cada salida al 100 % y vuelves andando. Al frenar: cadera atrás, rodilla mirando a los cordones y en silencio. Si la rodilla pasa de 2 de 10, frenadas sin señal.",ex:[
+  ex("cod-react","Salidas reactivas a 4 direcciones","{S} × 5 · 2-4 m, frenar y volver al centro","Con el modo reacción: sal hacia donde marque, frena con la cadera baja y vuelve al centro en posición de espera.","reactive agility drill",3,["reps"],{reps:5},60,false,{plyo:1,react:1,wk:{4:{presc:"2 × 4 · 2-4 m, frenar y volver al centro",sets:2,defaults:{reps:4},fx:1}}})]},
+ {id:"a2",mat:"Jaula con la barra y los seguros a tu altura, y 3 m libres para el salto.",title:"Fuerza máxima + salto",note:"3 rondas",tip:"Sentadilla pesada y, 1-2' después, 2 saltos a tope. Si el salto sale peor que el anterior, esa serie se acaba.",ex:[
+  {...exOf(SESSION_A,"sentadilla"),presc:"{S} × 2 · RIR {R}",sets:3,defaults:{kg:50,reps:2,RIR:2},rest:90,cue:"Barra libre en la jaula con los seguros un poco por debajo de tu sentadilla. Baja controlado y sube lo más rápido que puedas: pesada, pero con técnica perfecta. Apunta solo los discos."},
+  ex("longitud","Salto horizontal","{S} × 2 · pies juntos, clavando la caída","Lo más lejos que puedas y aguanta 2\" en la caída, rodillas hacia fuera. 15\" entre saltos.","standing broad jump landing",3,["reps"],{reps:2},150,false,{plyo:1,ct:2})]},
+ {id:"a3",mat:"Banco, 2 mancuernas, 3 m libres a los lados y el móvil delante.",title:"Una pierna rápida",note:"2 rondas",ex:[
+  {...exOf(SESSION_A,"bulgara"),presc:"{S} × 3 por pierna · rápido · RIR {R}",sets:2,defaults:{kg:14,reps:3,RIR:2},rest:60,cue:"Empieza por la derecha. Baja controlado y sube lo más rápido que puedas, con la rodilla sobre el pie."},
+  ex("patinador","Salto del patinador a la señal","{S} × 3 por lado","Sales hacia el lado que marque el modo reacción y clavas la caída 1\". Rodilla encima del pie.","skater jump",2,["reps"],{reps:3},90,false,{plyo:1,ct:6,react:1})]},
+ {id:"a4",mat:"Un cajón y un banco.",title:"Rodilla",note:"2 rondas",ex:[
+  {...exOf(SESSION_A,"stepdown"),presc:"{S} × 6 por pierna · 3\" bajando",sets:2,rest:30,cue:"Lo más específico para tu rótula. De pie en el cajón, baja el talón de la otra pierna hasta rozar el suelo en 3\"."},
+  {...exOf(SESSION_A,"copenhague"),sets:2,rest:45}]}]};
+
+const B3B={id:"B",wd:2,b2:1,title:"B · Empuje rápido y golpe por encima de la cabeza",sub:"Potencia de hombro para la bandeja, la víbora y el remate. Si hoy no juegas, terminas con sprints de pádel.",kinds:["gym"],gym:45,padel:0,rpe:[7,8],warn:null,blocks:[
+ B2B.blocks[0],
+ {id:"b1",mat:"Barra en la jaula y el balón junto a una pared.",title:"Potencia de empuje",note:"3 rondas",tip:"Si el hombro molesta al subir el brazo, cambia el push press por landmine press y el lanzamiento por uno de pecho.",ex:[
+  {...exOf(SESSION_B,"push-press"),presc:"{S} × 2 · explosivo · RIR {R}",sets:3,defaults:{kg:22.5,reps:2,RIR:2},rest:30},
+  ex("lanz-cabeza","Lanzamiento por encima de la cabeza","{S} × 5 · como una bandeja","De lado a la pared, como en la bandeja: balón de 2-3 kg por detrás de la cabeza con las dos manos, gira el tronco y lánzalo fuerte contra la pared. Alterna el lado cada serie.","medicine ball overhead throw",3,["kg","reps"],{kg:3,reps:5},90,false,{fixKg:1})]},
+ {id:"b2",mat:"Banco plano, 2 mancuernas y el balón.",title:"Press y rotación",note:"2 rondas",ex:[
+  {...exOf(SESSION_B,"press-db"),presc:"{S} × 4 · RIR {R}",sets:2,defaults:{kg:24,reps:4,RIR:2},rest:30},
+  {...exOf(SESSION_B,"lanz-rot"),presc:"{S} × 4 por lado · lo más rápido posible",sets:2,defaults:{kg:3,reps:4},fixKg:1,rest:90,cue:"Balón de 2-3 kg y máxima velocidad. El giro sale de la cadera, como una derecha."}]},
+ {id:"b3",when:"norsa",mat:"Polea a la altura del pecho.",title:"Antirrotación",note:"2 rondas",ex:[
+  ex("pallof-iso","Pallof isométrico","{S} × 25\" por lado","Brazos estirados al frente y aguanta: la polea no te gira.","pallof press hold",2,["kg","seg"],{kg:5,seg:25},45)]},
+ {id:"b4",when:"rsa",ct:20,mat:"La pala y 6 m libres (mejor en una pista o una sala).",title:"Sprints de pádel con globo",note:"3 rondas",tip:"Antes, 2 × 10 pogos. 15-20\" quieto entre esfuerzos y 3' entre series, como un cambio de lado. Con la rodilla en 3-4: en bici, 8 sprints de 6\" con 20\" de pausa.",ex:[
+  ex("rsa","Sprints de pádel con golpe de sombra","{S} series × 6 esfuerzos de 6-8\"","Con la pala, en 4-6 m: red → globo (brazos arriba, de lado y pasitos cortos hacia atrás) → bandeja de sombra → vuelves a la red; y lateral con frenada. Cada esfuerzo al 100 % y 15-20\" quieto antes del siguiente.","padel footwork drills",3,["reps"],{reps:6},180,false,{plyo:1,wk:{3:{presc:"2 series × 6 esfuerzos de 6-8\"",sets:2,fx:1},4:{presc:"1 serie × 5 esfuerzos de 6-8\"",sets:1,defaults:{reps:5},fx:1}}})]}]};
+
+const B3C={id:"C",wd:4,b2:1,title:"C · Tracción y hombro (mantener)",sub:"Mantener la fuerza de tracción y cuidar hombro y codo con poco volumen: por la tarde tienes pista.",kinds:["gym"],gym:40,padel:0,rpe:[6,7],warn:null,blocks:[
+ B2C.blocks[0],
+ {id:"c1",mat:"Barra de dominadas, cinturón con cadena y polea alta con cuerda.",title:"Tracción",note:"3 rondas",ex:[
+  {...exOf(SESSION_C,"dominada"),presc:"{S} × 3 · RIR {R}",sets:3,defaults:{kg:0,reps:3,RIR:2},cue:"Baja hasta estirar los brazos y lleva el pecho a la barra, sin balanceo. Si las 3 series de 3 te salen con 3-4 en reserva, añade un disco con la cadena."},
+  {...exOf(SESSION_C,"facepull"),sets:3,rest:60}]},
+ {id:"c2",mat:"Banco, una mancuerna, straps y polea a la altura del hombro.",title:"Remo",note:"2 rondas",ex:[
+  {...exOf(SESSION_C,"remo-manc"),presc:"{S} × 5 por lado · rápido, con straps · RIR {R}",sets:2,defaults:{kg:20,reps:5,RIR:2},cue:"Con straps, para no cargar el antebrazo antes de la pista. Sube rápido y baja controlado, tirando con el codo hacia la cadera."},
+  ex("rotext-90","Rotación externa en polea a 90°","{S} × 10 por brazo","Codo a la altura del hombro y doblado a 90°: gira hacia arriba despacio. Muy poco peso.","cable external rotation 90 90",2,["kg","reps"],{kg:2.5,reps:10},45)]},
+ {id:"c3",mat:"Banco inclinado y mancuernas.",title:"Codo y hombro de pádel",note:"2 rondas",ex:[{...exOf(SESSION_C,"curl-martillo"),sets:2},{...exOf(SESSION_C,"ytw-banco"),sets:2}]},
+ {id:"c4",mat:"Máquina de abductores o polea al tobillo, y esterilla.",title:"Cadera y movilidad",note:"2 rondas",ex:[
+  ex("abd-cadera","Abducción de cadera con carga","{S} × 12","En máquina o con la polea al tobillo. Protege tu rodilla: evita que se vaya hacia dentro al caer y al frenar.","seated hip abduction machine",2,["kg","reps"],{kg:30,reps:12},45),
+  ex("mov-ct","Movilidad de cadera y tobillo","1 × 3 min","Cadera 90/90 y tobillo contra la pared, sin prisa.","hip ankle mobility",1,["seg"],{seg:180},0)]}]};
+
+const B3D={id:"D",wd:5,b2:1,title:"D · Potencia máxima y reacción",sub:"Pocas repeticiones y todas al 100 %: salidas a la señal, cargadas con salto, caídas y lanzamientos. Si mañana compites, pulsa «Compito mañana».",kinds:["gym"],gym:50,padel:0,rpe:[7,8],warn:"Saltos y salidas: mide la glucosa antes.",blocks:[
+ B2D.blocks[0],
+ globoB2(),
+ {id:"d1",mat:"El móvil delante con el modo reacción, y la rampa.",title:"Velocidad",note:"3 rondas · con las piernas frescas",ex:[
+  ex("reactiva","Salidas reactivas desde el split-step","{S} × 4 salidas de 2-4 m","Abre el modo reacción y pon el móvil delante. No adivines: sal cuando lo veas, frena y vuelve andando.","reactive agility drill",3,["reps"],{reps:4},45,false,{plyo:1}),
+  {...exOf(SESSION_A,"sprint-rampa"),presc:"{S} × 2 de 5 m cuesta arriba · salida explosiva",sets:2,defaults:{reps:2},rest:60,plyo:1}]},
+ {id:"d2",mat:"Barra con los discos de hoy y 2 m libres.",title:"Cargada + salto vertical",note:"3 rondas",ex:[
+  {...exOf(SESSION_D,"clean"),presc:"{S} × 2 · rápida, RPE 8",sets:3,defaults:{kg:27.5,reps:2},rest:20,wk:{4:{presc:"2 × 2 · rápida, RPE 7",sets:2,fx:1}}},
+  {...exOf(ACTIVATION,"v-cmj"),presc:"{S} × 2 · máxima altura, justo después",sets:3,defaults:{reps:2},rest:150,ct:2,plyo:1,wk:{4:{sets:2,fx:1}}}]},
+ {id:"d3",mat:"Un cajón bajo (≈30 cm).",title:"Caída reactiva",note:"3 rondas",tip:"Solo con la rodilla en 0-2 y sin hinchazón; si no, caer y clavar sin rebote. Siempre con las dos piernas y aterrizando en silencio.",ex:[
+  ex("caida","Caída desde cajón bajo con rebote","{S} × 3 · cajón de 30 cm","Déjate caer (no saltes) con las dos piernas, toca y rebota hacia arriba lo más rápido que puedas.","depth jump",3,["reps"],{reps:3},120,false,{plyo:1,ct:3,lite:{name:"Caída desde cajón bajo",presc:"{S} × 3 · caer y clavar, sin rebote"}})]},
+ {id:"d4",mat:"Balón, una pared y una esterilla para las rodillas.",title:"Lanzamiento lateral",note:"2 rondas",ex:[
+  ex("lanz-lat","Lanzamiento lateral de rodillas","{S} × 3 por lado · explosivo","De rodillas y de lado a la pared: gira el tronco y lanza con todo, como un revés. Los dos lados.","tall kneeling side toss medicine ball",2,["kg","reps"],{kg:4,reps:3},60)]}]};
+const B2={A:B2A,B:B2B,C:B2C,D:B2D,"D-act":B2ACT}, B3={A:B3A,B:B3B,C:B3C,D:B3D,"D-act":B2ACT}, BSET={2:B2,3:B3};
+(()=>{const mk=e=>{e.b2=1};[...Object.values(B2),...Object.values(B3)].forEach(d=>d.blocks.forEach(b=>{b.ex.forEach(mk);if(b.wk)Object.values(b.wk).forEach(o=>(o.ex||[]).forEach(mk))}))})();
 /* Las sesiones de la fecha: en el bloque 2, títulos y textos del bloque 2 (lo hecho conserva su texto) */
-const forDate=(d,dt)=>{if(!d||blockOf(dt).n!==2)return d;const x=B2[d.id];return x?{...d,title:x.title,...(d.done?{}:{sub:x.sub})}:d};
+const forDate=(d,dt)=>{const tp=d&&blockOf(dt).tpl;if(!d||tp===1)return d;const x=BSET[tp][d.id];return x?{...d,title:x.title,...(d.done?{}:{sub:x.sub})}:d};
 /* Fin de semana cargado: compitió y jugó más de 2 partidos (o ≥200') el sábado y el domingo de antes */
 function heavyWeek(date){const m=monday(date),days=[addDays(m,-2),addDays(m,-1)].filter(d=>compOn(d));if(!days.length)return false;
   const ws=days.flatMap(d=>workoutsOn(d).filter(w=>w.padel));return ws.length>2||ws.reduce((a,w)=>a+(+w.minutes||0),0)>=200}
@@ -524,7 +586,7 @@ function materialize(day,date=new Date(),opts={}){
   const bk=blockOf(date), w=blockWeek(date), W=weekInfo(date);
   let base=day;
   if(day.id==="D"&&opts.compete)base=ACTIVATION;
-  if(bk.n===2&&B2[base.id])base={...B2[base.id],wd:base.wd};
+  if(bk.tpl>1&&BSET[bk.tpl][base.id])base={...BSET[bk.tpl][base.id],wd:base.wd};
   let src=base.blocks, fl={};
   if(base.b2){fl=b2Blocks(base,date,w,opts);src=fl.blocks}
   let blocks=src.map(b=>({...b,ex:b.ex.map(e=>{
@@ -652,8 +714,8 @@ Object.assign(VIDEOS,{"cod-180":{"v":"xqnH50ZtWFY","autor":"Vitafit"},"salto-man
 [["cod-frena","frenada"],["cod-react","reactiva"],["pallof-iso","pallof"],["a-salto","v-cmj"],["d-salto","v-cmj"],["rotext-90","b-rot"],["mov-ct","a-9090"],["clean-act","clean"],["v-lat","salto-lat"],["b-torax","toracica"],["c-torax","toracica"],["c-rot","b-rot"],["b-aprox","push-press"],["d-aprox","clean"],["v-bici","d-bici"],["b-bici","a-bici"],["c-bici","a-bici"],["v-skip","pogos"]].forEach(([a,b])=>{if(!VIDEOS[a]&&VIDEOS[b])VIDEOS[a]=VIDEOS[b]});
 const ytId=u=>{const m=String(u||"").match(/(?:youtu\.be\/|v=|shorts\/|embed\/)([\w-]{11})/);return m?m[1]:(/^[\w-]{11}$/.test(u)?u:null)};
 function allEx(){const out=[],add=e=>{out.push(e);if(e.wk)Object.values(e.wk).forEach(o=>{if(o.id)out.push({...e,...o})})};
-  const b2=Object.values(B2), b1=[...DAYS,ACTIVATION];
-  [...(blockOf().n===2?[...b2,...b1]:[...b1,...b2]),{blocks:Object.values(EXTRA)}].forEach(d=>d.blocks.forEach(b=>{b.ex.forEach(add);if(b.wk)Object.values(b.wk).forEach(o=>(o.ex||[]).forEach(add))}));return out}
+  const b2=Object.values(B2), b3=Object.values(B3), b1=[...DAYS,ACTIVATION], tp=blockOf().tpl;
+  [...(tp===3?[...b3,...b2,...b1]:tp===2?[...b2,...b3,...b1]:[...b1,...b2,...b3]),{blocks:Object.values(EXTRA)}].forEach(d=>d.blocks.forEach(b=>{b.ex.forEach(add);if(b.wk)Object.values(b.wk).forEach(o=>(o.ex||[]).forEach(add))}));return out}
 const exById=id=>allEx().find(e=>e.id===id)||null;
 function openVideo(id){
   const e=exById(id); if(!e)return;
@@ -820,7 +882,7 @@ function calLines(){
   const gym=(dt,id,done,ses)=>{let d=DAYS.find(x=>x.id===id);if(!d)return;
     if(ses?ses.dayId==="D-act":id==="D"&&(sameDay(dt,now)?effCompete():compOn(addDays(dt,1))))d=ACTIVATION;
     const mins=Math.max(20,estimateMinutes(materialize(d,dt)));
-    const b2=blockOf(dt).n===2&&B2[d.id];
+    const tpD=blockOf(dt).tpl, b2=tpD>1&&BSET[tpD][d.id];
     const notes=(d===ACTIVATION||b2?(b2||d).sub:(SUBG[id]||d.sub||"")+(LEGS.has(id)?" Mide la glucosa antes.":""))+(b2&&LEGS.has(id)?" Mide la glucosa antes.":"")+(done?" Hecha.":" Ábrela en Plan Pádel para empezar.");
     if(b2)d={...d,title:b2.title};
     if(ses)push(dt,hh(new Date(ses.start)),Math.max(10,+ses.minutes||mins),`✅ ${d.title}`,notes); /* hecha: a su hora real */
@@ -836,16 +898,20 @@ function calLines(){
   const played=dt=>{const k=localKey(dt), pl=padOn(dt).map(p=>+new Date(k+"T"+p.h+":00"));
     realWorkouts().filter(w=>w.padel&&sameDay(new Date(w.start),dt)&&new Date(w.start)<=now&&!pl.some(t=>Math.abs(new Date(w.start)-t)<3*36e5)&&!(compOn(dt)&&padelKind(w)==="Torneo"))
       .forEach(w=>{const st0=new Date(w.start);push(dt,hh(st0),w.minutes,`✅ 🎾 ${KIND_LABEL[padelKind(w)]||"Pádel"}`,`${w.minutes} min${w.res?" · "+w.res:""}.`)})};
+  /* Los días que juegas por la tarde, aviso para mirar la glucosa antes de dormir (tras el deporte de tarde suele bajar de noche) */
+  const night=dt=>{const k=localKey(dt), late=h=>hNum(h)>=15;
+    const pm=padOn(dt).some(p=>!(p.skip&&p.skip[k])&&late(p.h))||(compOn(dt)&&late(compOn(dt).h||"10:00"))||realWorkouts().some(w=>w.padel&&sameDay(new Date(w.start),dt)&&new Date(w.start).getHours()>=15);
+    if(pm)push(dt,"22:45",10,"🩸 Glucosa antes de dormir","Hoy has jugado por la tarde: mira el sensor antes de dormir y deja la alarma de bajo activada. Si va bajando, sigue tu pauta.")};
   /* semana en curso completa (lo hecho y lo que queda) */
   const p0=st.todayWd<=5?planWeek(now).plan:{};
   for(let wd=1;wd<=7;wd++){const dt=addDays(st.m,wd-1);
     if(wd<st.todayWd){sessionsOn(dt).filter(x=>GYM_IDS.includes(gymIdOf(x))).forEach(x=>gym(dt,gymIdOf(x),true,x))}
     else if(wd===st.todayWd){if(st.doneToday)sessionsOn(dt).filter(x=>GYM_IDS.includes(gymIdOf(x))).forEach(x=>gym(dt,gymIdOf(x),true,x));else if(wd<=5&&!dayClosed(now)){const tid=gymIdOf({dayId:todayBase().id});if(GYM_IDS.includes(tid))gym(dt,tid,false)}}
     else if(wd<=5&&p0[wd])gym(dt,p0[wd],false);
-    padel(dt);if(wd<=st.todayWd)played(dt)}
+    padel(dt);if(wd<=st.todayWd)played(dt);night(dt)}
   /* y la siguiente, si ya la planificaste */
   const m1=addDays(monday(now),7);
-  if(weekPlanned(m1)){const p=planWeek(m1,{}).plan;for(let wd=1;wd<=7;wd++){const dt=addDays(m1,wd-1);if(wd<=5&&p[wd])gym(dt,p[wd],false);padel(dt)}}
+  if(weekPlanned(m1)){const p=planWeek(m1,{}).plan;for(let wd=1;wd<=7;wd++){const dt=addDays(m1,wd-1);if(wd<=5&&p[wd])gym(dt,p[wd],false);padel(dt);night(dt)}}
   return L;
 }
 const calSig=()=>calLines().join("\n");
@@ -1229,14 +1295,22 @@ function coachNotes(){
   const tom=new Date(now);tom.setDate(tom.getDate()+1);
   const todayS=sessionsOn(now);
   const bkN=blockOf(now).n, bwR=blockWeekRaw(now);
-  if(bwR>=4)N.push({i:"🧭",t:bkN===1?"Última semana del bloque 1. El lunes 21 empieza el bloque 2 (Transformación): ya está en la app, con ejercicios nuevos, menos repeticiones y más velocidad.":bwR>4?"El bloque 2 ha terminado. Mientras preparamos el bloque 3 (Realización), sigue con esta semana suave.":"Última semana del bloque 2: misma intensidad y casi la mitad de series. El bloque 3 (Realización) empieza el 18 de enero."});
-  if(wd===7&&blockWeekRaw(tom)<=4){const w=blockWeek(tom),bt=blockOf(tom);N.push({i:"📅",t:sameDay(tom,bt.start)?(bt.n===1?`Mañana empieza el bloque 1. Semana 1: aprendes los pesos (te sobrarán repeticiones a propósito).`:`Mañana empieza el bloque 2 (Transformación). Semana 1: aprendes los ejercicios nuevos, con margen. La app calcula los kilos nuevos desde tu bloque 1. El miércoles 23, tests.`):`Mañana empieza la ${weekInfo(tom).t.toLowerCase()}.${w===4?(bt.n===2?" Descarga activa: misma intensidad y casi la mitad de series, para llegar rápido al bloque 3.":" Descarga: menos series y más fácil, para llegar fresco al siguiente bloque."):w===3?" Es la semana más exigente: duerme bien y vigila la glucosa.":""}`})}
+  const bkT=blockOf(now).tpl, nxS=addDays(blockOf(now).start,28).toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"}).replace(",","");
+  if(bwR>=4)N.push({i:"🧭",t:bkT===1?`Última semana del bloque ${bkN} (descarga). El ${nxS} empieza el bloque ${bkN+1} (Transformación): ejercicios nuevos, menos repeticiones y más velocidad.`
+    :bkT===2?`Última semana del bloque ${bkN}: misma intensidad y casi la mitad de series. El ${nxS} empieza el bloque ${bkN+1} (Realización): menos volumen y todo a máxima velocidad.`
+    :`Última semana del bloque ${bkN}: puesta a punto, muy poco volumen y tests. El ${nxS} empieza un ciclo nuevo (bloque ${bkN+1}, Acumulación) con tus pesos de ahora.`});
+  if(wd===7&&blockWeekRaw(tom)<=4){const w=blockWeek(tom),bt=blockOf(tom);N.push({i:"📅",t:sameDay(tom,bt.start)?(bt.n===1?`Mañana empieza el bloque 1. Semana 1: aprendes los pesos (te sobrarán repeticiones a propósito).`
+      :bt.tpl===2?`Mañana empieza el bloque ${bt.n} (Transformación). Semana 1: aprendes los ejercicios nuevos, con margen. La app calcula los kilos nuevos desde el bloque anterior.${bt.n===2?" El miércoles 23, tests.":""}`
+      :bt.tpl===3?`Mañana empieza el bloque ${bt.n} (Realización): menos series, más intensidad y todo a máxima velocidad, con el gesto del globo y de la bandeja. La app calcula los kilos desde el bloque anterior.`
+      :`Mañana empieza un ciclo nuevo: bloque ${bt.n} (Acumulación). Vuelven los ejercicios de base con tus pesos de ahora; la primera semana, con margen.`)
+     :`Mañana empieza la ${weekInfo(tom).t.toLowerCase()}.${w===4?(bt.tpl===2?" Descarga activa: misma intensidad y casi la mitad de series, para llegar rápido al bloque siguiente.":bt.tpl===3?" Puesta a punto: muy poco volumen para llegar fresco, y tests.":" Descarga: menos series y más fácil, para llegar fresco al siguiente bloque."):w===3&&bt.tpl===3?" Semana de pico: menos series y todas de máxima calidad.":w===3?" Es la semana más exigente: duerme bien y vigila la glucosa.":w===2&&bt.tpl===3?" La semana más intensa del bloque: duerme bien y vigila la glucosa.":""}`})}
   const cToday=compOn(now), cNext=[1,2,3,4,5,6].map(i=>({i,c:compOn(addDays(now,i))})).find(x=>x.c&&!(cToday&&x.c.id===cToday.id));
   if(cToday)N.push({i:"🏆",t:`Hoy compites: ${cToday.name}. Nada de gimnasio: calentamiento competitivo antes de jugar. Mide la glucosa antes y entre partidos; con los nervios suele subir y después puede bajar. Si mañana repites, 10' de agua fría al terminar.`});
   else if(cNext)N.push({i:"🏆",t:`${cNext.i===1?"Mañana":"El "+addDays(now,cNext.i).toLocaleDateString("es-ES",{weekday:"long"})} tienes ${cNext.c.name}. La app ya lo tiene en cuenta: nada de pierna pesada la víspera${addDays(now,cNext.i).getDay()===6&&cNext.i>1&&!weekState(now).doneIds.has("D")?" y el viernes, activación":""}. Duerme bien esos días.`});
   const tests=Object.values(S.tests||{}).flat().filter(x=>new Date(x.d)>=monday(blockOf(now).start));
-  if(now>=BLOCK_START&&blockWeek(now)===1&&!tests.length&&!compOn(now))N.push({i:"⏱️",t:bkN===2?"Esta semana toca repetir los tests (el miércoles 23, por la mañana y al menos 4 h antes de jugar). Hay dos nuevos: sprints repetidos y salto tras caída. Están en Progreso.":"Esta semana toca hacer los tests del bloque (salto, frenada, dominadas y 1,5 km) en un día suave. Están en Progreso.",act:"go-progreso"});
-  if(bkN===2&&bwR===4&&!Object.values(S.tests||{}).flat().some(x=>new Date(x.d)>=monday(now))&&!compOn(now))N.push({i:"⏱️",t:"Esta semana toca repetir los tests para cerrar el bloque 2 (el miércoles 13, por la mañana y al menos 4 h antes de jugar). Están en Progreso.",act:"go-progreso"});
+  const recentT=Object.values(S.tests||{}).flat().some(x=>new Date(x.d)>=addDays(monday(now),-21)); /* si los hiciste al cerrar el bloque anterior, no se repiten */
+  if(now>=BLOCK_START&&blockWeek(now)===1&&bkT!==3&&!tests.length&&!(bkN>3&&recentT)&&!compOn(now))N.push({i:"⏱️",t:bkN===2?"Esta semana toca repetir los tests (el miércoles 23, por la mañana y al menos 4 h antes de jugar). Hay dos nuevos: sprints repetidos y salto tras caída. Están en Progreso.":"Esta semana toca hacer los tests del bloque (salto, frenada, dominadas y 1,5 km) en un día suave. Están en Progreso.",act:"go-progreso"});
+  if(bkT>1&&bwR===4&&!Object.values(S.tests||{}).flat().some(x=>new Date(x.d)>=monday(now))&&!compOn(now))N.push({i:"⏱️",t:`Esta semana toca repetir los tests para cerrar el bloque ${bkN} (mejor el miércoles, por la mañana y al menos 4 h antes de jugar)${bkT===3?": así vemos cuánto has ganado en todo el ciclo":""}. Están en Progreso.`,act:"go-progreso"});
   const B=(S.body||[]).slice().sort((a,b)=>new Date(a.d)-new Date(b.d)), lastB=B.at(-1);
   if(!lastB||now-new Date(lastB.d)>5*864e5)N.push({i:"⚖️",t:"Pésate mañana al levantarte: en ayunas, después del baño y antes de beber."});
   const lastW=B.filter(b=>b.waist!=null).at(-1);
@@ -1688,7 +1762,7 @@ function prefill(step){
   if(!last)return v;
   e.metrics.forEach(m=>{if(last[m]!=null&&m!=="RIR")v[m]=last[m]});
   if(P&&last.sid===P.sid)return v;
-  if(e.b2){const r=prefillB2(e,mine,last,v);if(r)return r}
+  if(e.b2||blockOf().n>=4){const r=prefillB2(e,mine,last,v);if(r)return r} /* desde el ciclo 2, el bloque 1 también parte de tus pesos del bloque anterior */
   if(e.metrics.includes("kg")&&e.defaults.RIR!=null){
     const all=mine.filter(s=>s.sid===last.sid&&s.RIR!=null), top=all.length?Math.max(...all.map(s=>+s.kg||0)):v.kg;
     const prev=all.filter(s=>(+s.kg||0)===top); /* solo las series con tu peso de trabajo (no las de aproximación ni las rebajadas) */
@@ -1726,10 +1800,10 @@ function prefillB2(e,mine,last,v){
   if(tOf(last)<b0){
     const prev=mine.filter(x=>ok(x)&&tOf(x)<b0&&tOf(x)>=addDays(b0,-35));
     if(prev.length&&e.pct){const top=Math.max(...prev.map(x=>x.kg+bar));v.kg=Math.max(0,snapKg(e,top*e.pct-bar));
-      P&&(P.hint={t:"same",txt:`Bloque nuevo: el ${Math.round(e.pct*100)} % de tu peso del bloque 1 (${fmtNum(top-bar)} kg${bar?" de discos":""}), para moverlo rápido.`});return v}
+      P&&(P.hint={t:"same",txt:`Bloque nuevo: el ${Math.round(e.pct*100)} % de tu peso del bloque anterior (${fmtNum(top-bar)} kg${bar?" de discos":""}), para moverlo rápido.`});return v}
     const pr=prev.filter(x=>x.RIR!=null);
     if(pr.length&&e.defaults.RIR!=null){const old=v.kg;v.kg=toKg(best(pr));
-      P&&(P.hint={t:v.kg>=old?"up":"down",txt:`Bloque nuevo: menos repeticiones, así que calculo el peso desde tu bloque 1: ${fmtNum(v.kg)} kg para ${e.defaults.reps} con ${e.defaults.RIR} en reserva.`});return v}
+      P&&(P.hint={t:v.kg>=old?"up":"down",txt:`Bloque nuevo: otras repeticiones, así que calculo el peso desde tu bloque anterior: ${fmtNum(v.kg)} kg para ${e.defaults.reps} con ${e.defaults.RIR} en reserva.`});return v}
     return v}
   if(e.defaults.RIR!=null&&last.reps&&e.defaults.reps&&last.reps!==e.defaults.reps){
     const ls=mine.filter(x=>x.sid===last.sid&&ok(x)&&x.RIR!=null);
@@ -1932,7 +2006,7 @@ function drawPlayer(){
      <h2 class="exname">${esc(e.name)}</h2>
      <div style="font-weight:500;opacity:.88">${esc(e.presc)}</div>
      <p class="small muted" style="margin:6px 0 14px">${esc(e.cue)}</p>
-     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button class="vid" data-video="${e.id}">${ICON.play} Ver vídeo</button>${e.id==="reactiva"||e.id==="globo-react"||e.id==="cod-react"?`<button class="vid" data-act="react" style="background:var(--ball);color:var(--ballInk)">⚡ Modo reacción</button>`:""}${lastTxt(e.id,P.sid)?`<span class="small muted">Última vez: ${esc(lastTxt(e.id,P.sid))}</span>`:""}</div>
+     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button class="vid" data-video="${e.id}">${ICON.play} Ver vídeo</button>${e.react||e.id==="reactiva"||e.id==="globo-react"||e.id==="cod-react"?`<button class="vid" data-act="react" style="background:var(--ball);color:var(--ballInk)">⚡ Modo reacción</button>`:""}${lastTxt(e.id,P.sid)?`<span class="small muted">Última vez: ${esc(lastTxt(e.id,P.sid))}</span>`:""}</div>
      <div class="card" style="margin-top:18px;padding:18px">
        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px"><span style="font:800 22px var(--display)">Serie ${st.set+1} de ${e.sets}</span>${e.rest?`<span class="small muted">⏱ ${restText(e.rest)}</span>`:""}</div>
        ${P.hint&&st.set===0?`<div class="small" style="margin:2px 0 8px;padding:8px 10px;border-radius:10px;background:${P.hint.t==="up"?"color-mix(in srgb,var(--ok) 14%,transparent)":P.hint.t==="down"?"color-mix(in srgb,var(--warn) 14%,transparent)":"var(--surface2)"};color:${P.hint.t==="up"?"var(--ok)":P.hint.t==="down"?"var(--warn)":"var(--muted)"}">${P.hint.t==="up"?"▲ ":P.hint.t==="down"?"▼ ":"= "}${esc(P.hint.txt)}</div>`:""}
@@ -1941,6 +2015,7 @@ function drawPlayer(){
        ${e.metrics.map(m=>`<div class="stepper"><span class="lab">${m==="seg"?"seg":m==="reps"?"reps":m}${m==="kg"&&e.barbell?"<small>solo discos</small>":m==="RIR"?`<small id="rir-help" style="color:var(--ball)">${rirShort(P.vals.RIR??0)}</small>`:m==="reps"?"<small>repeticiones</small>":""}</span><span></span><button data-step="${m}" data-d="-1" aria-label="Bajar ${m}">−</button><output id="v-${m}" class="num" data-act="edit-val" data-m="${m}" role="button" tabindex="0" aria-label="Escribir ${m}" style="cursor:pointer;text-decoration:underline dotted rgba(255,255,255,.25);text-underline-offset:6px">${fmtNum(P.vals[m]??0)}</output><button data-step="${m}" data-d="1" aria-label="Subir ${m}">+</button></div>`).join("")}
      </div>
      ${P.i>0||canLater()?`<div style="display:flex;gap:8px;margin-top:12px">${P.i>0?`<button class="ghostbtn small" style="flex:1" data-act="undo-set">↶ Corregir la anterior</button>`:""}${canLater()?`<button class="ghostbtn small" style="flex:1" data-act="later">⏭ Ocupado: luego</button>`:""}</div>`:""}
+     ${gelBtn()}
    </div>
    ${e.metrics.includes("seg")?`<button class="ghostbtn" data-act="hold" style="margin-bottom:8px;border:1px solid var(--ball);color:var(--ball);font-weight:700">⏱ Cronómetro · <span id="hold-sec">${mmss(+P.vals.seg||e.defaults.seg)}</span>${perSide(e)?" por lado":""}</button>`:""}
    <button class="ballbtn" data-act="done">${P.i===P.steps.length-1?"Última serie hecha":"Serie hecha"}</button>
@@ -2033,6 +2108,13 @@ function laterSet(){
   P.vals=prefill(P.steps[P.i]); drawPlayer();
   toast(`${st.e.name}: lo dejo para ${sameB.length?"el final del bloque":"el final de la sesión"}`);
 }
+/* «Tomé gel» en plena sesión: un toque apunta la hora y lo que estabas haciendo. Al cerrar, ya sale marcado */
+const sesGels=()=>{const s=P&&S.sessions.find(x=>x.id===P.sid);return (s&&s.gels)||[]};
+function gelBtn(){const n=sesGels().length;return `<button class="ghostbtn small" style="width:100%;margin-top:10px;border:1px solid var(--heart);color:var(--heart)" data-act="gel-now">🍬 Tomé gel${n?` (${n})`:""}</button>`}
+function gelNow(){const s=P&&S.sessions.find(x=>x.id===P.sid);if(!s)return;const st=P.steps[P.i]||{};
+  (s.gels=s.gels||[]).push({t:new Date().toISOString(),ex:st.e?st.e.id:null,blk:st.b?st.b.title:null});save();
+  document.querySelectorAll("[data-act=gel-now]").forEach(b=>b.textContent=`🍬 Tomé gel (${s.gels.length})`);
+  toast(`Gel apuntado a las ${new Date().toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})}. Vuelve a mirar el sensor en unos 15 minutos.`)}
 function showRest(sec){
   P.restTotal=sec; P.restEnd=Date.now()+sec*1000; P.cd=null;
   const nx=P.steps[P.i];
@@ -2042,6 +2124,7 @@ function showRest(sec){
    <div style="text-align:center"><div class="small muted">${nx.b!==P.steps[P.i-1]?.b?`Bloque nuevo · ${esc(nx.b.title)}`:"Ahora"}</div><div style="font:800 28px var(--display)">${esc(nx.e.name)}</div><div class="small muted">Serie ${nx.set+1} de ${nx.e.sets}</div></div>
    ${nx.b!==P.steps[P.i-1]?.b&&nx.b.mat?`<div class="small" style="max-width:360px;text-align:center;padding:10px 14px;border-radius:12px;background:var(--surface);color:var(--text)">🧰 Prepara: ${esc(nx.b.mat)}</div>`:""}
    <div style="display:flex;gap:12px;width:100%;max-width:360px"><button class="ghostbtn" data-act="rest-add">+15"</button><button class="ghostbtn" style="background:var(--court);color:var(--ink)" data-act="rest-skip">Saltar</button></div>
+   <div style="width:100%;max-width:360px">${gelBtn()}</div>
    <button class="ghostbtn small" style="max-width:360px;width:100%" data-act="undo-set">↶ Corregir la serie que acabas de apuntar</button>`;
   $("#layer").appendChild(el); tick();
 }
@@ -2248,7 +2331,7 @@ function openFinish(partial){
     return}
   let mins=activeMinutes(P.start,ts);
   const rr=P.day&&Array.isArray(P.day.rpe)?P.day.rpe:null; /* el esfuerzo previsto de la sesión; calentamientos y movilidad, suave */
-  F={rpe:rr?Math.round((rr[0]+rr.at(-1))/2):3,partial,reason:null,mins,pain:{}}; FU={gel:null,fruit:null};
+  F={rpe:rr?Math.round((rr[0]+rr.at(-1))/2):3,partial,reason:null,mins,pain:{}}; {const ng=sesGels().length;FU={gel:ng?Math.min(3,ng):null,fruit:null}}
   const gymS=!!P.day&&(GYM_IDS.includes(P.day.id)||P.day.id==="D-act"); /* calentamiento de partido y movilidad: el pádel se apunta aparte */
   const s0=S.sessions.find(x=>x.id===P.sid), noGB=gymS&&(!s0||s0.gBefore==null); /* si se te olvidó al empezar, aquí la pones */
   $("#finish")?.remove();
@@ -2789,9 +2872,11 @@ function openReport(){
 }
 
 /* ============ NOVEDADES Y AJUSTES ============ */
-const APP_VERSION="2026.11.28a";
+const APP_VERSION="2026.11.28b";
 /* [icono, texto, versión]: al abrir la app nueva solo salen las novedades desde la última versión que viste */
 const CHANGELOG=[
+ ["🍬","Botón «Tomé gel» durante la sesión (también en el descanso): apunta la hora y el ejercicio, y al cerrar ya sale marcado cuántos tomaste. Y en tu calendario, los días que juegas por la tarde, un aviso a las 22:45 para mirar la glucosa antes de dormir (vuelve a pasar la semana al calendario para que aparezca).","2026.11.28b"],
+ ["🎯","Bloque 3 (Realización) listo: empieza el lunes 18 de enero. Menos series, fuerza pesada con 2-3 repeticiones, todo a máxima velocidad y con señal, lanzamientos por encima de la cabeza como la bandeja y sprints de pádel con globo. La semana 4 es de puesta a punto y tests. Después, el ciclo vuelve a empezar solo con tus pesos de ese momento.","2026.11.28b"],
  ["🔍","Segunda revisión a fondo (3 meses simulados día a día): «Hacer esta sesión hoy» y «Solo movilidad» funcionan siempre, también después de las 21:00; ninguna sesión sale repetida en la semana; el RPE que ves al cerrar es el que se guarda; al retomar una sesión se respeta «hoy juego» y «compito mañana»; las estadísticas de glucosa cuentan por tiempo, como LibreView; «Copiar mis registros» lleva solo 14 días de glucosa; medidas imposibles se rechazan; «Borrar todo» borra también las fotos.","2026.11.28a"],
  ["🍽️","Nueva tarjeta «Comida y glucosa» al terminar de entrenar o jugar: cuándo comer, qué tipo de comida, a qué horas mirar el sensor y qué fruta tomar. Cambia si fue gimnasio, pádel o competición, y si te queda otra sesión ese día te avisa de comer ya. Sin cantidades: esas, las de tu pauta.","2026.11.27f"],
  ["🔁","Cada bloque te dice cómo va: ejercicio solo, superserie, triserie o circuito, con los ejercicios numerados en orden. En plena sesión ves también qué viene después, sin esperar al descanso.","2026.11.27d"],
@@ -2933,6 +3018,7 @@ document.addEventListener("click",e=>{
       const RG={kg:[30,250,"El peso va en kg, por ejemplo 80,5"],fat:[3,60,"La grasa va en %, por ejemplo 23,5"],skm:[10,120,"El músculo va en kg, por ejemplo 40"],waist:[50,160,"La cintura va en cm, por ejemplo 90"]};
       const off=Object.keys(RG).find(k=>r[k]!=null&&(r[k]<RG[k][0]||r[k]>RG[k][1]));if(off){toast(RG[off][2]);break}addBody([r]);save();toast("Medida guardada");render();checkBadges();break}
     case "react":openReaction(P&&P.steps[P.i]?.e?.defaults?.reps||4,P&&P.steps[P.i]?.e?.id==="globo-react"?"globo":"");break;
+    case "gel-now":gelNow();break;
     case "react-close":$("#react")?.remove();break;
     case "test-save":{const id=t.dataset.id,v=$("#t-"+id).value.trim().replace(",",".");if(!v||!isFinite(+v)){toast("Escribe un número");break}S.tests=S.tests||{};(S.tests[id]=S.tests[id]||[]).push({d:new Date().toISOString(),v:+v});save();toast("Test guardado");render();checkBadges();break}
     case "video-close":$("#video")?.remove();break;
