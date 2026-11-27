@@ -1422,7 +1422,7 @@ function renderProgreso(){
    ${painCard()}
    ${bodyCard()}
    <section class="card"><div class="eyebrow" style="margin-bottom:6px">Tus sesiones en esta app</div>
-     ${done.length?done.slice(0,15).map(s=>`<div class="row"><div style="min-width:0"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(s.title)}</div><div class="small muted">${new Date(s.start).toLocaleDateString("es-ES",{day:"numeric",month:"short"})}${s.status==="parcial"?` · <span style="color:var(--warn)">Parcial${s.reason?" · "+esc(s.reason):""}</span>`:""}${s.gBefore?` · ${Math.round(s.gBefore)}→${s.gAfter?Math.round(s.gAfter):"—"} mg/dL`:""}</div>${s.note?`<div class="small" style="color:var(--text);margin-top:2px">📝 ${esc(s.note)}</div>`:""}</div><div class="num" style="text-align:right"><b style="font-size:20px">${s.rpe*s.minutes}</b><div class="small muted">RPE ${s.rpe} · ${s.minutes}'</div></div></div>`).join(""):'<p class="small muted" style="margin:0">Aquí aparecerá cada sesión que guardes, con su RPE, su carga y tu glucosa antes y después.</p>'}
+     ${done.length?done.slice(0,15).map(s=>`<div class="row"><div style="min-width:0"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(s.title)}</div><div class="small muted">${new Date(s.start).toLocaleDateString("es-ES",{day:"numeric",month:"short"})}${s.status==="parcial"?` · <span style="color:var(--warn)">Parcial${s.reason?" · "+esc(s.reason):""}</span>`:""}${s.gBefore?` · ${Math.round(s.gBefore)}→${s.gAfter?Math.round(s.gAfter):"—"} mg/dL`:""}${fuelTxt(s.fuel)?" · "+fuelTxt(s.fuel):""}</div>${s.note?`<div class="small" style="color:var(--text);margin-top:2px">📝 ${esc(s.note)}</div>`:""}</div><div class="num" style="text-align:right"><b style="font-size:20px">${s.rpe*s.minutes}</b><div class="small muted">RPE ${s.rpe} · ${s.minutes}'</div></div></div>`).join(""):'<p class="small muted" style="margin:0">Aquí aparecerá cada sesión que guardes, con su RPE, su carga y tu glucosa antes y después.</p>'}
      <button class="ghostbtn small" style="margin-top:12px" data-act="export">Copiar mis registros para el ajuste mensual</button>
    </section>
    ${badgesCard()}
@@ -2082,7 +2082,7 @@ function sessionSummary(s){
   const kgMoved=Math.round(sets.reduce((a,x)=>{const e=exById(x.ex);if(!x.reps)return a;return a+((x.kg||0)+(e&&e.barbell?20:0))*x.reps},0));
   const m=monday(), wk=S.sessions.filter(x=>x.status!=="en curso"&&new Date(x.start)>=m&&GYM_IDS.includes(gymIdOf(x))).length;
   return {title:s.title,date:new Date(s.start),minutes:s.minutes,rpe:s.rpe,load:s.rpe*s.minutes,sets:sets.length,
-    exercises:new Set(sets.map(x=>x.ex)).size,kgMoved,prs:Object.values(Object.fromEntries(((P&&P.prs)||[]).map(p=>[p.name,p]))),partial:s.status==="parcial",gBefore:s.gBefore,gAfter:s.gAfter,week:wk,gym:GYM_IDS.includes(gymIdOf(s))};
+    exercises:new Set(sets.map(x=>x.ex)).size,kgMoved,prs:Object.values(Object.fromEntries(((P&&P.prs)||[]).map(p=>[p.name,p]))),partial:s.status==="parcial",gBefore:s.gBefore,gAfter:s.gAfter,fuel:s.fuel||null,week:wk,gym:GYM_IDS.includes(gymIdOf(s))};
 }
 let lastSummary=null;
 function countUp(el,to,ms=1100){const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;if(reduce||!to){el.textContent=to.toLocaleString("es-ES");return}
@@ -2102,7 +2102,7 @@ function confetti(n=150){
 function showSummary(sm){
   lastSummary=sm;
   const el=document.createElement("div");el.className="summary";el.id="summary";el.setAttribute("role","dialog");el.setAttribute("aria-label","Resumen de la sesión");
-  const g=sm.gBefore||sm.gAfter?`<div class="small muted" style="text-align:center">💧 Glucosa ${sm.gBefore?Math.round(sm.gBefore):"—"} → ${sm.gAfter?Math.round(sm.gAfter):"—"} mg/dL</div>`:"";
+  const g=sm.gBefore||sm.gAfter?`<div class="small muted" style="text-align:center">💧 Glucosa ${sm.gBefore?Math.round(sm.gBefore):"—"} → ${sm.gAfter?Math.round(sm.gAfter):"—"} mg/dL${fuelTxt(sm.fuel)?" · "+fuelTxt(sm.fuel):""}</div>`:"";
   el.innerHTML=`<div class="inner">
     <div style="text-align:center;display:flex;flex-direction:column;gap:8px;align-items:center">
       <div style="font-size:54px;line-height:1">${sm.prs.length?"🏆":sm.partial?"👊":"🎾"}</div>
@@ -2160,6 +2160,17 @@ async function shareSummary(){
   try{const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();toast("Imagen guardada")}catch(e){toast("No se pudo compartir")}
 }
 
+/* Lo que tomaste durante la actividad: geles de rescate y fruta. Solo se apunta; la app no da cantidades */
+let FU={gel:null,fruit:null};
+const fuelSt=on=>on?"background:var(--ball);color:var(--ballInk)":"background:var(--surface);color:var(--muted)";
+function fuelHtml(){return `<div class="field"><label>Durante la actividad</label>
+  <div class="small muted" style="margin:2px 0 6px">¿Tomaste gel de glucosa?</div>
+  <div class="chips">${[[0,"No"],[1,"1"],[2,"2"],[3,"3 o más"]].map(([v,n])=>`<button class="chip" data-act="fuel" data-k="gel" data-v="${v}" aria-pressed="${FU.gel===v}" style="${fuelSt(FU.gel===v)}">${n}</button>`).join("")}</div>
+  <div class="small muted" style="margin:10px 0 6px">¿Comiste fruta?</div>
+  <div class="chips">${[[0,"No"],[1,"Sí"]].map(([v,n])=>`<button class="chip" data-act="fuel" data-k="fruit" data-v="${v}" aria-pressed="${FU.fruit===v}" style="${fuelSt(FU.fruit===v)}">${n}</button>`).join("")}</div></div>`}
+function fuelPaint(){document.querySelectorAll("[data-act=fuel]").forEach(b=>{const on=FU[b.dataset.k]===+b.dataset.v;b.setAttribute("aria-pressed",on);b.style.cssText=fuelSt(on)})}
+const fuelOut=()=>FU.gel==null&&FU.fruit==null?null:{gel:FU.gel,fruit:FU.fruit==null?null:!!FU.fruit};
+const fuelTxt=f=>!f?"":[f.gel>0?`gel ×${f.gel>=3?"3+":f.gel}`:f.gel===0?"sin gel":"",f.fruit?"fruta":""].filter(Boolean).join(" · ");
 function openFinish(partial){
   const ts=S.sets.filter(x=>x.sid===P.sid).map(x=>+new Date(x.t));
   if(!ts.length){ /* sin ninguna serie apuntada no hay sesión que guardar */
@@ -2167,7 +2178,8 @@ function openFinish(partial){
     return}
   let mins=activeMinutes(P.start,ts);
   const rr=P.day&&Array.isArray(P.day.rpe)?P.day.rpe:null; /* el esfuerzo previsto de la sesión; calentamientos y movilidad, suave */
-  F={rpe:rr?Math.round((rr[0]+rr.at(-1))/2):3,partial,reason:null,mins,pain:{}};
+  F={rpe:rr?Math.round((rr[0]+rr.at(-1))/2):3,partial,reason:null,mins,pain:{}}; FU={gel:null,fruit:null};
+  const s0=S.sessions.find(x=>x.id===P.sid), noGB=!s0||s0.gBefore==null; /* si se te olvidó al empezar, aquí la pones */
   $("#finish")?.remove();
   const el=document.createElement("div"); el.className="sheet"; el.id="finish";
   el.innerHTML=`<div class="panel" role="dialog" aria-modal="true" aria-label="Cerrar la sesión">
@@ -2175,9 +2187,12 @@ function openFinish(partial){
    <div><div style="font-weight:600;margin-bottom:8px">¿Qué tan dura ha sido? (RPE) <button data-act="help-rir" style="color:var(--ball);font-weight:700;text-decoration:underline;font-size:13px">¿Qué es?</button></div>
      <div class="rpe">${Array.from({length:10},(_,k)=>`<button data-rpe="${k+1}" aria-pressed="${k+1===7}">${k+1}</button>`).join("")}</div>
      <div id="rpe-txt">${rpeScale(7)}</div></div>
-   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+   <div style="display:grid;grid-template-columns:${noGB?"1fr 1fr 1fr":"1fr 1fr"};gap:10px">
      <div class="field"><label for="f-min">Minutos</label><input id="f-min" inputmode="numeric" value="${mins}"></div>
+     ${noGB?`<div class="field"><label for="f-gb">Glucosa antes</label><input id="f-gb" inputmode="numeric" placeholder="mg/dL"></div>`:""}
      <div class="field"><label for="f-gl">Glucosa después</label><input id="f-gl" inputmode="numeric" placeholder="mg/dL"></div></div>
+   ${noGB?`<p class="small muted" style="margin:-4px 0 0">No pusiste la glucosa al empezar: si la sabes, apúntala aquí.</p>`:""}
+   ${fuelHtml()}
    <div class="field"><label style="display:flex;justify-content:space-between;align-items:center;font-size:15px;color:var(--text)">No la he terminado <input type="checkbox" id="f-partial" ${partial?"checked":""} style="width:22px;height:22px;accent-color:#3f7df4"></label>
      <div id="reasons" class="chips" style="margin-top:10px;${partial?"":"display:none"}">${["Sin tiempo","Cansado","Me encuentro mal","Sin material","Molestia"].map(r=>`<button class="chip" data-reason="${r}" style="background:var(--surface);color:var(--muted)">${r}</button>`).join("")}</div></div>
    <div class="field"><label for="f-knee">Rodilla derecha: molestia de 0 (nada) a 10</label><div style="display:flex;align-items:center;gap:12px"><input type="range" id="f-knee" min="0" max="10" step="1" value="0" style="flex:1;accent-color:#3f7df4"><b id="f-knee-v" class="num" style="font:700 24px var(--body);min-width:28px;text-align:right">0</b></div></div>
@@ -2220,8 +2235,9 @@ function rpeText(n){return n<=3?"Muy suave":n<=5?"Moderada":n===6?"Algo dura":n=
 function saveSession(){
   const s=S.sessions.find(x=>x.id===P.sid);
   const mins=parseInt($("#f-min").value,10)||F.mins;
-  const gl=parseFloat(($("#f-gl").value||"").replace(",","."));
-  Object.assign(s,{minutes:mins,rpe:F.rpe,status:$("#f-partial").checked?"parcial":"completa",reason:$("#f-partial").checked?F.reason:null,gAfter:isFinite(gl)?gl:null,note:$("#f-note").value.trim(),knee:+$("#f-knee").value,pain:Object.keys(F.pain).length?{...F.pain}:null});
+  const gl=parseFloat(($("#f-gl").value||"").replace(",",".")), gb=$("#f-gb")?parseFloat(($("#f-gb").value||"").replace(",",".")):NaN;
+  if(isFinite(gb))s.gBefore=gb;
+  Object.assign(s,{fuel:fuelOut(),minutes:mins,rpe:F.rpe,status:$("#f-partial").checked?"parcial":"completa",reason:$("#f-partial").checked?F.reason:null,gAfter:isFinite(gl)?gl:null,note:$("#f-note").value.trim(),knee:+$("#f-knee").value,pain:Object.keys(F.pain).length?{...F.pain}:null});
   save(); const sm=sessionSummary(s); closePlayer(); render(); showSummary(sm); setTimeout(()=>checkBadges(),4200);
   if(s.knee>=4)toast("Rodilla con molestia: mañana sin saltos y, si sigue, consúltalo con tu fisio.");
   else{const z=PAINZ.find(z=>s.pain&&s.pain[z.k]>=4);if(z)toast(`${z.n} con molestia: ${z.tip}`)}
@@ -2361,14 +2377,14 @@ const ACT_CATS={A:{n:"Gimnasio · pierna y saltos (A)",c:"#3f7df4"},BC:{n:"Gimna
 function activities(){
   const L=[];
   S.sessions.filter(s=>s.status!=="en curso"&&s.minutes>0).forEach(s=>{const id=gymIdOf(s);const cat=id==="A"?"A":id==="B"||id==="C"?"BC":id==="D"?"D":id==="X"?"X":null;if(!cat)return;
-    L.push({cat,start:+new Date(s.start),min:s.minutes,gB:s.gBefore,gA:s.gAfter,rpe:s.rpe,label:s.title})});
+    L.push({cat,start:+new Date(s.start),min:s.minutes,gB:s.gBefore,gA:s.gAfter,rpe:s.rpe,label:s.title,fuel:s.fuel||null})});
   /* Pádel: lo apuntado a mano manda; un «Tenis» del reloj a menos de 1 h de uno apuntado es el mismo partido.
      Sin apuntar: el «Tenis» se clasifica según lo que planificaste a esa hora; si no hay nada, partido. */
   const manual=S.health.workouts.filter(w=>w.padel&&w.src==="manual").map(w=>+new Date(w.start));
   S.health.workouts.forEach(w=>{if(!w.padel)return;const st=+new Date(w.start);
     if(w.src!=="manual"&&manual.some(m=>Math.abs(m-st)<36e5))return;
     const cat={Partido:"partido",Entreno:"entreno",Torneo:"torneo"}[padelKind(w)]||"padel";
-    L.push({cat,start:st,min:w.minutes,gB:w.gBefore,gA:w.gAfter,rpe:w.rpe,label:w.type})});
+    L.push({cat,start:st,min:w.minutes,gB:w.gBefore,gA:w.gAfter,rpe:w.rpe,label:w.type,fuel:w.fuel||null})});
   return L.sort((a,b)=>a.start-b.start);
 }
 function actMetrics(x){
@@ -2399,7 +2415,7 @@ function glucoseCard(){
      <li>En el iPhone, abre Safari y entra en <b>libreview.com</b> con tu cuenta de LibreLink.</li>
      <li>Arriba a la derecha, <b>Descargar datos de glucosa</b>. Confirma el «no soy un robot» y pulsa <b>Descargar</b>.</li>
      <li>Guarda el archivo en Archivos y elígelo con el botón de arriba. Repítelo cada 2-4 semanas.</li></ol></details>
-   ${man.length?`<div class="small muted" style="margin-top:2px">Pádel apuntado:</div>${man.map(w=>`<div class="row" style="padding:6px 0"><span class="small">${new Date(w.start).toLocaleDateString("es-ES",{weekday:"short",day:"numeric",month:"short"})} · ${esc(KIND_LABEL[w.kind]||"Pádel")} · ${w.minutes}'</span><button class="chip" style="background:var(--surface2);color:var(--muted)" data-act="padel-del" data-id="${esc(w.id)}" aria-label="Borrar">✕</button></div>`).join("")}`:""}
+   ${man.length?`<div class="small muted" style="margin-top:2px">Pádel apuntado:</div>${man.map(w=>`<div class="row" style="padding:6px 0"><span class="small">${new Date(w.start).toLocaleDateString("es-ES",{weekday:"short",day:"numeric",month:"short"})} · ${esc(KIND_LABEL[w.kind]||"Pádel")} · ${w.minutes}'${fuelTxt(w.fuel)?" · "+fuelTxt(w.fuel):""}</span><button class="chip" style="background:var(--surface2);color:var(--muted)" data-act="padel-del" data-id="${esc(w.id)}" aria-label="Borrar">✕</button></div>`).join("")}`:""}
   </section>`;
 }
 
@@ -2531,6 +2547,7 @@ function openPadelLog(editId,pre){
   document.querySelector("#padellog")?.remove();
   const w0=editId?S.health.workouts.find(x=>x.id===editId):null, now=new Date();
   const w=w0||(pre?{kind:pre.kind,start:new Date(pre.d+"T"+(pre.h||"10:00")+":00").toISOString(),minutes:+pre.min||90,name:pre.name||null}:null), st=w?new Date(w.start):null;
+  FU={gel:w?.fuel?.gel??null,fruit:w?.fuel?.fruit==null?null:(w.fuel.fruit?1:0)};
   PL={kind:w?padelKind(w):"Partido",res:w?.res??null,legs:w?.legs??null,move:w?.move??null,fails:(w?.fails||[]).slice(),edit:w0?w0.id:null,plan:pre?pre.ref:null,name:w?.name||null};
   const g=new Date(+now-2*36e5), d=st?localKey(st):dayKey(g), hh=st?`${String(st.getHours()).padStart(2,"0")}:${String(st.getMinutes()).padStart(2,"0")}`:String(g.getHours()).padStart(2,"0")+":00"; /* por defecto, hace 2 h (de madrugada, anoche) */
   const val=v=>v==null?"":esc(fmtNum(v));
@@ -2548,6 +2565,7 @@ function openPadelLog(editId,pre){
      <div class="field"><label for="pl-ga">Glucosa después</label><input id="pl-ga" inputmode="numeric" placeholder="mg/dL" value="${val(w?.gAfter)}"></div></div>
    <div id="pl-rs">${rpeScale(+(w&&w.rpe)||0,1)}</div>
    <p class="small muted" style="margin:0">Si importas la glucosa de LibreView, las de antes y después no hacen falta: la app las saca del sensor.</p>
+   ${fuelHtml()}
    <div style="border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:10px">
      <div style="font-weight:700">Cómo fue <span class="small muted" style="font-weight:500">· 20 segundos, opcional</span></div>
      <div class="chips">${["Gané","Perdí","Sin resultado"].map(v=>`<button class="chip" data-act="pl-set" data-k="res" data-v="${v}" aria-pressed="${PL.res===v}" style="${plOn("res",v)}">${v}</button>`).join("")}</div>
@@ -2565,7 +2583,7 @@ function savePadelLog(){
   const st=new Date(`${d}T${h}:00`); if(isNaN(st)){toast("Fecha no válida");return}
   const n=v=>{v=parseFloat((v||"").replace(",","."));return isFinite(v)?v:null};
   const rec={type:"Pádel · "+PL.kind,kind:PL.kind,padel:true,start:st.toISOString(),minutes:m,rpe:n($("#pl-r").value),gBefore:n($("#pl-gb").value),gAfter:n($("#pl-ga").value),
-    res:PL.res,legs:PL.legs,move:PL.move,fails:PL.fails.slice(),note:($("#pl-note").value||"").trim()||null,name:PL.name||null};
+    res:PL.res,legs:PL.legs,move:PL.move,fails:PL.fails.slice(),note:($("#pl-note").value||"").trim()||null,name:PL.name||null,fuel:fuelOut()};
   const w=PL.edit&&S.health.workouts.find(x=>x.id===PL.edit);
   let wid=w?w.id:"m"+st.getTime()+Math.random().toString(36).slice(2,6); /* único aunque apuntes dos partidos a la misma hora */
   if(w)Object.assign(w,rec);else S.health.workouts.push({id:wid,src:"manual",...rec});
@@ -2695,9 +2713,10 @@ function openReport(){
 }
 
 /* ============ NOVEDADES Y AJUSTES ============ */
-const APP_VERSION="2026.11.27a";
+const APP_VERSION="2026.11.27b";
 /* [icono, texto, versión]: al abrir la app nueva solo salen las novedades desde la última versión que viste */
 const CHANGELOG=[
+ ["🍎","Al terminar el gimnasio o al apuntar el pádel: «¿Tomaste gel?» (no, 1, 2, 3 o más) y «¿Comiste fruta?». Y si se te olvidó poner la glucosa al empezar, ahora puedes ponerla al final. Así sabemos qué subidas son del gel y cuáles de los nervios.","2026.11.27b"],
  ["🏆","El día después de competir, la sesión de pierna (D) sale en versión corta por defecto, y la app te ofrece quedarte en movilidad si llegas reventado. Puedes quitar la versión corta si de verdad vas fresco.","2026.11.27a"],
  ["🔍","Revisión a fondo de la app: la recuperación tiene en cuenta todo tu día (también si juegas tarde o pasada la medianoche); el día después de competir no hay pierna pesada; la B no lleva sprints la víspera de competir; dos pádeles el mismo día se apuntan bien; al cambiar de semana el peso se ajusta al nuevo RIR; y el aviso de glucosa del spa te dice que, si tienes síntomas, salgas y la trates ya.","2026.11.25c"],
  ["🧖","Recuperación arreglada: si después del gimnasio te queda pádel o competición ese mismo día, la app ya no te manda al spa. Te dice que esperes a terminar el último esfuerzo y, cuando lo apuntas, te da la recuperación buena.","2026.11.25b"],
@@ -2809,6 +2828,7 @@ document.addEventListener("click",e=>{
     case "go":go();break;
     case "done":{const t0=performance.now();if(P&&P.lastTap&&t0-P.lastTap<700)break; /* un doble toque no se salta un ejercicio */
       if(P)P.lastTap=t0;completeSet();break}
+    case "fuel":{const k=t.dataset.k,v=+t.dataset.v;FU[k]=FU[k]===v?null:v;fuelPaint();break}
     case "pz":{const z=t.dataset.z;if(!F)break;if(F.pain[z]!=null)delete F.pain[z];else F.pain[z]=3;pzPaint();break}
     case "rest-add":P.restEnd+=15000;P.restTotal+=15;P.cd=null;tick();break;
     case "hold":if(!P.hold&&!P.restEnd)startHold();break;
