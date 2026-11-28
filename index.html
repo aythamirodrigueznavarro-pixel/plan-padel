@@ -301,6 +301,25 @@ const RECOVERY={id:"X",wd:3,title:"Movilidad y rodillo",sub:"Opcional, 20 minuto
   ex("toracica","Rotación torácica en cuadrupedia","8 por lado","Sigue el codo con la mirada.","quadruped thoracic rotation",1,["reps"],{reps:8},0),
   ex("x-eliptica","Elíptica suave (opcional)","10 min en zona 2","Puedes hablar sin cortarte. Ideal para recuperar.","elliptical zone 2",1,["seg"],{seg:600},0)]}]};
 
+/* En casa (opcional): para cuando no puedes ir al gimnasio o te apetece moverte. TRX, elástico, barra de dominadas, suelo y rodillo.
+   No cuenta como A, B, C ni D: la sesión de gimnasio que tocaba hoy se recoloca en la semana. */
+const HOME={id:"H",wd:0,title:"En casa · TRX, elástico y barra",sub:"Opcional, unos 30 minutos con lo que tienes en casa: pierna a una pierna, dominadas y flexiones, el giro del golpe y un poco de rodillo. La sesión de gimnasio de hoy te la recoloco en la semana si cabe.",kinds:["casa"],gym:30,padel:0,rpe:[5,6],warn:"Mide la glucosa antes de empezar y ten el gel a mano, también en casa.",blocks:[
+ {id:"h0",mat:"Esterilla, el elástico atado a la barra o a la puerta y 2 m libres.",title:"Calentamiento",note:"1 vuelta · 5 min",ex:[
+  ex("h-tobillo","Tobillo contra la pared","10 por pierna","Pie a un palmo de la pared: lleva la rodilla a tocarla sin levantar el talón.","knee to wall ankle mobility",1,["reps"],{reps:10},0),
+  ex("h-9090","Cadera 90/90","6 cambios por lado","El giro sale de la cadera, espalda recta.","90 90 hip switch mobility",1,["reps"],{reps:6},0),
+  ex("h-rot","Rotación externa 90/90 con elástico","10 por brazo","Elástico atado a la altura del hombro. Codo a esa altura y gira despacio hacia atrás. Protege el hombro de la bandeja y el remate.","90 90 external rotation band",1,["reps"],{reps:10},0),
+  ex("h-globo","Giro al globo en el sitio","3 por lado","En posición de volea: di «¡globo!», brazos arriba ya, gira hombros y cadera de lado y da 2 pasitos cortos hacia atrás. Vuelve y al otro lado. Rápido de pies y suave al apoyar.","padel footwork lob retreat",1,["reps"],{reps:3},0)]},
+ {id:"h1",mat:"TRX colgado de la barra de dominadas (o de la puerta) a media altura.",title:"Pierna y rodilla",note:"Superserie · 3 rondas",ex:[
+  ex("h-pistol","Sentadilla a una pierna con TRX","{S} × 6 por pierna · RIR {R}","Agarra las asas con los brazos estirados. Baja en 3\" sobre una pierna, con la rodilla en la línea del pie y sin que se vaya hacia dentro. Usa los brazos solo lo justo para subir. Si cuesta, baja menos.","trx single leg squat",3,["reps","RIR"],{reps:6,RIR:2},20),
+  ex("h-isquio","Curl de isquio con TRX","{S} × 8","Tumbado boca arriba con los talones en las asas. Sube la cadera y lleva los talones hacia el culo sin dejarla caer. Si es fácil, a una pierna.","trx hamstring curl",3,["reps"],{reps:8},45)]},
+ {id:"h2",mat:"Barra de dominadas y el suelo para las flexiones.",title:"Tracción y empuje",note:"Superserie · 3 rondas",ex:[
+  ex("h-dominada","Dominada","{S} × 5 · RIR {R}","Baja hasta estirar los brazos y lleva el pecho hacia la barra, sin balanceo. Si salen fáciles, baja en 3\".","pull up technique",3,["reps","RIR"],{reps:5,RIR:2},20),
+  ex("h-flexion","Flexiones","{S} × 10 · RIR {R}","Cuerpo en línea, codos a 45° del cuerpo y el pecho casi al suelo. Si te salen más de 15, pon los pies en una silla.","push up technique",3,["reps","RIR"],{reps:10,RIR:2},45)]},
+ {id:"h3",mat:"El elástico atado arriba, en la barra, y el sofá para la copenhague.",title:"Giro del golpe y aductor",note:"Superserie · 2 rondas",ex:[
+  ex("h-lenador","Leñador con elástico","{S} × 8 por lado","De lado al elástico, tira en diagonal desde arriba hasta la cadera contraria. El giro sale de la cadera y al volver frenas con el abdomen: es el gesto de la bandeja y el remate.","band high to low woodchop",2,["reps"],{reps:8},20),
+  ex("h-copen","Copenhague en el sofá","{S} × 20\" por lado","Pierna de arriba apoyada en el sofá y el cuerpo en línea. Si molesta la ingle, apoya la rodilla en vez del pie.","copenhagen plank",2,["seg"],{seg:20},45)]},
+ {id:"h4",mat:"Rodillo y esterilla.",title:"Rodillo y movilidad",note:"1 vuelta · 3 min",ex:[RECOVERY.blocks[0].ex[0],RECOVERY.blocks[0].ex[1],RECOVERY.blocks[1].ex[0]]}]};
+
 const SESSION_C={id:"C",wd:4,title:"C · Tracción, agarre y hombro",sub:"Tracción, agarre, codo y hombro. Las piernas descansan.",kinds:["gym"],gym:65,padel:0,rpe:[7,7],warn:null,blocks:[
  {id:"c0",mat:"Bici o remo, goma y barra de dominadas.",title:"Calentamiento",note:"1 vuelta · 7 min",ex:[
   ex("c-bici","Bici o remo","3 min, subiendo el ritmo","Empieza suave y acaba sudando un poco.","rowing machine warm up",1,["seg"],{seg:180},0),
@@ -610,7 +629,7 @@ function materialize(day,date=new Date(),opts={}){
 /* Duración estimada, ajustada con tu sesión real del 24-11: trabajo (x2 si es por lado), descanso de la app,
    15" por serie para apuntar y colocarte, y 90" por cambio de bloque para preparar el material. */
 const perSide=e=>/por (lado|pierna|brazo|mano)/.test(e.presc);
-const blockGap=day=>day.kinds&&day.kinds.includes("suave")?0:90;
+const blockGap=day=>day.kinds&&day.kinds.includes("suave")?0:day.kinds&&day.kinds.includes("casa")?30:90;
 function estimateMinutes(day){
   let s=0;
   day.blocks.forEach((b,bi)=>{if(bi)s+=blockGap(day);b.ex.forEach(e=>{
@@ -620,7 +639,7 @@ function estimateMinutes(day){
   return Math.round(s/60);
 }
 
-const KIND={gym:["Gym","var(--court)"],padel:["Pádel","var(--ball)"],compite:["Compite","var(--warn)"],suave:["Suave","var(--ok)"],descanso:["Descanso","var(--muted)"]};
+const KIND={gym:["Gym","var(--court)"],padel:["Pádel","var(--ball)"],compite:["Compite","var(--warn)"],suave:["Suave","var(--ok)"],casa:["En casa","var(--court)"],descanso:["Descanso","var(--muted)"]};
 
 /* Tus marcas con Marcfit (en barra ya suma los 20 kg de la barra) */
 const LIFTS=[
@@ -688,7 +707,7 @@ const effCompete=()=>{const o=dayOpts();return o.compete!=null?!!o.compete:!!com
 const todayBase=()=>{const now=new Date(),o=dayOpts(),st=weekState(now),wd=st.todayWd,nat=DAYS[wd-1],pl=weekPlanned(st.m);
   if(st.doneToday){const s0=sessionsOn(now).find(x=>gymIdOf(x)===st.doneToday);return s0&&s0.dayId==="D-act"?{...ACTIVATION,wd}:placed(st.doneToday,wd,pl)}
   if(compOn(now))return compDayObj(now); /* el día que compites, nada de gimnasio: calentamiento competitivo */
-  const sw=o.swap&&!o.autoSwap&&!playedToday(now)&&[...DAYS,ACTIVATION].find(x=>x.id===o.swap); /* «Hacer esta sesión hoy» (aunque sea tarde) */
+  const sw=o.swap&&!o.autoSwap&&!playedToday(now)&&[...DAYS,ACTIVATION,HOME].find(x=>x.id===o.swap); /* «Hacer esta sesión hoy» (aunque sea tarde) */
   if(sw)return sw.wd===wd?sw:{...sw,wd};
   if(wd>5)return pl?weekendObj(now):nat;
   const p=planWeek(now).plan[wd];
@@ -796,7 +815,7 @@ function planWeek(now=new Date(),optsIn){
     const isToday=wd===st.todayWd, dDay=addDays(st.m,wd-1);
     if(isToday&&st.doneToday){days.push({wd,fixed:st.doneToday});continue}
     if(isToday&&o.swap&&!o.autoSwap&&GYM_IDS.includes(o.swap)&&!playedToday(now)&&!compOn(dDay)){days.push({wd,fixed:o.swap});continue} /* la que elegiste a mano para hoy (aunque sea tarde) */
-    if(isToday&&o.swap==="X"&&!o.autoSwap){days.push({wd,comp:true});continue} /* «Hoy, solo movilidad»: lo de hoy se recoloca */
+    if(isToday&&(o.swap==="X"||o.swap==="H")&&!o.autoSwap){days.push({wd,comp:true});continue} /* «Hoy, solo movilidad»: lo de hoy se recoloca */
     if(compOn(dDay)||(isToday&&dayClosed(now))){days.push({wd,comp:true});continue}
     const pl=padOn(dDay), early=pl.some(p=>hNum(p.h)<GYM_END_H);
     let busy;
@@ -841,7 +860,7 @@ function restDay(wd,dt){const isT=dt?sameDay(dt,new Date()):wd===(new Date().get
 function pastDayObj(dt){
   const wd=(dt.getDay()+6)%7+1, ses=sessionsOn(dt), pad=workoutsOn(dt).filter(w=>w.padel);
   const pm=pad.reduce((a,w)=>a+w.minutes,0), ptxt=pad.map(w=>`${KIND_LABEL[padelKind(w)]||"Pádel"} ${w.minutes}'${w.res?" · "+w.res:""}`).join(" + ");
-  if(ses.length){const id=ses[0].dayId, d=id==="D-act"?ACTIVATION:DAYS.find(x=>x.id===id)||RECOVERY;
+  if(ses.length){const id=ses[0].dayId, d=id==="D-act"?ACTIVATION:[...DAYS,HOME].find(x=>x.id===id)||RECOVERY;
     return {...d,wd,sub:`Hecha${ses.length>1?` (${ses.length} sesiones)`:""}.${pm?` Además, pádel: ${ptxt}.`:""}`,kinds:d.kinds.filter(k=>k!=="padel"),done:true}}
   const c=compOn(dt);
   if(pad.length)return {...RECOVERY,id:"P",wd,title:c?`🏆 ${c.name}`:pad.length>1?"Pádel":`Pádel · ${KIND_LABEL[padelKind(pad[0])]||"partido"}`,sub:`${ptxt}. Sin gimnasio ese día.`,kinds:c?["compite"]:[],gym:0,padel:pm,blocks:[],done:true};
@@ -1344,6 +1363,12 @@ function coachNotes(){
   </section>`;
 }
 
+/* Botón para elegir la sesión de casa (o volver a lo que tocaba) */
+function homeBtn(d,done,md,now){
+  if(done||md||compOn(now)||d.kinds.includes("compite"))return "";
+  if(d.id==="H")return `<button class="ghostbtn" data-act="day-unswap">Volver a lo que tocaba hoy</button>`;
+  return `<button class="ghostbtn" data-act="plan-apply" data-id="H">🏠 Hoy entreno en casa (≈${estimateMinutes(materialize(HOME,now))}')</button>`;
+}
 function renderHoy(){
   const d=today(), now=new Date(), md=isMatchDay(d), done=sessionsOn(now).find(s=>s.dayId===d.id&&(!md||s.part==="post"));
   const g=latestGlucose(), mins=g?Math.round((Date.now()-new Date(g.t))/60000):null;
@@ -1363,13 +1388,14 @@ function renderHoy(){
      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${d.kinds.map(k=>chip(k)).join("")}<span style="margin-left:auto" class="num small muted">${d.rpe?(d.rpe[0]===d.rpe[1]?"RPE "+d.rpe[0]:`RPE ${d.rpe[0]}–${d.rpe[1]}`):""}</span></div>
      <h2 class="title">${esc(d.title)}</h2>
      <p class="muted" style="margin:0">${esc(d.sub)}</p>
-     <div style="display:flex;gap:22px">${d.gym?stat(done?done.minutes:"≈"+estimateMinutes(d),"min de gym"):""}${d.padel?stat(d.padel,"min de pádel"):""}${stat(nEx,"ejercicios")}</div>
+     <div style="display:flex;gap:22px">${d.gym?stat(done?done.minutes:"≈"+estimateMinutes(d),d.id==="H"?"min en casa":"min de gym"):""}${d.padel?stat(d.padel,"min de pádel"):""}${stat(nEx,"ejercicios")}</div>
      ${d.gym&&!done?`<div class="chips">
        ${(d.id==="D"||d.id==="D-act")?`<button class="chip" data-act="toggle-compete" style="${effCompete()?"background:var(--warn);color:var(--ink)":"background:var(--surface2);color:var(--muted)"}">${effCompete()?"✓ ":""}Compito mañana</button>`:""}
        <button class="chip" data-act="toggle-short" style="${effShort()?"background:var(--court);color:var(--ink)":"background:var(--surface2);color:var(--muted)"}">${effShort()?"✓ ":""}Versión corta (poco tiempo o día malo)</button>
      </div>`:""}
      ${d.warn?`<div style="background:color-mix(in srgb,var(--ball) 10%,transparent);color:var(--ball);border-radius:14px;padding:12px;font-size:13px;font-weight:500">${ICON.drop} ${esc(d.warn)}</div>`:""}
      ${done?`<div style="color:var(--ok);font-weight:600">✓ Sesión guardada · RPE ${done.rpe} · carga ${done.rpe*done.minutes} UA</div>`:`${md&&matchDone("cal")?`<div style="color:var(--ok);font-weight:600">✓ Calentamiento hecho</div>`:""}<button class="ballbtn" data-act="start">${md?(nextMatchPart()==="post"?"Recuperación (al acabar de jugar)":"Empezar calentamiento"):d.kinds.includes("compite")||d.id==="sab"||d.id==="dom"?"Empezar calentamiento":"Empezar sesión"}</button>`}
+     ${homeBtn(d,done,md,now)}
    </section>
    ${playedTodayCard()}
    ${recoveryCard()}
@@ -1823,7 +1849,7 @@ const isMatchDay=d=>!!d&&d.blocks.length===2&&d.blocks[0].id==="cal"&&d.blocks[1
 function matchPart(d,part){return {...d,blocks:d.blocks.filter(b=>b.id===part),part,title:part==="cal"?"Calentamiento competitivo":"Recuperación después de jugar"}}
 const matchDone=(part,now=new Date())=>sessionsOn(now).some(s=>s.part===part);
 const nextMatchPart=()=>matchDone("cal")||playedToday()?"post":"cal";
-function rebuildDay(s){const base=s.dayId==="D-act"?ACTIVATION:[...DAYS,ACTIVATION].find(d=>d.id===s.dayId);if(!base)return null;let d=materialize(base,new Date(s.start),{...(s.mo||{}),short:!!s.short});
+function rebuildDay(s){const base=s.dayId==="D-act"?ACTIVATION:[...DAYS,ACTIVATION,HOME].find(d=>d.id===s.dayId);if(!base)return null;let d=materialize(base,new Date(s.start),{...(s.mo||{}),short:!!s.short});
   if(Array.isArray(s.bl)&&s.bl.length){const keep=d.blocks.filter(b=>s.bl.includes(b.id));if(keep.length)d={...d,blocks:keep}} /* los mismos bloques con los que empezó */if(s.part&&isMatchDay(d))d=matchPart(d,s.part);return s.extra?withExtra(d):d}
 /* Minutos de verdad: suma los ratos entre series, cada uno como mucho 15'. Así no cuentan ni las pausas largas
    en mitad de la sesión ni las horas después si cerraste la app. */
@@ -2266,7 +2292,7 @@ function showSummary(sm){
     <div class="sgrid">
       <div><b data-count="${sm.minutes}">0</b><span>minutos</span></div>
       <div style="animation-delay:.08s"><b data-count="${sm.sets}">0</b><span>series · ${sm.exercises} ${sm.exercises===1?"ejercicio":"ejercicios"}</span></div>
-      <div style="animation-delay:.16s"><b data-count="${sm.kgMoved}">0</b><span>kg movidos</span></div>
+      ${sm.kgMoved?`<div style="animation-delay:.16s"><b data-count="${sm.kgMoved}">0</b><span>kg movidos</span></div>`:`<div style="animation-delay:.16s"><b data-count="${sm.rpe}">0</b><span>esfuerzo (RPE)</span></div>`}
       <div style="animation-delay:.24s"><b data-count="${sm.load}">0</b><span>carga (RPE ${sm.rpe})</span></div>
     </div>
     ${sm.prs.length?`<div class="prlist"><div class="eyebrow" style="color:#f7d95c">Récords personales</div>${sm.prs.map(p=>`<div class="small" style="color:var(--text)"><b>${esc(p.name)}</b> · ${esc(p.txt)}</div>`).join("")}</div>`:""}
@@ -2332,7 +2358,7 @@ function openFinish(partial){
   let mins=activeMinutes(P.start,ts);
   const rr=P.day&&Array.isArray(P.day.rpe)?P.day.rpe:null; /* el esfuerzo previsto de la sesión; calentamientos y movilidad, suave */
   F={rpe:rr?Math.round((rr[0]+rr.at(-1))/2):3,partial,reason:null,mins,pain:{}}; {const ng=sesGels().length;FU={gel:ng?Math.min(3,ng):null,fruit:null}}
-  const gymS=!!P.day&&(GYM_IDS.includes(P.day.id)||P.day.id==="D-act"); /* calentamiento de partido y movilidad: el pádel se apunta aparte */
+  const gymS=!!P.day&&(GYM_IDS.includes(P.day.id)||P.day.id==="D-act"||P.day.id==="H"); /* calentamiento de partido y movilidad: el pádel se apunta aparte */
   const s0=S.sessions.find(x=>x.id===P.sid), noGB=gymS&&(!s0||s0.gBefore==null); /* si se te olvidó al empezar, aquí la pones */
   $("#finish")?.remove();
   const el=document.createElement("div"); el.className="sheet"; el.id="finish";
@@ -2529,10 +2555,10 @@ function padelKind(w){
 }
 const KIND_LABEL={Partido:"Amistoso",Entreno:"Entreno",Torneo:"Competición"};
 const ACT_CATS={A:{n:"Gimnasio · pierna y saltos (A)",c:"#3f7df4"},BC:{n:"Gimnasio · tren superior (B y C)",c:"#8b7cf6"},D:{n:"Gimnasio · potencia y velocidad (D)",c:"#f5a844"},
-  X:{n:"Movilidad",c:"#92a0bb"},partido:{n:"Pádel · partido amistoso",c:"#d9ea4c"},entreno:{n:"Pádel · entreno con entrenador",c:"#52cf90"},torneo:{n:"Pádel · competición (torneo o liga)",c:"#fa6672"},padel:{n:"Pádel (Apple Watch)",c:"#c9e04a"}};
+  X:{n:"Movilidad",c:"#92a0bb"},H:{n:"En casa (TRX y elástico)",c:"#4fb3c9"},partido:{n:"Pádel · partido amistoso",c:"#d9ea4c"},entreno:{n:"Pádel · entreno con entrenador",c:"#52cf90"},torneo:{n:"Pádel · competición (torneo o liga)",c:"#fa6672"},padel:{n:"Pádel (Apple Watch)",c:"#c9e04a"}};
 function activities(){
   const L=[];
-  S.sessions.filter(s=>s.status!=="en curso"&&s.minutes>0).forEach(s=>{const id=gymIdOf(s);const cat=id==="A"?"A":id==="B"||id==="C"?"BC":id==="D"?"D":id==="X"?"X":null;if(!cat)return;
+  S.sessions.filter(s=>s.status!=="en curso"&&s.minutes>0).forEach(s=>{const id=gymIdOf(s);const cat=id==="A"?"A":id==="B"||id==="C"?"BC":id==="D"?"D":id==="X"?"X":id==="H"?"H":null;if(!cat)return;
     L.push({cat,start:+new Date(s.start),min:s.minutes,gB:s.gBefore,gA:s.gAfter,rpe:s.rpe,label:s.title,fuel:s.fuel||null})});
   /* Pádel: lo apuntado a mano manda; un «Tenis» del reloj a menos de 1 h de uno apuntado es el mismo partido.
      Sin apuntar: el «Tenis» se clasifica según lo que planificaste a esa hora; si no hay nada, partido. */
@@ -2872,9 +2898,10 @@ function openReport(){
 }
 
 /* ============ NOVEDADES Y AJUSTES ============ */
-const APP_VERSION="2026.11.28b";
+const APP_VERSION="2026.11.28c";
 /* [icono, texto, versión]: al abrir la app nueva solo salen las novedades desde la última versión que viste */
 const CHANGELOG=[
+ ["🏠","Nueva sesión opcional «En casa» (unos 30 minutos) con TRX, elástico, barra de dominadas, flexiones y rodillo, para cuando no puedes ir al gimnasio o te apetece moverte. En Hoy, pulsa «Hoy entreno en casa». La sesión de gimnasio que tocaba se recoloca en la semana.","2026.11.28c"],
  ["🍬","Botón «Tomé gel» durante la sesión (también en el descanso): apunta la hora y el ejercicio, y al cerrar ya sale marcado cuántos tomaste. Y en tu calendario, los días que juegas por la tarde, un aviso a las 22:45 para mirar la glucosa antes de dormir (vuelve a pasar la semana al calendario para que aparezca).","2026.11.28b"],
  ["🎯","Bloque 3 (Realización) listo: empieza el lunes 18 de enero. Menos series, fuerza pesada con 2-3 repeticiones, todo a máxima velocidad y con señal, lanzamientos por encima de la cabeza como la bandeja y sprints de pádel con globo. La semana 4 es de puesta a punto y tests. Después, el ciclo vuelve a empezar solo con tus pesos de ese momento.","2026.11.28b"],
  ["🔍","Segunda revisión a fondo (3 meses simulados día a día): «Hacer esta sesión hoy» y «Solo movilidad» funcionan siempre, también después de las 21:00; ninguna sesión sale repetida en la semana; el RPE que ves al cerrar es el que se guarda; al retomar una sesión se respeta «hoy juego» y «compito mañana»; las estadísticas de glucosa cuentan por tiempo, como LibreView; «Copiar mis registros» lleva solo 14 días de glucosa; medidas imposibles se rechazan; «Borrar todo» borra también las fotos.","2026.11.28a"],
@@ -3033,7 +3060,7 @@ document.addEventListener("click",e=>{
     case "match-later":setDayOpt("matchLater",true);setDayOpt("matchSoon",false);autoPlan();render();break;
     case "match-ask":setDayOpt("ask",true);render();break;
     case "match-reset":{const o=dayOpts();delete o.matchSoon;delete o.matchLater;if(o.autoSwap){delete o.swap;delete o.autoSwap}S.opts[dayKey()]=o;save();render();break}
-    case "plan-apply":{const id=t.dataset.id;setDayOpt("autoSwap",false);setDayOpt("swap",id!=="X"&&id===DAYS[(new Date().getDay()+6)%7].id?null:id);render();window.scrollTo(0,0);toast(id==="X"?"Hoy, movilidad":"Hoy toca la "+id);break} /* «solo movilidad» se guarda siempre, también el miércoles */
+    case "plan-apply":{const id=t.dataset.id;setDayOpt("autoSwap",false);setDayOpt("swap",id!=="X"&&id===DAYS[(new Date().getDay()+6)%7].id?null:id);render();window.scrollTo(0,0);toast(id==="X"?"Hoy, movilidad":id==="H"?"Hoy, en casa":"Hoy toca la "+id);break} /* «solo movilidad» se guarda siempre, también el miércoles */
     case "skip-missed":{const st=weekState();S.skip=S.skip||{};const k=dayKey(st.m);S.skip[k]=[...new Set([...(S.skip[k]||[]),...st.missed])];save();render();toast("Vale, seguimos con lo que queda de semana");break}
     case "go-progreso":tab="progreso";render();window.scrollTo(0,0);break;
     case "share-summary":shareSummary();break;
